@@ -446,7 +446,7 @@ const TEAM = [
     photo: 'assets/current_staff/norman-downing1509518804318.png.webp',
   },
   {
-    name:    'Artem A. Trotsyuk, Ph.D.',
+    name:    'Artem A. Trotsyuk',
     badge:    'Member of Technical Staff',
     role:   'Postdoctoral Scholar',
     photo:   'assets/current_staff/artem-trotsyuk1694722251843.png.webp',
