@@ -1,0 +1,1858 @@
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  HEAL-AI · css/style.css                                              ║
+   ║  Stanford Medicine — Health AI Evaluation Lab                         ║
+   ╠═══════════════════════════════════════════════════════════════════════╣
+   ║                                                                       ║
+   ║  TABLE OF CONTENTS                                                    ║
+   ║  ──────────────────                                                   ║
+   ║   §1  DESIGN TOKENS · :root variables                                 ║
+   ║         • Colors (Stanford palette)                                   ║
+   ║         • Typography                                                  ║
+   ║         • Spacing, motion, elevation                                  ║
+   ║   §2  RESET & GLOBAL ELEMENTS                                         ║
+   ║   §3  LAYOUT PRIMITIVES (.section, .page, grids)                      ║
+   ║   §4  LOADER                                                          ║
+   ║   §5  TOP NAVIGATION + MOBILE MENU                                    ║
+   ║   §6  HERO (canvas, badges, tooltip, scroll cue)                      ║
+   ║   §7  CONTENT BLOCKS — home page (about, stats, flow, signup)         ║
+   ║   §8  PROCESS PAGE (FURM card, 4-step grid, coming-soon)              ║
+   ║   §9  VIDEOS (grid cards + modal player)                              ║
+   ║   §10 RESOURCES (tabbed library + sample-report grid)                 ║
+   ║   §11 PATIENT PANEL (split layout + accordion)                        ║
+   ║   §12 PLAYBOOK (hero + card grid)                                     ║
+   ║   §13 ABOUT (cards + team grid)                                       ║
+   ║   §14 FOOTER                                                          ║
+   ║   §15 RESPONSIVE BREAKPOINTS                                          ║
+   ║   §16 ACCESSIBILITY & MOTION PREFERENCES                              ║
+   ║                                                                       ║
+   ║  EDIT-HERE QUICK MAP                                                  ║
+   ║   • Brand colors ............... §1, --cardinal + neighbors           ║
+   ║   • Spacing / radii ............ §1                                   ║
+   ║   • Breakpoint widths .......... §15 (and explained inline below)     ║
+   ║                                                                       ║
+   ║  ARCHITECTURAL NOTES (why this file is shaped this way)               ║
+   ║   • CSS custom properties give us one-line theme changes. NEVER       ║
+   ║     hard-code a brand color anywhere outside §1 — always reference    ║
+   ║     a variable like var(--cardinal). If you find a hard-coded color,  ║
+   ║     promote it to a token.                                            ║
+   ║   • Structural styles (page, section, grid) come BEFORE component     ║
+   ║     styles. This mirrors the document outline and minimizes the cost  ║
+   ║     of cascade overrides.                                             ║
+   ║   • Animations use cubic-bezier(.2,.6,.2,1) — a soft "ease-out-ish"   ║
+   ║     curve that feels right for both opening UI and content reveal.    ║
+   ║     Stored as --ease so it stays consistent across the whole site.    ║
+   ║   • All interactive elements have :focus-visible rings (§16). DO NOT  ║
+   ║     remove them with `outline:none` — they are the only way keyboard  ║
+   ║     users can see where they are.                                     ║
+   ║                                                                       ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §1 · DESIGN TOKENS
+   ───────────────────────────────────────────────────────────────────────
+   The Stanford brand palette + typographic scale + motion + spacing.
+   To re-skin the entire site, only this block needs to change.
+
+   COLOR RATIONALE
+     --cardinal        Stanford's official Cardinal Red. Primary accent.
+     --cardinal-dark   Pressed/hovered state, and the gradient anchor on the
+                       signup CTA block.
+     --cardinal-light  Used sparingly for borders on dashed "Coming soon"
+                       cards so they read as branded rather than generic.
+     --cardinal-tint   Subtle background fill for chips, eyebrow underlines,
+                       hover states. Calculated as ~8% cardinal-on-white.
+     --bg              Pure white panels.
+     --bg-soft         Off-white #F9F9F9 — used for alternating bands so
+                       sections never feel like one giant wall of white.
+     --bg-warm         Slightly warmer neutral, used on the patient-panel
+                       Stanford side to differentiate it from the external
+                       side without leaving the white→off-white palette.
+     --ink             Charcoal text. Replaces pure black for readability.
+     --ink-mid         Body copy.
+     --ink-low         Eyebrows, captions, footnotes.
+     --line            Generic 1px border / divider.
+
+     NOTE: Per the rebrand, NO GOLD anywhere. If you see a gold-like value
+           in this codebase later, it crept in by mistake — please remove.
+   ─────────────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Brand (EDIT HERE) ─────────────────────────────────────────────── */
+  --cardinal:        #8C1515;
+  --cardinal-dark:   #6D1010;
+  --cardinal-light:  #B83A3A;
+  --cardinal-tint:   rgba(140, 21, 21, 0.08);
+  --cardinal-soft:   rgba(140, 21, 21, 0.04);
+
+  /* ── Neutrals ─────────────────────────────────────────────────────── */
+  --bg:              #FFFFFF;
+  --bg-soft:         #F9F9F9;
+  --bg-warm:         #F2EFEA;
+
+  --ink:             #2E2D29;   /* primary text · ~13:1 on white */
+  --ink-mid:         #4D4F53;   /* body / sub copy · ~8:1 on white */
+  --ink-low:         #6B6D71;   /* eyebrows, captions · ~5:1 on white — WCAG AA */
+  --ink-dim:         rgba(46, 45, 41, 0.18);
+
+  --line:            rgba(46, 45, 41, 0.10);
+  --line-strong:     rgba(46, 45, 41, 0.18);
+
+  /* ── Typography ───────────────────────────────────────────────────── */
+  --serif: 'Source Serif Pro', Georgia, serif;
+  --sans:  'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono:  'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── Motion (centralized for cross-component consistency) ──────────── */
+  --ease:   cubic-bezier(.2, .6, .2, 1);  /* soft, slightly overshooting ease */
+  --t-fast: .18s;                          /* hover, focus, micro */
+  --t-med:  .32s;                          /* panel open/close, page swap */
+  --t-slow: .55s;                          /* hero entry, large reveals */
+
+  /* ── Radii & shadows ──────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --shadow-1:  0 1px 4px rgba(0,0,0,.03);
+  --shadow-2:  0 8px 22px rgba(0,0,0,.06);
+  --shadow-3:  0 16px 40px rgba(0,0,0,.10);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §2 · RESET & GLOBAL ELEMENTS
+   ───────────────────────────────────────────────────────────────────────
+   Modest reset — we don't strip everything because we want sensible
+   defaults for headings/lists/buttons. Just unify box-sizing and zero
+   the universally-noisy margins/paddings.
+   ─────────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  /* Hard guard against horizontal scroll at 200% zoom or narrow widths.
+     Paired with body { overflow-x:hidden } for belt-and-suspenders. */
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  font-weight: 400;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+a       { color: inherit; text-decoration: none; }
+button  { font-family: inherit; cursor: pointer; background: none; border: none; color: inherit; }
+img,
+svg     { display: block; max-width: 100%; }
+
+/* a11y · visually hidden but still announced */
+.sr {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §3 · LAYOUT PRIMITIVES
+   ───────────────────────────────────────────────────────────────────────
+   .page    — full-viewport routed container (one per "page"). Only the
+              .active one is visible.
+   .section — opinionated horizontal container with brand-correct padding.
+              Variants: .narrow (max-width tighter), .tight (less vertical
+              padding), .section-band (off-white band), and the dark
+              cardinal gradient used inside the signup card itself.
+
+   ARCHITECTURAL NOTE — why position:fixed on .page
+     We use fixed positioning + opacity transitions on every .page so the
+     route change is genuinely instant (no scroll thrash, no layout
+     calculation) and the focus order stays clean.
+   ─────────────────────────────────────────────────────────────────────── */
+.page {
+  position: fixed; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  opacity: 0; visibility: hidden;
+  /* No opacity/visibility transition on purpose.
+     Previously we crossfaded pages over 320ms, but the outgoing and
+     incoming pages overlapped mid-transition at ~50% opacity — text at
+     50% on a white background reads as pale grey, which looked like a
+     "loading" flash between tabs. Instant swap eliminates it entirely. */
+}
+.page.active { opacity: 1; visibility: visible; }
+
+/*
+   SECTION CONTAINERS
+   Horizontal padding uses `clamp()` so the layout stays graceful under
+   200% browser zoom and on narrow viewports:
+     min 24px  (compact phones / 200% zoom on small laptops)
+     ideal 5vw (smooth scaling)
+     max 80px  (caps the gutter on huge monitors)
+   No more hard 80px gutters that would clip into the canvas at 200% zoom.
+*/
+.section          { padding: 96px clamp(24px, 5vw, 80px); max-width: 1320px; margin: 0 auto; }
+.section.narrow   { max-width: 1080px; }
+.section.tight    { padding: 64px clamp(24px, 5vw, 80px); }
+.section-band     { background: var(--bg-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §4 · LOADER
+   ───────────────────────────────────────────────────────────────────────
+   Centered brand splash. Letters fade up one-by-one (animation driven by
+   class toggles in app.js — keep these `.in` selectors intact).
+   ─────────────────────────────────────────────────────────────────────── */
+#loader {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity .7s ease .2s, visibility .7s ease .2s;
+}
+#loader.exit { opacity: 0; visibility: hidden; }
+
+.loader-hl {
+  font-family: var(--serif);
+  font-size: clamp(44px, 7vw, 86px);
+  font-weight: 500;
+  letter-spacing: .04em;
+  color: var(--ink);
+  display: flex;
+}
+.loader-hl span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .45s ease, transform .45s ease;
+}
+.loader-hl .sp     { width: .28em; }      /* a "space" letter slot */
+.loader-hl span.in { opacity: 1; transform: none; }
+
+.loader-line {
+  width: 0; height: 2px;
+  background: var(--cardinal);
+  margin-top: 22px;
+  border-radius: 2px;
+  transition: width .8s var(--ease) .55s;
+}
+.loader-line.in { width: 140px; }
+
+.loader-sub {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  color: var(--ink-low);
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity .5s ease 1s;
+}
+.loader-sub.in { opacity: 1; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §5 · TOP NAVIGATION + MOBILE MENU
+   ───────────────────────────────────────────────────────────────────────
+   The desktop nav is a row of tab buttons. The mobile menu is a full-width
+   slide-down panel that appears below the header.
+
+   a11y NOTE
+     • Nav buttons get role="tab" / aria-selected attributes in app.js.
+     • The hamburger toggles aria-expanded on itself and aria-hidden on
+       the menu container.
+   ─────────────────────────────────────────────────────────────────────── */
+nav.topnav {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 500;
+  height: 68px;
+  padding: 0 44px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255, 255, 255, .86);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-logo {
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer;
+  padding: 6px; margin: -6px;
+  border-radius: 8px;
+}
+.logo-mark {
+  height: 42px;              
+  width: auto;               
+  max-width: 240px;          
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.logo-name { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: .02em; line-height: 1.15; }
+.logo-sub  { font-family: var(--mono); font-size: 9px; letter-spacing: .14em;
+             color: var(--ink-low); text-transform: uppercase; margin-top: 1px; }
+
+.nav-center { display: flex; gap: 2px; }
+
+/* ──  Tab button (used in both desktop nav and mobile menu) ── */
+.nav-tab {
+  color: var(--ink-mid);
+  font-size: 13.5px; font-weight: 500;
+  padding: 9px 14px;
+  border-radius: 8px;
+  min-height: 44px;                      /* a11y · touch-target floor */
+  /* Uniform ease-in-out micro-interaction across the whole UI */
+  transition: all .25s ease-in-out;
+}
+.nav-tab:hover { color: var(--ink); background: var(--cardinal-tint); }
+.nav-tab.active {
+  color: var(--cardinal);
+  background: var(--cardinal-tint);
+  font-weight: 600;
+}
+
+.nav-right { display: flex; gap: 10px; align-items: center; }
+
+/* ── Primary CTA (Sign up) ── */
+.btn-cta {
+  background: var(--cardinal);
+  color: #fff;
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: .01em;
+  min-height: 44px;
+  display: inline-flex; align-items: center; gap: 6px;
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.btn-cta:hover {
+  background: var(--cardinal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(140, 21, 21, .22);
+}
+.btn-cta.outline {
+  background: transparent;
+  color: var(--cardinal);
+  border: 1.5px solid var(--cardinal);
+}
+.btn-cta.outline:hover { background: var(--cardinal); color: #fff; }
+
+/* ── Hamburger toggle (mobile only) ── */
+.nav-toggle {
+  display: none;
+  width: 44px; height: 44px;
+  border-radius: 8px;
+  align-items: center; justify-content: center;
+  color: var(--ink);
+}
+.nav-toggle svg {
+  width: 22px; height: 22px;
+  stroke: currentColor; stroke-width: 2;
+  fill: none;
+}
+
+/* ── Mobile menu panel ── */
+.mobile-menu {
+  position: fixed; inset: 68px 0 0 0;
+  background: var(--bg);
+  z-index: 499;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex; flex-direction: column; gap: 4px;
+  transform: translateY(-100%);
+  transition: transform var(--t-med) var(--ease);
+}
+.mobile-menu.open { transform: translateY(0); }
+.mobile-menu .nav-tab {
+  font-size: 18px;
+  padding: 16px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  justify-content: flex-start;
+  display: flex;
+}
+.mobile-menu .btn-cta { margin-top: 20px; justify-content: center; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §6 · HERO
+   ───────────────────────────────────────────────────────────────────────
+   The hero is full-viewport. A <canvas> draws the cardinal mesh in the
+   background; everything else is positioned over it.
+
+   The 3D mesh has nothing to do with layout — if you remove the canvas
+   entirely the hero still renders fine because the radial-gradient
+   background on .hero provides the same visual base.
+   ─────────────────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100vh; min-height: 680px;
+  overflow: hidden;
+  background: radial-gradient(
+    1100px 800px at 64% 44%,
+    #fff 22%,
+    #fafafa 50%,
+    var(--cardinal-soft) 100%
+  );
+}
+#hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+
+/* NOTE: Legacy decorative chrome (`.hai-badge`, `.hero-meta`, `.hm-dot`,
+   `@keyframes pulseDot`, `.quote-mark`) was removed per the brand cleanup
+   pass — the affiliate badge, the "live · v1.0" strip, and the pull-quote
+   glyph above the about-statement were creating typographic noise. */
+
+/* Tooltip on hero canvas research nodes */
+#node-tooltip {
+  position: fixed;
+  padding: 14px 16px;
+  max-width: 260px;
+  pointer-events: none;
+  z-index: 600;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, .98);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .10), 0 0 0 1px var(--cardinal-tint);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+#node-tooltip.show { opacity: 1; }
+.nt-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--cardinal);
+  margin-bottom: 6px;
+}
+.nt-meta::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--cardinal);
+}
+.nt-title { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.5; }
+.nt-hint  { font-family: var(--mono); font-size: 9px; color: var(--ink-low);
+            margin-top: 8px; letter-spacing: .06em; text-transform: uppercase; }
+
+/* Hero text + buttons (positioned bottom-left of the hero) */
+.hero-content {
+  position: relative; z-index: 3;
+  height: 100%;
+  padding: 0 72px 84px;
+  max-width: 1320px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  pointer-events: none;                  /* let canvas hover pass through */
+}
+.hero-content > * { pointer-events: auto; }  /* but the actual text/buttons stay clickable */
+
+.hero-eye {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .22em; text-transform: uppercase;
+  color: var(--cardinal); font-weight: 500;
+  margin-bottom: 22px;
+}
+.hero-eye-bar { width: 24px; height: 1.5px; background: var(--cardinal); }
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(40px, 6.4vw, 86px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -.018em;
+  color: var(--ink);
+  max-width: 920px;
+}
+.hero h1 em { font-style: italic; color: var(--cardinal); font-weight: 500; }
+
+.hero-sub {
+  font-size: 17px; color: var(--ink-mid);
+  max-width: 560px; margin-top: 22px;
+  font-weight: 400; line-height: 1.65;
+}
+
+.hero-btns { display: flex; gap: 12px; margin-top: 36px; flex-wrap: wrap; }
+
+/* Big rounded primary/secondary buttons used in the hero only */
+.btn-prime {
+  background: var(--cardinal); color: #fff;
+  border-radius: 50px;
+  padding: 14px 28px;
+  font-size: 14px; font-weight: 600;
+  min-height: 48px;                       /* a11y · touch target */
+  display: inline-flex; align-items: center; gap: 8px;
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.btn-prime:hover {
+  background: var(--cardinal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(140, 21, 21, .24);
+}
+.btn-second {
+  background: rgba(255, 255, 255, .65);
+  border: 1.5px solid var(--line-strong);
+  color: var(--ink);
+  border-radius: 50px;
+  padding: 14px 28px;
+  font-size: 14px; font-weight: 500;
+  min-height: 48px;
+  display: inline-flex; align-items: center; gap: 8px;
+  backdrop-filter: blur(8px);
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.btn-second:hover {
+  border-color: var(--cardinal);
+  color: var(--cardinal);
+  background: #fff;
+}
+
+/* Decorative "Scroll" indicator at bottom-right of hero */
+.scroll-cue {
+  position: absolute; bottom: 32px; right: 64px; z-index: 3;
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink-low);
+}
+.scroll-bar {
+  width: 36px; height: 1.5px;
+  background: var(--line-strong);
+  overflow: hidden; border-radius: 2px;
+}
+.scroll-bar::after {
+  content: '';
+  display: block; width: 100%; height: 100%;
+  background: var(--cardinal);
+  transform: translateX(-100%);
+  animation: scrollslide 2.2s ease-in-out infinite;
+}
+@keyframes scrollslide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §7 · HOME PAGE — content blocks
+   ───────────────────────────────────────────────────────────────────────
+   Eyebrows, section headings, the About block, stats row, Get Started
+   flow grid, and the cardinal signup CTA card.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ── Shared editorial marks ── */
+.eyebrow {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--cardinal); font-weight: 500;
+  margin-bottom: 24px;
+  display: flex; align-items: center; gap: 10px;
+}
+.eyebrow::before { content: ''; width: 24px; height: 1.5px; background: var(--cardinal); }
+.eyebrow.on-dark { color: #fff; }
+.eyebrow.on-dark::before { background: #fff; }
+
+.h2 {
+  font-family: var(--serif);
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 500; line-height: 1.12;
+  letter-spacing: -.012em;
+  color: var(--ink);
+}
+.h2 em { font-style: italic; color: var(--cardinal); font-weight: 500; }
+.h2.on-dark, .h2.on-dark em { color: #fff; }
+
+.h3 {
+  font-family: var(--serif);
+  font-size: 24px; font-weight: 500;
+  line-height: 1.25; color: var(--ink);
+}
+
+.lede {
+  font-size: 16px; color: var(--ink-mid);
+  line-height: 1.75; max-width: 600px;
+  font-weight: 400;
+}
+
+/* ── About / positioning block ── */
+.about-block {
+  display: grid;
+  /* Resilient asymmetric layout. At ≥760px we get the intended 1.1 : 1
+     split; below that, the responsive media query in §15 collapses to
+     a single column. `align-items: start` prevents the side bullets
+     from stretching to match the statement height. */
+  grid-template-columns: 1.1fr 1fr;
+  gap: 72px;
+  align-items: start;
+}
+.about-statement {
+  font-family: var(--serif);
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 400; line-height: 1.4;
+  letter-spacing: -.005em;
+  color: var(--ink);
+}
+.about-statement em { font-style: italic; color: var(--cardinal); font-weight: 500; }
+
+.about-side { display: flex; flex-direction: column; gap: 18px; }
+.about-bullet {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 18px 22px;
+  background: var(--bg-soft);
+  border-left: 3px solid var(--cardinal);
+  border-radius: 4px;
+}
+.about-bullet-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: var(--cardinal-tint); color: var(--cardinal);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px;
+  flex-shrink: 0;
+}
+.about-bullet h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.about-bullet p  { font-size: 13px; color: var(--ink-mid); line-height: 1.6; }
+
+/* ── Stats row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.stat { padding: 56px 44px; border-right: 1px solid var(--line); }
+.stat:last-child { border-right: none; }
+.stat-n {
+  font-family: var(--serif);
+  font-size: 56px; font-weight: 500;
+  color: var(--cardinal);
+  line-height: 1;
+  letter-spacing: -.015em;
+  margin-bottom: 10px;
+}
+.stat-l { font-size: 13.5px; color: var(--ink-mid); line-height: 1.65; font-weight: 400; }
+.stat-l strong { color: var(--ink); font-weight: 600; }
+
+/* ── Get Started flow ── */
+.flow-head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 48px; flex-wrap: wrap;
+  margin-bottom: 56px;
+}
+.flow-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  position: relative;
+}
+.flow-step {
+  padding: 32px 22px 28px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 16px;
+  min-height: 240px;
+  cursor: pointer;
+  position: relative;
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.flow-step:not(:last-child) { border-right: none; }
+.flow-step:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(0,0,0,.06);
+  border-color: var(--cardinal);
+  z-index: 2;
+}
+.flow-num { font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+            color: var(--cardinal); font-weight: 600; }
+.flow-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: var(--cardinal-tint); color: var(--cardinal);
+  display: flex; align-items: center; justify-content: center;
+}
+.flow-icon svg {
+  width: 22px; height: 22px;
+  stroke: currentColor; stroke-width: 1.8;
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.flow-step h4 { font-family: var(--serif); font-size: 19px; font-weight: 500;
+                color: var(--ink); line-height: 1.25; }
+.flow-step p  { font-size: 13px; color: var(--ink-mid); line-height: 1.6; }
+.flow-arrow {
+  position: absolute; right: -9px; top: 50%;
+  transform: translateY(-50%);
+  width: 18px; height: 18px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3;
+}
+.flow-arrow svg { width: 10px; height: 10px; stroke: var(--cardinal); stroke-width: 2; fill: none; }
+
+/* ── Sign-up CTA card (cardinal gradient) ── */
+.signup-card {
+  position: relative;
+  padding: 64px 56px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-dark) 100%);
+  color: #fff;
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 48px;
+  align-items: center;
+  overflow: hidden;
+}
+.signup-card::after {
+  /* decorative soft glow in the top-right corner */
+  content: '';
+  position: absolute; right: -80px; top: -80px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.10), transparent);
+  pointer-events: none;
+}
+.signup-card h2 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 500; line-height: 1.15;
+  margin-bottom: 12px;
+}
+.signup-card p {
+  font-size: 15px; line-height: 1.7;
+  color: rgba(255, 255, 255, .85);
+  max-width: 520px;
+}
+.signup-card .btn-cta {
+  background: #fff; color: var(--cardinal);
+  font-size: 14px;
+  padding: 14px 28px;
+  justify-content: center;
+  min-height: 48px;
+}
+.signup-card .btn-cta:hover { background: rgba(255,255,255,.92); transform: translateY(-1px); }
+
+.signup-side {
+  display: flex; flex-direction: column; gap: 14px;
+  justify-content: flex-end; align-items: flex-end;
+  position: relative; z-index: 1;
+}
+.signup-foot {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,255,255,.6) !important;
+  max-width: none !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §8 · PROCESS PAGE
+   ───────────────────────────────────────────────────────────────────────
+   • Sub-page header (used by every non-home page)
+   • FURM card (triangle glyph + text)
+   • 4-step process grid (dotrow visualizes step number)
+   • Coming-soon card pattern (dashed cardinal border)
+   ─────────────────────────────────────────────────────────────────────── */
+.page-header {
+  /* clamp() gutters mirror .section for consistent rhythm + zoom safety */
+  padding: 128px clamp(24px, 5vw, 80px) 56px;
+  max-width: 1320px; margin: 0 auto;
+  border-bottom: 1px solid var(--line);
+}
+.page-eyebrow {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--cardinal); font-weight: 500;
+  margin-bottom: 18px;
+}
+.page-h1 {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.2vw, 72px);
+  font-weight: 500; line-height: 1.05;
+  letter-spacing: -.018em;
+  color: var(--ink);
+  max-width: 1000px;
+  margin-bottom: 18px;
+}
+.page-h1 em { font-style: italic; color: var(--cardinal); }
+.page-sub   { font-size: 17px; color: var(--ink-mid); max-width: 680px; line-height: 1.65; }
+
+/* FURM card */
+.furm-card {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 48px; align-items: center;
+  padding: 56px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  margin-bottom: 72px;
+}
+.furm-glyph {
+  width: 100%; aspect-ratio: 1.2 / 1;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.furm-glyph svg { width: 80%; height: 80%; }
+.furm-glyph .label {
+  position: absolute;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .16em; font-weight: 600;
+  text-transform: uppercase;
+  color: var(--cardinal);
+}
+.furm-glyph .label.top   { top: 20px; left: 50%; transform: translateX(-50%); }
+.furm-glyph .label.left  { bottom: 36px; left: 24px; }
+.furm-glyph .label.right { bottom: 36px; right: 24px; }
+
+.furm-text h3 {
+  font-family: var(--serif);
+  font-size: 32px; font-weight: 500;
+  line-height: 1.15;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+.furm-text h3 em { color: var(--cardinal); font-style: italic; }
+.furm-text p { font-size: 15px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 16px; }
+.furm-meta {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-low);
+  margin-top: 18px;
+}
+
+.process-h2,
+.playbook-h2 { margin-bottom: 40px; max-width: 760px; }
+
+/* 4-step grid */
+.process-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 72px;
+}
+.proc-step {
+  padding: 36px 30px;
+  border: 1px solid var(--line); border-right: none;
+  background: var(--bg);
+  position: relative;
+  transition: background var(--t-fast);
+}
+.proc-step:last-child { border-right: 1px solid var(--line); }
+.proc-step:hover { background: var(--bg-soft); }
+.proc-num { font-family: var(--mono); font-size: 11px; letter-spacing: .18em;
+            color: var(--cardinal); font-weight: 600; margin-bottom: 14px; }
+.proc-step h4 {
+  font-family: var(--serif);
+  font-size: 22px; font-weight: 500;
+  color: var(--ink); line-height: 1.2;
+  margin-bottom: 12px;
+}
+.proc-step p { font-size: 13.5px; color: var(--ink-mid); line-height: 1.65; }
+.proc-step .dotrow { display: flex; align-items: center; gap: 6px; margin-top: 18px; }
+.proc-step .dotrow .d {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line-strong);
+}
+.proc-step .dotrow .d.on { background: var(--cardinal); }
+
+/* "Coming soon" card pattern */
+.coming-soon-card {
+  display: flex; align-items: center; gap: 32px;
+  padding: 48px;
+  background: var(--bg-soft);
+  border: 2px dashed var(--cardinal-light);
+  border-radius: var(--radius-lg);
+}
+.coming-soon-card .icon {
+  width: 64px; height: 64px;
+  border-radius: var(--radius-lg);
+  background: var(--cardinal); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.coming-soon-card .icon svg {
+  width: 30px; height: 30px;
+  stroke: currentColor; stroke-width: 1.8; fill: none;
+}
+.coming-soon-card h4 {
+  font-family: var(--serif);
+  font-size: 22px; font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.coming-soon-card .badge {
+  display: inline-block;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .14em; font-weight: 600;
+  color: var(--cardinal);
+  background: var(--cardinal-tint);
+  padding: 3px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.coming-soon-card p { font-size: 14px; color: var(--ink-mid); line-height: 1.7; max-width: 640px; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §9 · VIDEOS
+   ───────────────────────────────────────────────────────────────────────
+   Phase-2 grid of 6 cards + accessible modal player. When SHOW_VIDEOS
+   is false, the page falls back to .videos-hidden-notice.
+
+   a11y NOTE for video cards
+     • Each .video-card is keyboard-activatable in app.js (Enter / Space).
+     • The modal traps focus visually with the dark overlay; closing it
+       returns focus naturally (browser handles it because the card was
+       the most-recently focused element).
+   ─────────────────────────────────────────────────────────────────────── */
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+.video-card {
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.video-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, .08);
+  border-color: var(--cardinal);
+}
+
+/* 16:9 cardinal-gradient poster with centered play button */
+.video-poster {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--cardinal-dark), var(--cardinal));
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.video-poster::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 60% 40%, rgba(255,255,255,.10), transparent 60%);
+}
+.video-poster .play {
+  position: relative; z-index: 2;
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .95);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform var(--t-fast);
+}
+.video-card:hover .play { transform: scale(1.07); }
+.video-poster .play svg {
+  width: 20px; height: 20px;
+  margin-left: 3px;
+  fill: var(--cardinal);
+}
+.video-meta {
+  position: absolute; top: 14px; left: 14px;
+  padding: 4px 10px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .14em; font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, .45);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+}
+.video-duration {
+  position: absolute; bottom: 14px; right: 14px;
+  padding: 3px 8px;
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: #fff;
+  background: rgba(0, 0, 0, .65);
+  border-radius: 4px;
+}
+.video-body { padding: 22px; }
+.video-body h3 {
+  font-family: var(--serif); font-size: 20px; font-weight: 500;
+  color: var(--ink); line-height: 1.25;
+  margin-bottom: 10px;
+}
+.video-body p { font-size: 13.5px; color: var(--ink-mid); line-height: 1.6; margin-bottom: 16px; }
+
+.video-resources {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.vr-chip {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .04em; font-weight: 500;
+  color: var(--cardinal);
+  background: var(--cardinal-tint);
+  padding: 5px 9px;
+  border-radius: 4px;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.vr-chip:hover { background: var(--cardinal); color: #fff; }
+
+/* Modal player */
+#video-modal {
+  position: fixed; inset: 0;
+  z-index: 1000;
+  padding: 40px;
+  background: rgba(20, 20, 20, .92);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--t-med), visibility var(--t-med);
+}
+#video-modal.open { opacity: 1; visibility: visible; }
+.vm-inner { position: relative; width: 100%; max-width: 1100px; }
+.vm-frame {
+  position: relative;
+  width: 100%; aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.vm-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.vm-meta {
+  margin-top: 18px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px;
+  color: #fff;
+}
+.vm-meta h3 { font-family: var(--serif); font-size: 24px; font-weight: 500; margin-bottom: 6px; }
+.vm-meta p  { font-size: 13.5px; opacity: .75; max-width: 700px; line-height: 1.6; }
+.vm-close {
+  position: absolute; top: -46px; right: 0;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .10);
+  color: #fff;
+  font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--t-fast);
+}
+.vm-close:hover { background: rgba(255, 255, 255, .22); }
+
+/* Phase-1 fallback notice (SHOW_VIDEOS = false) */
+.videos-hidden-notice {
+  padding: 56px;
+  text-align: center;
+  background: var(--bg-warm);
+  border: 1.5px dashed var(--cardinal-light);
+  border-radius: var(--radius-lg);
+}
+.videos-hidden-notice h3 {
+  font-family: var(--serif); font-size: 26px; font-weight: 500;
+  margin-bottom: 10px; color: var(--ink);
+}
+.videos-hidden-notice p {
+  font-size: 14px; color: var(--ink-mid);
+  line-height: 1.7;
+  max-width: 560px; margin: 0 auto;
+}
+.videos-hidden-notice .badge {
+  display: inline-block;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .16em; font-weight: 600;
+  color: var(--cardinal);
+  background: var(--cardinal-tint);
+  padding: 4px 12px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §10 · RESOURCES (tabs)
+   ───────────────────────────────────────────────────────────────────────
+   Tab bar uses role="tablist"/role="tab"/role="tabpanel". Active state
+   is communicated both visually (.on) AND via aria-selected (set in JS).
+   ─────────────────────────────────────────────────────────────────────── */
+/*
+   RESOURCES TAB STRIP
+   On wide viewports the 5 tabs wrap freely (`flex-wrap: wrap`).
+   On mobile we keep them on ONE row and let the user swipe horizontally
+   — `flex-wrap: nowrap` kicks in at ≤900px (see §15), `overflow-x: auto`
+   enables the swipe, and the scrollbar is visually hidden so the strip
+   reads as a clean ribbon. Scroll-snap aligns each tab cleanly into view.
+*/
+.rt-bar {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 40px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  /* Hide the scrollbar without disabling scroll */
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE / old Edge */
+}
+.rt-bar::-webkit-scrollbar { display: none; }  /* Chrome / Safari / new Edge */
+
+.rt-tab {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 11px 18px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  color: var(--ink-mid);
+  white-space: nowrap;
+  min-height: 44px;
+  border: 1px solid transparent;
+  scroll-snap-align: start;
+  /* Uniform ease-in-out micro-interaction across all interactive states */
+  transition: all .25s ease-in-out;
+}
+.rt-tab:hover { color: var(--ink); background: var(--cardinal-tint); }
+.rt-tab.on    { background: var(--cardinal); color: #fff; font-weight: 600; }
+.rt-tab .n    { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; opacity: .85; }
+
+/* Tabpanel fade-in (.on toggled by JS) */
+.rt-panel { display: none; }
+.rt-panel.on { display: block; animation: fadeUp .35s var(--ease); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/*
+   RESOURCES TAB INTRO — the "Start here." / "How to use this section"
+   asymmetric split. Uses `auto-fit` + `minmax(300px, 1fr)` so the grid
+   self-collapses to a single column the moment either child would
+   shrink below 300px — no media queries, no jagged half-wraps.
+   `align-items: start` keeps the side card snug to the top instead of
+   stretching to match the heading-paragraph block.
+*/
+.rt-intro {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 44px;
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--line);
+}
+.rt-intro h2 {
+  font-family: var(--serif);
+  font-size: 32px; font-weight: 500;
+  color: var(--ink); line-height: 1.18;
+  margin-bottom: 12px;
+}
+.rt-intro p { font-size: 14.5px; color: var(--ink-mid); line-height: 1.7; }
+.rt-intro aside {
+  padding: 24px;
+  background: var(--bg-soft);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--cardinal);
+}
+.rt-intro aside h4 {
+  font-size: 12px;
+  font-family: var(--mono);
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--cardinal); font-weight: 600;
+  margin-bottom: 10px;
+}
+.rt-intro aside ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.rt-intro aside li {
+  font-size: 13px; color: var(--ink-mid); line-height: 1.5;
+  display: flex; gap: 8px;
+}
+.rt-intro aside li::before { content: '→'; color: var(--cardinal); font-weight: 600; flex-shrink: 0; }
+
+/* Resource card grid — auto-fit so cards never wrap into half-rows */
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+.res-card {
+  position: relative;
+  display: flex; gap: 18px;
+  padding: 24px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.res-card.linked { cursor: pointer; }
+.res-card.linked:hover {
+  border-color: var(--cardinal);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(0,0,0,.05);
+}
+.res-card.soon { background: var(--bg-soft); border-style: dashed; }
+.res-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius);
+  background: var(--cardinal-tint); color: var(--cardinal);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.res-icon svg {
+  width: 20px; height: 20px;
+  stroke: currentColor; stroke-width: 1.8;
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.res-body { flex: 1; min-width: 0; }
+.res-body h4 { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 4px; line-height: 1.3; }
+.res-body p  { font-size: 13px; color: var(--ink-mid); line-height: 1.55; }
+.res-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-low); font-weight: 500;
+  margin-top: 10px;
+}
+.res-tag.soon { color: var(--cardinal); }
+.res-arrow   { align-self: center; flex-shrink: 0; color: var(--ink-low);
+               transition: color var(--t-fast), transform var(--t-fast); }
+.res-card:hover .res-arrow { color: var(--cardinal); transform: translateX(3px); }
+
+/* 8 redacted sample reports — denser layout than the cards.
+   `auto-fit` lets the grid use 2 columns at desktop, drop to 1 on phones,
+   and re-pack cleanly during 200% browser zoom. */
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+  align-items: start;
+}
+.report-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 20px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.report-row:hover { border-color: var(--cardinal); transform: translateX(2px); }
+.report-pill {
+  font-family: var(--mono); font-size: 11px;
+  font-weight: 600; letter-spacing: .04em;
+  color: var(--cardinal);
+  background: var(--cardinal-tint);
+  padding: 4px 9px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  min-width: 34px; text-align: center;
+}
+.report-row h5  { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 2px; }
+.report-row span{ font-size: 12px; color: var(--ink-mid); }
+.report-row svg {
+  width: 14px; height: 14px;
+  stroke: var(--ink-low); stroke-width: 2;
+  fill: none;
+  margin-left: auto; flex-shrink: 0;
+  transition: stroke var(--t-fast);
+}
+.report-row:hover svg { stroke: var(--cardinal); }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §11 · PATIENT PANEL
+   ───────────────────────────────────────────────────────────────────────
+   Two-column split. Left column = Stanford's implementation (warm tint).
+   Right column = "Building a panel at your institution" accordion guide.
+
+   ARCHITECTURAL NOTE — the accordion
+     We animate max-height (not height:auto) because height:auto can't be
+     transitioned. JS sets the inline max-height value to the measured
+     scrollHeight when opening, and 0 when closing.
+   ─────────────────────────────────────────────────────────────────────── */
+.pp-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.pp-side { padding: 64px 56px; }
+.pp-side.stanford { background: var(--bg-soft); border-right: 1px solid var(--line); }
+.pp-side.external { background: var(--bg); }
+
+.pp-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 11px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .16em; font-weight: 600;
+  color: var(--cardinal);
+  background: var(--cardinal-tint);
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.pp-side h2 {
+  font-family: var(--serif);
+  font-size: 30px; font-weight: 500;
+  color: var(--ink); line-height: 1.15;
+  margin-bottom: 16px;
+}
+.pp-side > p { font-size: 14.5px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 28px; }
+
+.pp-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 32px;
+}
+.pp-stat {
+  padding: 18px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.pp-stat .n {
+  font-family: var(--serif);
+  font-size: 32px; font-weight: 500;
+  color: var(--cardinal);
+  line-height: 1; margin-bottom: 6px;
+}
+.pp-stat .l { font-size: 11px; color: var(--ink-mid); line-height: 1.4; }
+
+.pp-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+.pp-list-item { display: flex; gap: 14px; align-items: flex-start; }
+.pp-list-item .dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--cardinal-tint); color: var(--cardinal);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.pp-list-item h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.pp-list-item p  { font-size: 13px; color: var(--ink-mid); line-height: 1.55; }
+
+/* External-side accordion */
+.pp-acc { display: flex; flex-direction: column; gap: 10px; }
+.pp-acc-item {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.pp-acc-head {
+  width: 100%;
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px;
+  text-align: left;
+  transition: background var(--t-fast);
+}
+.pp-acc-head:hover { background: var(--bg-soft); }
+.pp-acc-head .idx {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .12em; font-weight: 600;
+  color: var(--cardinal);
+  width: 24px; flex-shrink: 0;
+}
+.pp-acc-head h4 {
+  flex: 1;
+  font-family: var(--serif);
+  font-size: 18px; font-weight: 500;
+  color: var(--ink);
+}
+.pp-acc-head .chev { color: var(--ink-mid); transition: transform var(--t-fast); }
+.pp-acc-head .chev svg {
+  width: 18px; height: 18px;
+  stroke: currentColor; stroke-width: 2; fill: none;
+}
+.pp-acc-item.open .pp-acc-head .chev { transform: rotate(180deg); }
+.pp-acc-body {
+  max-height: 0; overflow: hidden;
+  transition: max-height var(--t-med) var(--ease);
+}
+.pp-acc-body-inner {
+  padding: 0 20px 20px 60px;
+  font-size: 13.5px;
+  color: var(--ink-mid);
+  line-height: 1.7;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §12 · PLAYBOOK
+   ─────────────────────────────────────────────────────────────────────── */
+.playbook-hero {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 48px;
+  align-items: center;
+  padding: 0 0 56px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 56px;
+}
+.playbook-hero h2 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 500; line-height: 1.15;
+  color: var(--ink);
+  margin-bottom: 18px;
+}
+.playbook-hero h2 em { color: var(--cardinal); font-style: italic; }
+.playbook-hero p { font-size: 15px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 24px; }
+.playbook-glyph {
+  aspect-ratio: 1 / 1;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.playbook-glyph svg { width: 75%; height: 75%; }
+
+.playbook-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.pb-card {
+  padding: 32px 28px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  /* Uniform ease-in-out micro-interaction */
+  transition: all .25s ease-in-out;
+}
+.pb-card:hover {
+  border-color: var(--cardinal);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.05);
+}
+.pb-card .icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius);
+  background: var(--cardinal-tint); color: var(--cardinal);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+.pb-card .icon svg {
+  width: 22px; height: 22px;
+  stroke: currentColor; stroke-width: 1.8;
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.pb-card h4 {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 500;
+  color: var(--ink); line-height: 1.25;
+  margin-bottom: 10px;
+}
+.pb-card p { font-size: 13.5px; color: var(--ink-mid); line-height: 1.65; margin-bottom: 14px; }
+.pb-card .badge {
+  display: inline-block;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .12em; font-weight: 600;
+  color: var(--cardinal);
+  background: var(--cardinal-tint);
+  padding: 3px 9px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §13 · ABOUT
+   ─────────────────────────────────────────────────────────────────────── */
+.stanford-bar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 26px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--cardinal), var(--cardinal-dark));
+  box-shadow: 0 10px 24px rgba(140, 21, 21, .18);
+  margin-bottom: 44px;
+}
+.s-mark {
+  width: 42px; height: auto;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  padding: 6px;
+}
+.s-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.s-text h3 { font-size: 14px; font-weight: 600; color: #fff; }
+.s-text p  { font-size: 12px; color: rgba(255, 255, 255, .78); margin-top: 3px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 44px; }
+.white-card {
+  padding: 28px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.white-card h3 {
+  font-family: var(--serif);
+  font-size: 22px; font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.white-card p { font-size: 13.5px; color: var(--ink-mid); line-height: 1.75; }
+
+/*
+   TEAM GRID — YC-style photo cards.
+   Each card is a 4:5 photo with a bottom gradient and overlaid text
+   (name, badge · affiliation, role). Hover: subtle lift + photo zoom.
+   3 cols desktop, 2 cols tablet, 1 col mobile (handled by auto-fit).
+*/
+/* Team section flows directly under the About cards. Kill the top
+   padding on the team section AND the bottom padding on the preceding
+   section so the two clusters read as one continuous block with just
+   a small breathing gap driven by .team-h2 margin. */
+.section-team { padding-top: 0; }
+#page-about .section:has(+ .section-team) { padding-bottom: 24px; }
+.team-h2 {
+  margin-top: 6px;
+  margin-bottom: 32px;
+  max-width: 680px;
+}
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 8px;
+  align-items: start;
+}
+.team-card {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #111;
+  isolation: isolate;
+  cursor: pointer;
+  transition: transform .35s cubic-bezier(.2,.8,.2,1),
+              box-shadow .35s cubic-bezier(.2,.8,.2,1);
+}
+.team-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 24px 40px -18px rgba(0, 0, 0, .28),
+    0 8px 16px -10px rgba(140, 21, 21, .18);
+}
+.tc-media {
+  position: absolute; inset: 0;
+  z-index: 0;
+}
+.tc-media img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  transition: transform .6s cubic-bezier(.2,.8,.2,1);
+}
+.team-card:hover .tc-media img { transform: scale(1.04); }
+.tc-fallback {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif);
+  font-size: 92px;
+  color: rgba(255, 255, 255, .35);
+  background: linear-gradient(160deg, #2a0e0e, #0d0d0d 70%);
+}
+/* Gradient scrim from transparent → dark for text legibility */
+.tc-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 1;
+  padding: 22px 22px 20px;
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, .55) 55%,
+    rgba(0, 0, 0, .82) 100%
+  );
+}
+.tc-name-wrap {
+  margin: 0 0 6px;
+  line-height: 1.15;
+}
+.tc-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -.01em;
+  line-height: 1.15;
+}
+/* Link variant — inherits card typography, subtle underline slide-in on hover. */
+.tc-name-link {
+  text-decoration: none;
+  color: #fff;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 2px;
+  background-image: linear-gradient(#fff, #fff);
+  background-repeat: no-repeat;
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  transition: background-size .3s cubic-bezier(.2,.8,.2,1);
+  position: relative;
+  z-index: 2;   /* sits above the gradient scrim so clicks land on the link */
+}
+.tc-name-link:hover,
+.tc-name-link:focus-visible {
+  background-size: 100% 1.5px;
+}
+.tc-name-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, .8);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.tc-name-arrow {
+  font-size: 15px;
+  opacity: .65;
+  transition: transform .3s cubic-bezier(.2,.8,.2,1), opacity .2s ease;
+  display: inline-block;
+}
+.tc-name-link:hover .tc-name-arrow {
+  transform: translate(2px, -2px);
+  opacity: 1;
+}
+.tc-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, .78);
+  margin: 0 0 10px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+}
+.tc-role {
+  font-size: 14px;
+  color: rgba(255, 255, 255, .82);
+  line-height: 1.5;
+  margin: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height .4s cubic-bezier(.2,.8,.2,1),
+              opacity .3s ease-out .05s,
+              margin-top .3s ease-out;
+}
+.team-card:hover .tc-role,
+.team-card:focus-within .tc-role {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 2px;
+}
+@media (max-width: 640px) {
+  /* On mobile, always reveal the role — no hover on touch. */
+  .tc-role { max-height: 120px; opacity: 1; }
+  .team-grid { gap: 20px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §14 · FOOTER
+   ─────────────────────────────────────────────────────────────────────── */
+footer {
+  background: var(--ink);
+  color: rgba(255, 255, 255, .7);
+  /* clamp() gutters keep the footer comfortable on every viewport */
+  padding: 64px clamp(24px, 5vw, 80px) 36px;
+}
+.foot-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 48px;
+  max-width: 1320px;
+  margin: 0 auto 36px;
+}
+.foot-brand .logo-mark { margin-bottom: 14px; }
+.foot-brand p          { font-size: 13.5px; line-height: 1.7; max-width: 340px; }
+.foot-col h5 {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: #fff; font-weight: 600;
+  margin-bottom: 14px;
+}
+.foot-col a {
+  display: block;
+  font-size: 13px;
+  color: rgba(255, 255, 255, .7);
+  margin-bottom: 9px;
+  transition: color var(--t-fast);
+}
+.foot-col a:hover { color: #fff; }
+
+.foot-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+  font-size: 12px;
+  color: rgba(255, 255, 255, .5);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §15 · RESPONSIVE BREAKPOINTS
+   ───────────────────────────────────────────────────────────────────────
+   We use a "mobile-first reaction" approach — base styles are tuned for
+   desktop, and these queries collapse things gracefully as the viewport
+   shrinks. Three breakpoints intentionally:
+
+     • 1100px ── "Tablet / small laptop"
+                Switches dense multi-column grids (videos, flow, process)
+                down to 2 columns; signup card stacks; team grid halves.
+
+     • 900px  ── "Phone landscape / small tablet portrait"
+                Activates the hamburger menu (hides .nav-center and the
+                desktop sign-up button), drops every grid to a single
+                column, removes the hero's right-corner ornaments,
+                reduces section padding.
+
+     • 560px  ── "Compact phone portrait"
+                Final tightening — team grid halves down to 2 columns
+                (not 1, to preserve density), patient panel stats stack.
+
+   ARCHITECTURAL NOTE — why pixel breakpoints not container queries
+     The site is content-driven and we want predictable behavior across
+     all browsers (CQ support is recent). Once we have analytics on
+     real viewport sizes we can revisit.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ─── BREAKPOINT · ≤1100px (Tablet) ──────────────────────────────────── */
+@media (max-width: 1100px) {
+  .videos-grid       { grid-template-columns: repeat(2, 1fr); }
+  .flow-grid         { grid-template-columns: repeat(2, 1fr); }
+  /* Restore right border on flow cards now that they wrap into a 2-col grid */
+  .flow-step         { border-right: 1px solid var(--line) !important; }
+  .flow-arrow        { display: none; }
+  .process-steps     { grid-template-columns: repeat(2, 1fr); }
+  .proc-step         { border-right: 1px solid var(--line); }
+  .playbook-grid     { grid-template-columns: 1fr; }
+  .signup-card       { grid-template-columns: 1fr; padding: 44px 32px; }
+  .signup-side       { align-items: flex-start; }
+  /* Note: .res-grid, .reports-grid, and .team-grid are NOT overridden here
+     because they use `auto-fit minmax(...)` and self-collapse — adding a
+     manual override here would fight that and reintroduce jagged wraps. */
+}
+
+/* ─── BREAKPOINT · ≤900px (Phone / mobile activation) ─────────────────── */
+@media (max-width: 900px) {
+  nav.topnav         { padding: 0 18px; }
+  .nav-center        { display: none; }
+  .nav-toggle        { display: flex; }
+  .nav-right .btn-cta{ display: none; }     /* sign-up moves to mobile menu */
+
+  .section,
+  .page-header       { padding-left: 24px; padding-right: 24px; }
+  .section           { padding-top: 64px; padding-bottom: 64px; }
+  .page-header       { padding-top: 108px; }
+
+  .hero-content      { padding: 0 24px 80px; }
+  .hero h1           { font-size: clamp(36px, 8vw, 52px); }
+
+  .stats-row         { grid-template-columns: 1fr; }
+  .stat              { border-right: none; border-bottom: 1px solid var(--line); padding: 36px 24px; }
+  .stat:last-child   { border-bottom: none; }
+
+  .about-block,
+  .furm-card,
+  .rt-intro,
+  .playbook-hero     { grid-template-columns: 1fr; gap: 32px; }
+
+  .videos-grid       { grid-template-columns: 1fr; }
+
+  .pp-split          { grid-template-columns: 1fr; }
+  .pp-side           { padding: 48px 24px; }
+  .pp-side.stanford  { border-right: none; border-bottom: 1px solid var(--line); }
+
+  .two-col           { grid-template-columns: 1fr; }
+  /* .team-grid auto-fits — no override needed here */
+
+  /* Hero ornament selectors removed (badge + meta were deleted in cleanup) */
+  .scroll-cue        { right: 24px; }
+
+  /* Resources tab strip: keep tabs on one line and let the user swipe.
+     `flex-wrap: nowrap` activates here (was wrap at desktop). */
+  .rt-bar            { flex-wrap: nowrap; }
+
+  .foot-grid         { grid-template-columns: 1fr 1fr; gap: 32px; }
+  footer             { padding: 48px 24px 28px; }
+
+  .coming-soon-card  { flex-direction: column; text-align: center; padding: 36px 24px; }
+
+  .pp-stats          { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pp-stat           { padding: 12px; }
+  .pp-stat .n        { font-size: 24px; }
+}
+
+/* ─── BREAKPOINT · ≤560px (Compact phones) ───────────────────────────── */
+@media (max-width: 560px) {
+  /* .team-grid auto-fits — no override needed */
+  .pp-stats          { grid-template-columns: 1fr; }
+  .foot-grid         { grid-template-columns: 1fr; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §16 · ACCESSIBILITY & MOTION PREFERENCES
+   ───────────────────────────────────────────────────────────────────────
+   • :focus-visible — visible ring for keyboard users, hidden for mouse.
+   • prefers-reduced-motion — disable all transitions/animations.
+   ─────────────────────────────────────────────────────────────────────── */
+/*
+   FOCUS RING — visible to keyboard users only (mouse/touch never see it).
+   Uses Stanford Cardinal at high contrast against any background on the
+   site (white panels, cardinal CTAs, charcoal footer). The white
+   "halo" via box-shadow ensures the ring stays visible even when the
+   focused element sits on a cardinal background.
+*/
+:focus-visible {
+  outline: 2.5px solid var(--cardinal);
+  outline-offset: 3px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .85);
+}
+/* On dark/cardinal surfaces, invert the halo so the ring remains visible */
+.signup-card :focus-visible,
+.stanford-bar :focus-visible,
+footer :focus-visible {
+  outline-color: #fff;
+  box-shadow: 0 0 0 4px rgba(140, 21, 21, .55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+

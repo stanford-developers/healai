@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+  ════════════════════════════════════════════════════════════════════════════
+  HEAL-AI · index.html
+  ────────────────────────────────────────────────────────────────────────────
+  PURPOSE
+    Semantic HTML5 skeleton for the Stanford HEAL-AI Lab website.
+    All content text lives in /js/data.js. All styling lives in /css/style.css.
+    All dynamic behavior lives in /js/app.js (with toggles in /js/config.js).
+
+    This file should contain ONLY structural markup, landmarks, accessibility
+    hooks, and the mount points (containers with predictable IDs) that the JS
+    rendering layer populates at runtime.
+
+  EDIT-HERE QUICK MAP
+    • SEO / social meta ...................... <head> block below
+    • Loader brand name ...................... #loader-hl is filled by JS using
+                                                BRAND constant in config.js
+    • Site copy / page text .................. js/data.js
+    • Phase toggles (videos on/off) .......... js/config.js (SHOW_VIDEOS)
+    • Sign-up Google Form URL ................ js/config.js (SIGN_UP_URL)
+    • Colors / spacing / typography .......... css/style.css (:root tokens)
+
+  ARCHITECTURAL NOTE — single-page transitions
+    Every "page" (Home, Process, Videos, Resources, …) is a sibling <div class="page">
+    inside the <main>. Routing happens client-side by toggling the `.active`
+    class on these containers (see goPage() in js/app.js). This keeps page
+    transitions instant — no network round-trip and no flash of unstyled
+    content — while still being crawlable since all markup is in the DOM.
+
+  ACCESSIBILITY (a11y) NOTE
+    • <nav>, <main>, <footer>, <header>, <section>, <article> landmarks are used
+      so screen-reader users can jump between regions.
+    • Tab buttons get role="tab"/aria-selected attributes (set in app.js).
+    • The video modal has role="dialog" + aria-modal="true".
+    • The mobile menu uses aria-expanded + aria-hidden, toggled in app.js.
+    • Focus rings are intentionally visible via :focus-visible in style.css —
+      do NOT remove them with `outline:none` anywhere.
+  ════════════════════════════════════════════════════════════════════════════
+  -->
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ─── EDIT HERE · SEO & social meta ───────────────────────────────────── -->
+  <title>HEAL-AI · Stanford Medicine — Ethical Clinical AI Evaluation</title>
+  <meta name="description" content="A Stanford toolkit for health systems implementing AI tools who want a structured, patient-inclusive way to evaluate clinical AI: videos, templates, sample reports, and a playbook for adapting the process to your institution.">
+  <meta name="keywords" content="Stanford, HEAL-AI, clinical AI, health AI governance, FURM, patient panel, AI ethics">
+  <meta name="author" content="Stanford HEAL-AI Lab">
+  <meta name="theme-color" content="#8C1515"><!-- Stanford Cardinal · drives mobile browser chrome -->
+
+  <!-- Open Graph / Twitter — replace og:image URL with a deployed asset later -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="HEAL-AI · Stanford Medicine">
+  <meta property="og:description" content="A toolkit for ethical clinical AI evaluation, built at Stanford and adaptable for your health system.">
+  <meta property="og:image" content="/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- ─── Fonts ────────────────────────────────────────────────────────────── -->
+  <!-- Source Serif Pro (display) · Inter (UI) · JetBrains Mono (eyebrows/code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- ─── Stylesheet ──────────────────────────────────────────────────────── -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<!--
+═════════════════════════════════════════════════════════════════════════════
+ 1 · LOADER
+─────────────────────────────────────────────────────────────────────────────
+ Brand splash that fades out on initial load. The headline letters are
+ inserted by JS so they can animate in one-by-one. To rename the loader
+ headline, change BRAND in /js/config.js — DO NOT hard-code it here.
+═════════════════════════════════════════════════════════════════════════════
+-->
+<div id="loader" aria-hidden="true">
+  <div class="loader-hl" id="loader-hl"></div>
+  <div class="loader-line" id="loader-line"></div>
+  <div class="loader-sub" id="loader-sub">Stanford Medicine · Health AI Evaluation</div>
+</div>
+
+
+<!--
+═════════════════════════════════════════════════════════════════════════════
+ 2 · TOP NAVIGATION (sticky header)
+─────────────────────────────────────────────────────────────────────────────
+ • #nav-center is the desktop tab row — populated from NAV_ITEMS in data.js
+ • #mobile-menu is the slide-down panel for narrow viewports
+ • #nav-signup-btn href is set at runtime from SIGN_UP_URL (config.js)
+═════════════════════════════════════════════════════════════════════════════
+-->
+<header>
+  <nav class="topnav" aria-label="Primary navigation">
+
+    <!-- Logo / brand · clicking returns to Home -->
+    <button class="nav-logo" id="brand-home" aria-label="HEAL-AI home">
+      <img class="logo-mark" src="assets/heal-ai-logo-cardinal.svg" alt="HEAL-AI" />
+    </button>
+
+    <!-- Desktop section links — populated by app.js renderNav().
+         a11y note: this is primary site navigation (not an in-page tablist),
+         so the buttons are rendered without role="tab". The Resources page
+         tabs DO use full role="tablist"/role="tab" semantics. -->
+    <div class="nav-center" id="nav-center"></div>
+
+    <div class="nav-right">
+      <!-- Sign-up CTA · href set at runtime from config.js -->
+      <a href="#" class="btn-cta" id="nav-signup-btn" rel="noopener" target="_blank">
+        Sign up <span aria-hidden="true">→</span>
+      </a>
+
+      <!-- Mobile hamburger toggle (controls #mobile-menu) -->
+      <button class="nav-toggle" id="nav-toggle"
+              aria-label="Toggle menu" aria-expanded="false" aria-controls="mobile-menu">
+        <svg viewBox="0 0 24 24" id="nav-toggle-icon" aria-hidden="true">
+          <path d="M3 7h18M3 12h18M3 17h18"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile slide-down menu · also populated by renderNav() -->
+  <div class="mobile-menu" id="mobile-menu" aria-hidden="true"></div>
+</header>
+
+
+<!--
+═════════════════════════════════════════════════════════════════════════════
+ 3 · NODE TOOLTIP (used by the hero canvas)
+─────────────────────────────────────────────────────────────────────────────
+ The hero animation spawns 8 clickable "research" nodes. When the user
+ hovers one, this tooltip is positioned next to the cursor and shows the
+ paper journal/title from PAPERS in data.js.
+═════════════════════════════════════════════════════════════════════════════
+-->
+<div id="node-tooltip" role="tooltip">
+  <div class="nt-meta" id="nt-journal"></div>
+  <div class="nt-title" id="nt-title"></div>
+  <div class="nt-hint">Click node to open research ↗</div>
+</div>
+
+
+<!--
+═════════════════════════════════════════════════════════════════════════════
+ 4 · MAIN — every "page" lives inside this landmark
+─────────────────────────────────────────────────────────────────────────────
+ Each <section class="page"> below is a route. Only the one with `.active`
+ is visible at a time (the rest are visibility:hidden so screen readers
+ don't read them). Switching is handled by goPage() in app.js.
+
+ Pages, in order:
+   4.1  Home          (active by default)
+   4.2  Process       (FURM + 4-step methodology)
+   4.3  Videos        (gated by SHOW_VIDEOS in config.js)
+   4.4  Resources     (tabbed by process stage)
+   4.5  Patient Panel (split: Stanford / external guide)
+   4.6  Playbook      (institutional adaptation)
+   4.7  About         (mission + team)
+═════════════════════════════════════════════════════════════════════════════
+-->
+<main role="main">
+
+  <!-- ═══════════ 4.1 · HOME ═══════════════════════════════════════════════ -->
+  <section class="page active" id="page-home" aria-labelledby="home-hero-h">
+
+    <!-- HERO ────────────────────────────────────────────────────────────── -->
+    <section class="hero" aria-label="HEAL-AI introduction">
+      <!-- Canvas is decorative (a11y-hidden). Renders the cardinal-mesh
+           animation. Code lives in app.js → initHeroCanvas(). -->
+      <canvas id="hero-canvas" aria-hidden="true"></canvas>
+
+      <!--
+        Hero text content. To change the headline / sub / button labels,
+        edit HERO_COPY in /js/data.js — these are mount points only.
+      -->
+      <div class="hero-content">
+        <p class="hero-eye"><span class="hero-eye-bar"></span><span id="hero-eyebrow"></span></p>
+        <h1 id="home-hero-h"></h1>
+        <p class="hero-sub" id="hero-sub"></p>
+        <div class="hero-btns" id="hero-btns"></div>
+      </div>
+
+      <div class="scroll-cue" aria-hidden="true"><div class="scroll-bar"></div>Scroll</div>
+    </section>
+
+    <!-- ABOUT / POSITIONING STATEMENT ──────────────────────────────────── -->
+    <!-- Positioning statement + bullet pillars. Both come from HOME_ABOUT.
+         Note: the decorative pull-quote glyph was removed — it had a
+         very short line-height for visual effect, which caused it to
+         overlap the eyebrow above it (the "ABOUT HEAL-AI ❝" doubling
+         artifact). The statement itself carries the lede. -->
+    <section class="section" aria-labelledby="about-h">
+      <p class="eyebrow">About HEAL-AI</p>
+      <div class="about-block">
+        <p class="about-statement" id="about-h"></p>
+        <div class="about-side" id="about-bullets"></div>
+      </div>
+    </section>
+
+    <!-- STATS STRIP ────────────────────────────────────────────────────── -->
+    <div class="stats-row" id="stats-row" aria-label="Key statistics"></div>
+
+    <!-- GET STARTED FLOW (5 steps) ─────────────────────────────────────── -->
+    <section class="section section-band" aria-labelledby="gs-h">
+      <div class="flow-head">
+        <div>
+          <p class="eyebrow">Get started</p>
+          <h2 class="h2" id="gs-h">A five-step flow for <em>adopting the process.</em></h2>
+        </div>
+        <p class="lede">Designed for cross-functional teams at health systems — clinical informatics, ethics, patient engagement, and AI governance.</p>
+      </div>
+      <div class="flow-grid" id="flow-grid" role="list"></div>
+    </section>
+
+    <!-- SIGN-UP CTA CARD ──────────────────────────────────────────────────
+         The href on #home-signup-btn is wired up at runtime from
+         SIGN_UP_URL (config.js).                                            -->
+    <section class="section">
+      <div class="signup-card">
+        <div>
+          <p class="eyebrow on-dark">Stay informed</p>
+          <h2>Sign up for HEAL-AI updates.</h2>
+          <p>New videos, templates, and sample reports drop on a rolling basis. Subscribe and we'll let you know when the 6-part training series launches, when new redacted reports go live, and when the DiME Playbook publishes.</p>
+        </div>
+        <div class="signup-side">
+          <a href="#" class="btn-cta" id="home-signup-btn" rel="noopener" target="_blank">
+            Sign up via Google Form <span aria-hidden="true">→</span>
+          </a>
+          <p class="signup-foot">No spam · Unsubscribe anytime</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+
+  <!-- ═══════════ 4.2 · OUR PROCESS ═════════════════════════════════════ -->
+  <section class="page" id="page-process" aria-labelledby="process-h">
+    <header class="page-header">
+      <p class="page-eyebrow">Our Process</p>
+      <h1 class="page-h1" id="process-h">A structured, four-step evaluation grounded in <em>Stanford's FURM framework.</em></h1>
+      <p class="page-sub">Every AI tool we evaluate moves through the same four phases. The output is a written report shared with clinical and operational leadership — and now with you.</p>
+    </header>
+
+    <section class="section">
+      <!--
+        FURM card. The triangle SVG is decorative and kept inline (it is
+        visual chrome, not editable copy). To swap it out, just replace
+        the <svg> below.
+      -->
+      <div class="furm-card">
+        <div class="furm-glyph" aria-hidden="true">
+          <span class="label top">FAIR</span>
+          <span class="label left">USEFUL</span>
+          <span class="label right">RELIABLE</span>
+          <svg viewBox="0 0 200 200">
+            <polygon points="100,28 172,156 28,156" fill="none" stroke="#8C1515" stroke-width="1.5" opacity=".35"/>
+            <polygon points="100,60 144,140 56,140" fill="#8C1515" opacity=".08"/>
+            <circle cx="100" cy="28" r="6" fill="#8C1515"/>
+            <circle cx="172" cy="156" r="6" fill="#8C1515"/>
+            <circle cx="28" cy="156" r="6" fill="#8C1515"/>
+            <circle cx="100" cy="112" r="14" fill="#fff" stroke="#8C1515" stroke-width="2"/>
+            <text x="100" y="117" text-anchor="middle" font-family="Source Serif Pro,serif" font-size="14" font-weight="600" fill="#8C1515">F·U·R·M</text>
+          </svg>
+        </div>
+        <div class="furm-text">
+          <p class="eyebrow">The framework</p>
+          <h3>FURM: <em>Fair, Useful, and Reliable Models.</em></h3>
+          <p>FURM is Stanford's peer-reviewed framework for evaluating clinical AI. Every report we publish — and every template in this toolkit — maps back to its three axes. Tools must demonstrate they are fair across populations, useful at the point of care, and reliable in production.</p>
+          <p class="furm-meta">Source: Stanford Center for Biomedical Informatics Research · Open-access</p>
+        </div>
+      </div>
+
+      <p class="eyebrow">The four steps</p>
+      <h2 class="h2 process-h2">From intake to delivery — one consistent process across every tool.</h2>
+
+      <!-- 4-step grid · rendered from FURM_STEPS in data.js -->
+      <div class="process-steps" id="process-steps"></div>
+
+      <!-- "Coming soon" placeholder card for the step-by-step summary -->
+      <div class="coming-soon-card">
+        <div class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 6h18M3 12h18M3 18h12"/>
+            <circle cx="20" cy="18" r="2.5"/>
+          </svg>
+        </div>
+        <div>
+          <span class="badge">Coming soon</span>
+          <h4>Step-by-step process summary</h4>
+          <p>An interactive walkthrough showing exactly what happens at each stage — who is involved, what artifacts are produced, and what gates a tool must pass to move forward. Launching alongside the 6-part video series.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+
+  <!-- ═══════════ 4.3 · TRAINING VIDEOS ═════════════════════════════════ -->
+  <!--
+    PHASE FLAG · This page renders differently based on SHOW_VIDEOS:
+      • SHOW_VIDEOS = false → the "Videos" tab is hidden from nav, and if
+                              users still reach the page they see a notice.
+      • SHOW_VIDEOS = true  → the 6 video cards + accessible modal player.
+    Edit SHOW_VIDEOS in /js/config.js to flip phases.
+  -->
+  <section class="page" id="page-videos" aria-labelledby="videos-h">
+    <header class="page-header">
+      <p class="page-eyebrow">Training Videos</p>
+      <h1 class="page-h1" id="videos-h">A six-part training series on <em>evaluating clinical AI.</em></h1>
+      <p class="page-sub">Watch the topics in any order. Each video links directly to the templates, reports, and resources referenced — so you can move from learning to applying without hunting around.</p>
+    </header>
+    <section class="section" id="videos-section"><!-- populated by renderVideos() --></section>
+  </section>
+
+  <!-- VIDEO MODAL ──────────────────────────────────────────────────────────
+       Centralized accessible <dialog>-like overlay. Opened by openVideo()
+       and closed by closeVideo() — both in app.js. Closes on Escape and on
+       backdrop click. Iframe src is cleared on close to stop playback. -->
+  <div id="video-modal" role="dialog" aria-modal="true" aria-labelledby="vm-title" aria-hidden="true">
+    <div class="vm-inner">
+      <button class="vm-close" id="vm-close" aria-label="Close video">×</button>
+      <div class="vm-frame">
+        <iframe id="vm-iframe" title="Training video"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowfullscreen></iframe>
+      </div>
+      <div class="vm-meta">
+        <div>
+          <h3 id="vm-title">—</h3>
+          <p id="vm-desc">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════ 4.4 · RESOURCES (tabbed) ══════════════════════════════ -->
+  <section class="page" id="page-resources" aria-labelledby="resources-h">
+    <header class="page-header">
+      <p class="page-eyebrow">Resources</p>
+      <h1 class="page-h1" id="resources-h">Templates, guides, and sample reports — organized by <em>process stage.</em></h1>
+      <p class="page-sub">Use the tabs to jump to the stage you're working through. Items marked <strong>Coming Soon</strong> are in active development.</p>
+    </header>
+    <section class="section">
+      <!-- Tab strip + panel area · both rendered by renderResources() -->
+      <div class="rt-bar" role="tablist" aria-label="Resource categories" id="rt-bar"></div>
+      <div id="rt-panels"></div>
+    </section>
+  </section>
+
+
+  <!-- ═══════════ 4.5 · PATIENT PARTNER PANEL ═══════════════════════════ -->
+  <section class="page" id="page-patient" aria-labelledby="patient-h">
+    <header class="page-header">
+      <p class="page-eyebrow">Patient Partner Panel</p>
+      <h1 class="page-h1" id="patient-h">Patient voices, by design — <em>at Stanford, and at your institution.</em></h1>
+      <p class="page-sub">The Patient Partner Panel is the structural mechanism through which patient perspectives shape AI evaluations. Below: how we run ours, and how you can build one.</p>
+    </header>
+
+    <!-- Two-column split: Stanford's implementation | External guide -->
+    <div class="pp-split">
+      <section class="pp-side stanford" aria-labelledby="pp-stanford-h">
+        <span class="pp-tag">Stanford's implementation</span>
+        <h2 id="pp-stanford-h">How the Stanford panel works.</h2>
+        <p>Ten volunteer patient partners — recruited from Stanford Health Care's diverse patient community — meet routinely to review AI tools under evaluation. Each partner completes fundamentals training in clinical AI, ethics, and facilitation before reviewing their first tool.</p>
+        <div class="pp-stats" id="pp-stats"></div>
+        <div class="pp-list" id="pp-stanford-list"></div>
+      </section>
+
+      <section class="pp-side external" aria-labelledby="pp-ext-h">
+        <span class="pp-tag">For your institution</span>
+        <h2 id="pp-ext-h">Building a panel at your health system.</h2>
+        <p>Use this guide layer as a practical scaffold. Each section reflects what we wish we'd known starting out — recruitment hurdles, training depth, facilitation norms, compensation models, and how to right-size the program for a smaller institution.</p>
+        <div class="pp-acc" id="pp-acc"></div>
+      </section>
+    </div>
+  </section>
+
+
+  <!-- ═══════════ 4.6 · ADAPTING / PLAYBOOK ═════════════════════════════ -->
+  <section class="page" id="page-playbook" aria-labelledby="playbook-h">
+    <header class="page-header">
+      <p class="page-eyebrow">Adapting the Process / Playbook</p>
+      <h1 class="page-h1" id="playbook-h">Take this process and <em>make it yours.</em></h1>
+      <p class="page-sub">Stanford's process was built for Stanford. The Playbook helps you adapt it — governance structure, recruitment, IT integration, compensation models, and scaling — for the realities of your institution.</p>
+    </header>
+
+    <section class="section">
+      <div class="playbook-hero">
+        <div>
+          <p class="eyebrow">DiME Playbook</p>
+          <h2>The cross-institutional reference for adopting <em>HEAL-AI's process.</em></h2>
+          <p>Published in partnership with the Digital Medicine Society (DiME), the Playbook is a step-by-step guide for health systems implementing structured AI evaluation — from a one-person ethics consult to a multi-departmental governance program.</p>
+          <p>Read on for the institutional adaptation cards below. The full Playbook lands in Phase 2.</p>
+          <a href="#" class="btn-cta outline" id="playbook-signup-btn" target="_blank" rel="noopener">
+            Notify me when it ships <span aria-hidden="true">→</span>
+          </a>
+        </div>
+        <div class="playbook-glyph" aria-hidden="true">
+          <svg viewBox="0 0 200 200">
+            <rect x="40" y="34" width="120" height="148" rx="6" fill="#fff" stroke="#8C1515" stroke-width="1.5"/>
+            <rect x="40" y="34" width="120" height="20" rx="6" fill="#8C1515"/>
+            <line x1="55" y1="76" x2="145" y2="76" stroke="#8C1515" stroke-width="1.2"/>
+            <line x1="55" y1="90" x2="135" y2="90" stroke="#8C1515" stroke-width="1.2" opacity=".6"/>
+            <line x1="55" y1="104" x2="140" y2="104" stroke="#8C1515" stroke-width="1.2" opacity=".6"/>
+            <rect x="55" y="120" width="90" height="38" rx="3" fill="#8C1515" opacity=".08"/>
+            <circle cx="62" cy="138" r="3" fill="#8C1515"/>
+            <line x1="72" y1="138" x2="140" y2="138" stroke="#8C1515" stroke-width="1.2"/>
+            <circle cx="62" cy="148" r="3" fill="#8C1515"/>
+            <line x1="72" y1="148" x2="130" y2="148" stroke="#8C1515" stroke-width="1.2" opacity=".6"/>
+          </svg>
+        </div>
+      </div>
+
+      <p class="eyebrow">Adaptation cards</p>
+      <h2 class="h2 playbook-h2">Six dimensions to adjust as you bring this in-house.</h2>
+      <div class="playbook-grid" id="playbook-grid"></div>
+    </section>
+  </section>
+
+
+  <!-- ═══════════ 4.7 · ABOUT ═══════════════════════════════════════════ -->
+  <section class="page" id="page-about" aria-labelledby="about-page-h">
+    <header class="page-header">
+      <p class="page-eyebrow">About</p>
+      <h1 class="page-h1" id="about-page-h">A Stanford Medicine initiative for <em>ethical clinical AI.</em></h1>
+      <p class="page-sub">Founded 2022. Built inside the Stanford Center for Biomedical Informatics Research. Affiliated with Stanford HAI.</p>
+    </header>
+
+    <section class="section">
+      <div class="stanford-bar">
+        <div class="s-mark">
+          <img src="assets/Block_S_1_color_red.png" alt="Stanford">
+        </div>
+        <div class="s-text">
+          <h3>A Stanford Medicine initiative</h3>
+          <p>Stanford Center for Biomedical Informatics Research (BMIR) · Affiliated with Stanford HAI</p>
+        </div>
+      </div>
+
+      <!-- "How we got here" + "What we believe" cards — rendered from ABOUT_CARDS -->
+      <div class="two-col" id="about-cards"></div>
+    </section>
+
+    <section class="section section-team">
+      <p class="eyebrow">The team</p>
+      <h2 class="h2 team-h2">Meet the people behind HEAL-AI.</h2>
+      <div class="team-grid" id="about-team"></div>
+    </section>
+  </section>
+
+</main>
+
+
+<!--
+═════════════════════════════════════════════════════════════════════════════
+ 5 · FOOTER
+─────────────────────────────────────────────────────────────────────────────
+ Static structural footer. Internal links use data-page attributes that
+ app.js wires up to goPage(). External links use real hrefs with
+ target="_blank" rel="noopener".
+═════════════════════════════════════════════════════════════════════════════
+-->
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="logo-mark">H</div>
+      <p>HEAL-AI is a Stanford Medicine toolkit for ethical clinical AI evaluation. Open and adaptable for health systems implementing AI tools.</p>
+    </div>
+    <div class="foot-col">
+      <h5>Toolkit</h5>
+      <a href="#" data-page="process">Our Process</a>
+      <a href="#" data-page="videos">Training Videos</a>
+      <a href="#" data-page="resources">Resources</a>
+      <a href="#" data-page="playbook">Playbook</a>
+    </div>
+    <div class="foot-col">
+      <h5>Programs</h5>
+      <a href="#" data-page="patient">Patient Partner Panel</a>
+      <a href="#" data-page="about">About / Team</a>
+      <a href="#" id="footer-signup" target="_blank" rel="noopener">Sign up for updates</a>
+    </div>
+    <div class="foot-col">
+      <h5>Stanford</h5>
+      <a href="https://med.stanford.edu/" target="_blank" rel="noopener">Stanford Medicine ↗</a>
+      <a href="https://bmir.stanford.edu/" target="_blank" rel="noopener">BMIR ↗</a>
+      <a href="https://hai.stanford.edu/" target="_blank" rel="noopener">Stanford HAI ↗</a>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 Stanford HEAL-AI Lab</span>
+    <span>Stanford Center for Biomedical Informatics Research</span>
+  </div>
+</footer>
+
+
+<!--
+═════════════════════════════════════════════════════════════════════════════
+ 6 · SCRIPTS (load order matters)
+─────────────────────────────────────────────────────────────────────────────
+ 1) config.js — phase toggles, brand constants, URLs
+ 2) data.js   — all editable copy and resource arrays (depends on config)
+ 3) app.js    — DOM rendering & event wiring (depends on config + data)
+
+ `defer` keeps the page parse-and-paint quick while preserving order.
+═════════════════════════════════════════════════════════════════════════════
+-->
+<script src="js/config.js" defer></script>
+<script src="js/data.js" defer></script>
+<script src="js/app.js" defer></script>
+
+</body>
+</html>

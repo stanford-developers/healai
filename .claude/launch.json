@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "heal-ai-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5178", "--directory", "heal-ai-website"],
+      "port": 5178
+    }
+  ]
+}
