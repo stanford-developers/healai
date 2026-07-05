@@ -118,18 +118,29 @@ function bootLoader() {
 /* ═════════════════════════════════════════════════════════════════════════
    ④ ROUTING + NAVIGATION
    ─────────────────────────────────────────────────────────────────────────
-   • goPage(name)      → switch which <section class="page"> is .active
-   • renderNav()       → build desktop tabs + mobile menu from NAV_ITEMS
-                         (respects videoOnly:true ↔ SHOW_VIDEOS)
+   • goPage(name)       → user-facing navigation: pushes a URL hash entry
+                          (so Back/Forward work), then applies the page.
+   • setActivePage(name)→ the actual DOM swap, with no history side effects.
+                          Used by goPage(), by the initial-load hash check,
+                          and by the popstate handler below.
+   • renderNav()        → build desktop tabs + mobile menu from NAV_ITEMS
+                          (respects videoOnly:true ↔ SHOW_VIDEOS)
    • Mobile menu toggle, Escape-to-close, sign-up URL wiring all live here.
+
+   WHY THE HASH
+     Pages used to be swapped by toggling .active with no URL change, so
+     every page looked identical to the browser: one history entry for the
+     whole site. Back/Forward had nothing to navigate between, and reloading
+     or sharing a link always dropped you on Home. The hash (#process,
+     #resources, ...) gives each page its own history entry and URL.
 
    a11y NOTE
      We update both aria-selected on tabs AND the .active class on pages
      so screen readers + sighted users stay in sync.
    ════════════════════════════════════════════════════════════════════════ */
-function goPage(name) {
-  if (!PAGE_IDS.includes(name)) return;
-  if (name === currentPage) { closeMobileMenu(); return; }
+function setActivePage(name) {
+  if (!PAGE_IDS.includes(name)) name = DEFAULT_PAGE;
+  if (name === currentPage) return;
   const cur  = byId('page-' + currentPage);
   const next = byId('page-' + name);
   if (!next) return;
@@ -152,6 +163,19 @@ function goPage(name) {
   currentPage = name;
   closeMobileMenu();
 }
+
+function goPage(name) {
+  if (!PAGE_IDS.includes(name)) return;
+  if (name === currentPage) { closeMobileMenu(); return; }
+  history.pushState({page: name}, '', '#' + name);
+  setActivePage(name);
+}
+
+/* Back/Forward: the browser has already changed location.hash for us —
+   just apply it, without pushing a further history entry. */
+window.addEventListener('popstate', () => {
+  setActivePage(location.hash.slice(1) || DEFAULT_PAGE);
+});
 
 function renderNav() {
   const center = byId('nav-center');
@@ -1174,6 +1198,12 @@ function init() {
   /* Routing + nav first so sign-up URLs are wired before any user click */
   renderNav();
   bindMobileToggle();
+
+  /* Deep-link / reload support: land on whatever page the URL hash names
+     instead of always resetting to Home. No history entry is pushed here —
+     the browser already owns whatever entry brought us to this URL. */
+  const initialPage = location.hash.slice(1);
+  if (initialPage) setActivePage(initialPage);
 
   /* Page-specific renderers */
   renderHero();
