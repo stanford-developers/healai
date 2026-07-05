@@ -377,8 +377,19 @@ const RESOURCE_CATEGORIES = [
        above: VIDEOS is the still-unproduced 6-part training curriculum
        (Phase 2, gated by SHOW_VIDEOS) — these are different, already-
        published recordings, so folding them into VIDEOS would misrepresent
-       both. Rendered as ordinary resource-card links (opens in a new tab),
-       matching how every other tab already links out to external media.
+       both.
+
+       SHAPE — this tab uses `media` instead of a flat `items[]` because it
+       has three distinct visual treatments (see renderCaseStudiesMedia in
+       app.js):
+         • media.featured → one big lazy-autoplay embed (YouTube supports a
+           reliable muted-autoplay-on-scroll via its iframe API).
+         • media.talks    → the 2 conference-talk recordings. These are
+           Google Drive files, and Drive's preview embed does NOT support
+           autoplay (platform limitation, not a bug) — so these render as
+           polished click-to-play cards that open in a new tab instead.
+         • media.grid     → the remaining case-study clips, same
+           lazy-autoplay treatment as the featured slot, smaller.
      ─────────────────────────────────────────────────────────────────── */
   {
     id: 'cases',
@@ -388,28 +399,140 @@ const RESOURCE_CATEGORIES = [
       p: "Recorded case studies and conference talks where HEAL-AI's directors walk through real value collisions, workflow barriers, and the assessment process itself.",
       bullets: ['Start with the case studies', 'Watch the CHAI Summit talk', 'Watch the HAI workshop talk'],
     },
-    items: [
-      { h: "Unmasking AI's ethical fault lines", icon: 'video', state: 'ready',
-        href: 'https://www.youtube.com/watch?v=JXWICqLS0GM',
-        sub: "Case study 1 — Stanford Medicine's battle with value collisions in mortality prediction tools." }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Beyond accuracy: autonomous AI in trial', icon: 'video', state: 'ready',
-        href: 'https://www.youtube.com/watch?v=ZGiQLuPNq-c',
-        sub: "Case study 2 — Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks." }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Workflow issues as deployment barriers', icon: 'video', state: 'ready',
-        href: 'https://www.youtube.com/watch?v=96TKfJRnA-c',
-        sub: 'Case study 3 — why workflow issues are often critical barriers to AI implementation.' }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Lessons learned from the frontlines', icon: 'video', state: 'ready',
-        href: 'https://www.youtube.com/watch?v=WCS9lchlAa8',
-        sub: 'Case study 4 — recurring system-level issues to address before deploying AI in healthcare.' }, /* migrated from heal-ai.stanford.edu */
-      { h: "Stanford's Ethical Assessment Process: What and Why", icon: 'video', state: 'ready',
-        href: 'https://drive.google.com/file/d/1rNubDnBNKaHNSnrBgoc2l4hLzn4YZ9LX/preview',
-        sub: "Drs. Char and Mello's overview, presented at CHAI's Leadership Summit, June 2025." }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Stanford HAI Health Policy Workshop talk', icon: 'video', state: 'ready',
-        href: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview',
-        sub: "Presentation at the Stanford Institute for Human-Centered AI's Health Policy Workshop, June 2025." }, /* migrated from heal-ai.stanford.edu */
-    ],
+    media: {
+      featured: {
+        title: "Unmasking AI's ethical fault lines",
+        desc: "Case study 1 — Stanford Medicine's battle with value collisions in mortality prediction tools.",
+        youtubeId: 'JXWICqLS0GM',
+      },
+      talks: [
+        { h: "Stanford's Ethical Assessment Process: What and Why",
+          sub: "Drs. Char and Mello's overview, presented at CHAI's Leadership Summit, June 2025.",
+          href: 'https://drive.google.com/file/d/1rNubDnBNKaHNSnrBgoc2l4hLzn4YZ9LX/preview' },
+        { h: 'Stanford HAI Health Policy Workshop talk',
+          sub: "Presentation at the Stanford Institute for Human-Centered AI's Health Policy Workshop, June 2025.",
+          href: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview' },
+      ],
+      grid: [
+        { title: 'Beyond accuracy: autonomous AI in trial',
+          desc: "Case study 2 — Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks.",
+          youtubeId: 'ZGiQLuPNq-c' },
+        { title: 'Workflow issues as deployment barriers',
+          desc: 'Case study 3 — why workflow issues are often critical barriers to AI implementation.',
+          youtubeId: '96TKfJRnA-c' },
+        { title: 'Lessons learned from the frontlines',
+          desc: 'Case study 4 — recurring system-level issues to address before deploying AI in healthcare.',
+          youtubeId: 'WCS9lchlAa8' },
+      ],
+    },
   },
 ];
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   REPORT_DETAILS · full content behind each of the 8 sample-report cards
+─────────────────────────────────────────────────────────────────────────────
+   Migrated from each report's dedicated page on heal-ai.stanford.edu
+   (Tool Overview / Report Summary / Key Issues Identified / Download Full
+   Report). Rendered in an in-site modal (openReportDetail() in app.js) so
+   visitors read the real content here instead of being redirected off-site
+   — the external link only remains as `reports[].href` for reference.
+
+   Keyed by the same `code` used in RESOURCE_CATEGORIES' reports[] above.
+─────────────────────────────────────────────────────────────────────────── */
+const REPORT_DETAILS = {
+  '01': {
+    overview: "This predictive AI tool, nicknamed HeartRead, seeks to improve diagnosis of hypertrophic cardiomyopathy (HCM), a common inherited heart condition that can be hard to detect but may cause sudden death. Though often symptomless, HCM can be treated effectively if caught early. HeartRead analyzes existing ECGs in patients' medical record to help doctors identify potential cases that need follow-up with an echocardiogram to confirm a diagnosis of HCM. Trained on data from multiple medical centers, it has shown higher accuracy than cardiologists in early tests, though it can produce false positives.",
+    summary: "The benefits of the tool appear to outweigh the risks and stakeholders are enthusiastic about its potential to address a serious health condition; however, several areas of uncertainty require study before a deployment decision is made, including the tool's overall performance, performance in patient subgroups, and overall value. Before deployment, the health system should also address workflow: outreach to PCPs to boost screening-ECG prevalence, adequate staffing of the Echo Lab and HCM clinic, and waiving confirmatory-testing fees for uninsured patients.",
+    issues: [
+      'By identifying many new patients who could benefit from echocardiograms, the tool will intensify the current capacity strain on the Echo Lab and HCM clinic, increasing wait times for other patients.',
+      'Because of the low prevalence of ECG screening, particularly in minoritized populations, the benefits offered by the tool are not equitably available to all patients.',
+      "Additional information about the tool's performance in patient subgroups is needed before deployment.",
+      'Stakeholders were not aligned about the primary risk: design team members and clinicians focused on false positives, while patients were more concerned about false negatives.',
+      'Most stakeholders do not feel patient consent for use of the tool is needed; however, information about the tool’s use should be provided to those who screen positive.',
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/heartread-ethics-report-for-external-distribution.docx',
+  },
+  '02': {
+    overview: 'This large language model, nicknamed NoteBuddy, aims to help nurses create end-of-shift summaries more efficiently. Currently, nurses spend 30–60 minutes after 12-hour shifts compiling notes from the EMR to ensure the incoming care team is fully informed. NoteBuddy is integrated into the EMR and scans notes, test results, and medications to generate draft summaries. Nurses are required to review and edit every draft before it becomes the final summary.',
+    summary: 'The use case is promising, and ethical considerations do not militate against deployment. Stakeholders were generally optimistic about the potential to reduce nurses’ burden and improve patient care; none opposed its use. Remaining opportunities center on (1) design features that may elevate the risk of inaccuracies or omissions, and (2) the challenge of evaluating the tool’s benefits and burdens once deployed.',
+    issues: [
+      'The tool may, by design, miss information that is important to clinicians or patients, negatively impacting quality of care.',
+      'Avoiding unintended harm by correcting inaccuracies requires more human oversight than is likely to occur, or than is commensurate with reducing nurses’ workload.',
+      'Nurses, who are held responsible for the accuracy and completeness of the notes, worry they might be asked to vouch for information in the LLM-generated draft they lack firsthand knowledge of.',
+      'Long-term use of the tool could undermine nurses’ training and skill in identifying important information in the EMR and synthesizing it.',
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/notebuddy-ethics-report-for-external-distribution.docx',
+  },
+  '03': {
+    overview: 'This large language model, nicknamed AuthorizeMe, is under consideration to streamline the insurance prior authorization (PA) process. Hospital financial staff currently prepare these requests manually, taking about 20 minutes each; because they are not clinically trained, key information in the EHR can be hard to find, leading to denials and care delays. AuthorizeMe automatically extracts patient information to populate PA forms and drafts answers to insurers’ medical questions, linking to source documents. Staff review and edit before submission. It is expected to cut preparation time by 25%.',
+    summary: "The prospective benefits appear to outweigh the risks and all stakeholders support moving forward. There is, however, a need for careful monitoring given uncertainty about whether financial staff — who have low familiarity with generative AI — can provide effective oversight of AI output. The ethics team's chief recommendation is that the health system provide technical assistance to build a user training curriculum and a monitoring plan.",
+    issues: [
+      'There is reason for concern about whether financial staff are sufficiently knowledgeable to know what to look for when reviewing output.',
+      'PA request work is high-volume and repetitive, compounding the risk of missing errors and, over time, experiencing automation bias.',
+      'Stakeholders expressed concerns about the potential workforce effects of the tool.',
+      "Some patients and developers expressed uncertainty about whether the healthcare system's training data are large and diverse enough to ensure equal performance across all kinds of PA requests.",
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/authorizeme-ethics-report-for-external-distribution.docx',
+  },
+  '04': {
+    overview: 'This large language model, nicknamed RadiRead, is designed to help radiologists generate imaging reports more efficiently. Each study typically takes 6–23 minutes to dictate, and radiologists may review over 100 studies per shift. RadiRead automatically generates the impression section of a radiology report from what the radiologist dictated in the findings section, highlighting key findings and recommending follow-up care. The radiologist reviews and edits it before finalizing the report.',
+    summary: "It is unclear to what extent the potential benefits will be realized, but implementation should proceed with appropriate monitoring because the prospective benefits appear to outweigh the risks. The primary risk is that, due to automation bias, clinically significant or embarrassing errors in the output will go undetected. The ethics team recommends the health system proceed only after concrete plans for user training and monitoring are submitted, that residents be excluded from use of the tool, and that the health system develop a patient-facing resource explaining how AI tools are used in care.",
+    issues: [
+      'All stakeholder groups perceived the primary risk to be that LLM performance problems generate errors in the impressions and automation bias sets in among reviewing radiologists.',
+      "Stakeholders expressed curiosity about the tool's performance in medically complex cases.",
+      'Multiple clinicians worried about de-skilling of residents, who would not learn to summarize, prioritize findings, and generate treatment recommendations themselves.',
+      "The implementation team should propose a concrete plan for assessing the tool's accuracy and any workload reductions.",
+      'Some patients and clinicians expressed discomfort entrusting patient data to a third-party vendor on a promise of deidentification the health system could not directly verify.',
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/radiread-ethics-report-for-external-distribution.docx',
+  },
+  '05': {
+    overview: 'This generative AI tool, nicknamed Copilot, helps doctors summarize patient visits. Doctors currently spend roughly twice as much time on EMR documentation as with patients, contributing to burnout. Copilot uses voice recognition and large language models to transcribe and summarize visit conversations, distinguishing among speakers and organizing summaries into key sections. Doctors still review and edit the AI-generated summaries before they’re added to the record.',
+    summary: 'The use case is promising, and ethical considerations do not militate against deployment. Stakeholders, including patients, were enthusiastic about its potential to reduce documentation burden and improve physician-patient interactions. Ongoing evaluation should focus on: (1) better ascertainment of inaccuracies carrying risk of patient harm; (2) potential for lower performance for patients with limited or accented English, speech impediments, or complex visits; and (3) long-term risks of automation bias and de-skilling.',
+    issues: [
+      'All stakeholders express generalized concern about possible bias, but even developers have poor visibility into actual performance for patient subgroups.',
+      "Evaluating clinically significant inaccuracies will be challenging, partly for lack of a benchmark against which to compare the tool's summaries.",
+      'Clinicians have high optimism about the tool, which may heighten the risk of automation bias, and little interest in the adequacy of the training data.',
+      'Correcting inaccuracies in draft summaries may require more human oversight than is likely to occur, given the goal of reducing physicians’ workload.',
+      'It is unclear what information patients receive when asked for consent, especially concerning transmission and use of their data by the third-party vendor.',
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/copilot-ethics-report-for-external-distribution.docx',
+  },
+  '06': {
+    overview: 'Two AI tools — Payment Probability (PP) and Denial Appeal Drafter (DAD) — are being considered to improve how the Denials Management team handles denied insurance claims. PP assigns each denied claim a Likelihood of Payment score (0–100%) based on past claims and payment history, helping staff prioritize the most promising appeals. DAD then drafts the appeal letter itself, pulling clinical information from the denied visit and up to six months of related records, with citations linking to the supporting record. Both are powered by large language models; staff review and edit the output.',
+    summary: "For both tools, the prospective benefits of adoption appear to outweigh the risks, and stakeholders are enthusiastic about moving forward. The ethics team recommends deployment with safeguards focused on user training and performance evaluation. The primary risk is that inaccuracies in either tool's output could lead to lower, not higher, rates of successfully reversing denials — and the ethics team is not confident current users could reliably detect and fix such errors without additional training.",
+    issues: [
+      "The primary risk is that inaccuracies in the tools' output could lead to lower, not higher, rates of reversing denials.",
+      'Measuring the net benefit of each tool separately will be challenging since both operate in the same workflow.',
+      'If use of the PP tool becomes widespread, it may create perverse incentives for insurers to deny claims more persistently.',
+      'Patients worried that, over time, using the PP tool might make the health system less willing to care for patients with less favorable insurers.',
+      'If the DAD tool hallucinates information the user does not catch before submission to a government payer, there could be legal implications.',
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/pp-dad-ethics-report-for-external-distribution.docx',
+  },
+  '07': {
+    overview: 'This AI tool, nicknamed LabAlert, is designed to help reduce unnecessary lab testing for hospitalized patients. A significant portion of daily standing-order lab tests — especially repeated complete blood counts and chemistry panels — may not be clinically necessary after the first few days, yet can cause discomfort and disrupt sleep. LabAlert predicts whether a patient’s next test result is likely to be stable, using lab history, vital signs, and medications, and triggers an EHR notification prompting the doctor to reconsider the order.',
+    summary: 'Stakeholders were consistently supportive of the tool, and patients were explicitly willing to trade a perceived low risk of missing something for a more comfortable, restful recovery. The top concern among developers and clinicians was that the model would underperform for patients with certain clinical profiles, underscoring the need to give physicians key information so they can make informed decisions about whether to accept an alert.',
+    issues: [
+      'The top countervailing concern — voiced more by developers, clinicians, and experts than patients — was that the model would underperform for certain groups.',
+      'All stakeholder groups recognized potential for automation bias, though none perceived it as high; alarm fatigue, intrinsic motivation, and accountability concerns seem likely to mitigate it.',
+      "Stakeholders generally believed physicians should be informed of the model's false-positive/false-negative rates, the nature of its training data, and patient characteristics or groups for whom it may underperform.",
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/labalert-ethics-report-for-external-distribution.docx',
+  },
+  '08': {
+    overview: 'This random forest model, nicknamed SendOff, is designed to help reduce unplanned readmissions (patients returning within 3 days of discharge). SendOff generates a risk score that the discharge planning team can use to prioritize referrals to the health system’s Transition of Care program, which has limited capacity to support every patient after discharge. Physicians can still refer patients based on their own judgment; TOC staff make the final call on who receives post-discharge support.',
+    summary: 'Overall, stakeholders other than developers had limited or no enthusiasm for proceeding. Two of four patients opposed it, both prospective clinical users expressed only guarded interest, and ethicists characterized it as an inappropriate response to the readmissions problem. Experts and most patients felt the tool omitted important risk factors and was unlikely to address the causes of readmissions, including suboptimal discharge planning. The ethics team’s assessment does not support use of the developer’s tool in either its original or updated version.',
+    issues: [
+      'Stakeholders and experts expressed skepticism that the tool was the right solution to the problem.',
+      'The tool only prioritizes among patients whom physicians have already referred to the program.',
+      'The tool may underperform for patient subgroups at risk of readmission due to factors the model does not consider.',
+      "Monitoring the tool's performance over time should address the risk that its accuracy could degrade.",
+    ],
+    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/sendoff-ethics-report-for-external-distribution.docx',
+  },
+};
 
 
 /* ─────────────────────────────────────────────────────────────────────────

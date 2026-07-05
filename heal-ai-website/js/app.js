@@ -486,10 +486,16 @@ function closeVideo() {
    one matching <div class="rt-panel"> per entry. Switching is handled by
    activateResourceTab(id).
 
-   "ready" items are rendered as clickable cards (with `href`).
-   "soon" items are rendered as dashed-border cards.
-   The "reports" category has an extra .reports-grid section beneath
-   the standard items (the 8 redacted sample reports).
+   "ready" items are rendered as a spotlight card (the first item) plus a
+   divided list (the rest) — see resourceCardHTML(). "soon" items render
+   with the dashed/dimmed treatment either way.
+   The "reports" category has an extra .reports-grid section beneath the
+   standard items (the 8 redacted sample reports) — clicking one opens the
+   in-site report-detail modal (openReportDetail()) instead of navigating
+   away.
+   The "cases" category has no items[] at all — it uses cat.media instead,
+   rendered by renderCaseStudiesMedia() (featured lazy-autoplay embed +
+   talk cards + embed grid).
    ════════════════════════════════════════════════════════════════════════ */
 function renderResources() {
   const bar    = byId('rt-bar');
@@ -549,8 +555,18 @@ function renderResources() {
         </aside>
       </div>`;
 
-    /* 2) Resource card grid */
-    html += '<div class="res-grid">' + cat.items.map(item => resourceCardHTML(item)).join('') + '</div>';
+    /* 2) Resource items — either the standard spotlight+list, or (cases
+          tab only) the featured-embed media layout. */
+    if (cat.media) {
+      html += renderCaseStudiesMedia(cat.media);
+    } else {
+      const [first, ...rest] = cat.items;
+      html += '<div class="res-set">' + resourceCardHTML(first, 'spotlight');
+      if (rest.length) {
+        html += '<div class="res-list">' + rest.map(item => resourceCardHTML(item, 'row')).join('') + '</div>';
+      }
+      html += '</div>';
+    }
 
     /* 3) Sample reports (reports category only) */
     if (cat.reports) {
@@ -564,8 +580,8 @@ function renderResources() {
           </p>
           <div class="reports-grid">
             ${cat.reports.map(r => `
-              <div class="report-row" data-href="${r.href}" tabindex="0"
-                   role="link" aria-label="Open sample report ${r.name}">
+              <div class="report-row" data-code="${r.code}" tabindex="0"
+                   role="button" aria-label="Open sample report: ${stripHTML(r.name)}">
                 <span class="report-pill">${r.code}</span>
                 <div><h5>${r.name}</h5><span>${r.sub}</span></div>
                 ${svgIcon('arrowOut', {sw:2, stroke:'var(--ink-low)'})}
@@ -577,8 +593,8 @@ function renderResources() {
     panel.innerHTML = html;
     panels.appendChild(panel);
 
-    /* Wire up clickable resource cards (set by data-href attribute) */
-    panel.querySelectorAll('.res-card.linked').forEach(c => {
+    /* Wire up clickable resource cards + talk cards (set by data-href) */
+    panel.querySelectorAll('.res-spotlight.linked, .res-row.linked, .cs-talk-card').forEach(c => {
       const href = c.dataset.href;
       const fire = () => window.open(href, '_blank', 'noopener');
       c.addEventListener('click', fire);
@@ -586,25 +602,29 @@ function renderResources() {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
       });
     });
-    /* Sample-report row click + keydown */
+    /* Sample-report row → opens the in-site detail modal, not an external tab */
     panel.querySelectorAll('.report-row').forEach(row => {
-      const fire = () => window.open(row.dataset.href, '_blank', 'noopener');
+      const fire = () => openReportDetail(row.dataset.code);
       row.addEventListener('click', fire);
       row.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
       });
     });
+    /* Case-studies embeds: click-to-play now, or lazy-autoplay on scroll */
+    if (cat.media) initLazyVideoEmbeds(panel);
   });
 }
 
 /**
- * One resource card. "ready" → live link, "soon" → dashed-border preview.
- * tabIndex + role=link applied only when the card is actionable so screen
- * readers don't announce a non-link as a link.
+ * One resource item. `variant` is 'spotlight' (large, first item in a tab)
+ * or 'row' (compact, part of the divided .res-list). "ready" → live link,
+ * "soon" → dimmed/dashed preview. tabIndex + role=link applied only when
+ * the item is actionable so screen readers don't announce a non-link as one.
  */
-function resourceCardHTML(item) {
+function resourceCardHTML(item, variant) {
   const isLink = item.state === 'ready' && item.href;
-  const classes = 'res-card' + (isLink ? ' linked' : '') + (item.state === 'soon' ? ' soon' : '');
+  const wrapCls = variant === 'spotlight' ? 'res-spotlight' : 'res-row';
+  const classes = wrapCls + (isLink ? ' linked' : '') + (item.state === 'soon' ? ' soon' : '');
   const tagText = item.state === 'soon' ? '• Coming soon' : '• Available';
   const tagCls  = item.state === 'soon' ? 'res-tag soon' : 'res-tag';
   const arrow   = isLink ? `<div class="res-arrow">${svgIcon('arrowOut', {sw:2})}</div>` : '';
@@ -621,6 +641,109 @@ function resourceCardHTML(item) {
       </div>
       ${arrow}
     </div>`;
+}
+
+/**
+ * "Case Studies & Talks" tab body: a featured video + 2 talk cards up top,
+ * then a grid of the remaining case-study clips. See CASE STUDIES CSS
+ * comment for why talks are plain links but embeds are lazy-autoplay.
+ */
+function renderCaseStudiesMedia(media) {
+  return `
+    <div class="cs-featured-row">
+      <div class="cs-talks">
+        ${media.talks.map(t => `
+          <div class="cs-talk-card" data-href="${t.href}" tabindex="0"
+               role="link" aria-label="${stripHTML(t.h)} (opens in new tab)">
+            <div class="cs-talk-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+            <div><h4>${t.h}</h4><p>${t.sub}</p></div>
+          </div>`).join('')}
+      </div>
+      ${csEmbedHTML(media.featured)}
+    </div>
+    <div class="cs-grid">
+      ${media.grid.map(g => csEmbedHTML(g)).join('')}
+    </div>`;
+}
+
+/** One lazy-autoplay video embed cell — starts as a YouTube-thumbnail
+ *  poster and swaps in a live iframe via initLazyVideoEmbeds() below. */
+function csEmbedHTML(v) {
+  const thumb = `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg`;
+  return `
+    <div class="cs-embed" data-yt-id="${v.youtubeId}" style="background-image:url('${thumb}')"
+         role="button" tabindex="0" aria-label="Play: ${stripHTML(v.title)}">
+      <div class="cs-embed-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+      <div class="cs-embed-meta"><h4>${v.title}</h4><p>${v.desc}</p></div>
+    </div>`;
+}
+
+/**
+ * Wires up every `.cs-embed` inside `root`: clicking/pressing Enter plays
+ * it immediately; scrolling one into view (50% visible) auto-plays it too,
+ * muted, via YouTube's iframe autoplay param (the one platform of the two
+ * used on this tab that actually supports autoplay — see the CSS comment
+ * above .cs-embed for why Drive-hosted talks don't get this treatment).
+ * Each embed only loads its iframe once (`dataset.playing` guards re-entry).
+ */
+function initLazyVideoEmbeds(root) {
+  const playEmbed = el => {
+    if (el.dataset.playing) return;
+    el.dataset.playing = '1';
+    const id = el.dataset.ytId;
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&rel=0`;
+    iframe.title = el.getAttribute('aria-label') || 'Video';
+    iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+    iframe.setAttribute('allowfullscreen', '');
+    el.appendChild(iframe);
+    el.classList.add('playing');
+  };
+
+  const embeds = root.querySelectorAll('.cs-embed');
+  embeds.forEach(el => {
+    el.addEventListener('click', () => playEmbed(el));
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playEmbed(el); }
+    });
+  });
+
+  if (!('IntersectionObserver' in window)) return;   /* click-to-play still works */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => { if (entry.isIntersecting) playEmbed(entry.target); });
+  }, { threshold: 0.5 });
+  embeds.forEach(el => observer.observe(el));
+}
+
+/**
+ * Opens the in-site "hidden pane" for a sample report — real content
+ * migrated from that report's page on heal-ai.stanford.edu (REPORT_DETAILS
+ * in data.js) instead of redirecting the visitor off-site. The external
+ * .docx link is preserved as the modal's "Download Full Report" action.
+ */
+function openReportDetail(code) {
+  const reportsCat = RESOURCE_CATEGORIES.find(c => c.reports);
+  const meta   = reportsCat && reportsCat.reports.find(r => r.code === code);
+  const detail = REPORT_DETAILS[code];
+  if (!meta || !detail) return;
+
+  byId('rm-pill').textContent     = code;
+  byId('rm-title').textContent    = stripHTML(meta.name);
+  byId('rm-overview').textContent = detail.overview;
+  byId('rm-summary').textContent  = detail.summary;
+  byId('rm-issues').innerHTML     = detail.issues.map(i => `<li>${i}</li>`).join('');
+  byId('rm-download').href        = detail.downloadHref;
+
+  const modal = byId('report-modal');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+function closeReportModal() {
+  const modal = byId('report-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
 }
 
 /**
@@ -1181,9 +1304,16 @@ function bindGlobalEvents() {
   });
   byId('vm-close').addEventListener('click', closeVideo);
 
+  const reportModal = byId('report-modal');
+  reportModal.addEventListener('click', e => {
+    if (e.target === reportModal) closeReportModal();
+  });
+  byId('rm-close').addEventListener('click', closeReportModal);
+
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (modal.classList.contains('open')) { closeVideo(); return; }
+    if (modal.classList.contains('open'))       { closeVideo(); return; }
+    if (reportModal.classList.contains('open')) { closeReportModal(); return; }
     if (mobileOpen) { closeMobileMenu(); return; }
   });
 }

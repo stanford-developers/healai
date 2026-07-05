@@ -339,6 +339,38 @@
   </div>
 
 
+  <!-- REPORT MODAL ─────────────────────────────────────────────────────────
+       In-site "hidden pane" for the 8 sample reports. Opened by
+       openReportDetail() and closed by closeReportModal() — both in app.js.
+       Content is migrated from each report's real page on
+       heal-ai.stanford.edu (see REPORT_DETAILS in data.js) so visitors read
+       it here instead of being redirected off-site; the "Download Full
+       Report" link still points at the real .docx on Stanford's file
+       server since we aren't re-hosting the documents themselves. -->
+  <div id="report-modal" role="dialog" aria-modal="true" aria-labelledby="rm-title" aria-hidden="true">
+    <div class="rm-inner">
+      <button class="rm-close" id="rm-close" aria-label="Close report">×</button>
+      <div class="rm-scroll">
+        <span class="rm-pill" id="rm-pill">01</span>
+        <h3 id="rm-title">—</h3>
+        <div class="rm-section">
+          <h4>Tool Overview</h4>
+          <p id="rm-overview">—</p>
+        </div>
+        <div class="rm-section">
+          <h4>Report Summary</h4>
+          <p id="rm-summary">—</p>
+        </div>
+        <div class="rm-section">
+          <h4>Key Issues Identified</h4>
+          <ul id="rm-issues"></ul>
+        </div>
+        <a id="rm-download" class="btn-cta" target="_blank" rel="noopener">Download Full Report &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+
   <!-- ═══════════ 4.4 · RESOURCES (tabbed) ══════════════════════════════ -->
   <section class="page" id="page-resources" aria-labelledby="resources-h">
     <header class="page-header">
