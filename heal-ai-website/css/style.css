@@ -1882,11 +1882,10 @@ footer {
   max-width: 1320px; margin: 0 auto;
   padding: 56px clamp(24px, 5vw, 80px) 40px;
 }
-.fg-brand { display: flex; align-items: center; gap: 16px; }
-.fg-logo  { width: 40px; height: 40px; flex-shrink: 0; }
-.fg-brand-text { display: flex; flex-direction: column; }
-.fg-brand-text strong { font-size: 15px; color: var(--ink); }
-.fg-brand-text span   { font-size: 12.5px; color: var(--ink-mid); }
+.fg-brand { display: flex; align-items: center; }
+/* SVG is a 540×200 wordmark (2.7:1) — height-constrained + object-fit so it
+   scales proportionally instead of being squeezed into a square box. */
+.fg-logo  { height: 56px; width: auto; max-width: 320px; object-fit: contain; flex-shrink: 0; }
 
 .fg-tools { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
