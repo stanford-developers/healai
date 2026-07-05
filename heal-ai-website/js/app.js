@@ -497,7 +497,12 @@ function renderVideos() {
 
 function openVideo(v) {
   const modal = byId('video-modal');
-  byId('vm-iframe').src = v.embed + (v.embed.includes('?') ? '&' : '?') + 'autoplay=1&rel=0';
+  /* enablejsapi=1 lets Pause Media (initPauseMediaControl) send a real
+     pause/play command to this iframe via postMessage while it's open.
+     Respect an already-paused state at open time too, rather than always
+     forcing autoplay regardless of the global toggle. */
+  const autoplay = isMotionPaused() ? '0' : '1';
+  byId('vm-iframe').src = v.embed + (v.embed.includes('?') ? '&' : '?') + `autoplay=${autoplay}&rel=0&enablejsapi=1`;
   byId('vm-title').textContent = v.title;
   byId('vm-desc').innerHTML    = v.desc;
   modal.classList.add('open');
@@ -721,12 +726,14 @@ function csEmbedHTML(v) {
  * Each embed only loads its iframe once (`dataset.playing` guards re-entry).
  */
 function initLazyVideoEmbeds(root) {
+  /* enablejsapi=1 lets Pause Media (initPauseMediaControl) send a real
+     pause/play command to this iframe via postMessage once it's loaded. */
   const playEmbed = el => {
     if (el.dataset.playing) return;
     el.dataset.playing = '1';
     const id = el.dataset.ytId;
     const iframe = document.createElement('iframe');
-    iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&rel=0`;
+    iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&rel=0&enablejsapi=1`;
     iframe.title = el.getAttribute('aria-label') || 'Video';
     iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
     iframe.setAttribute('allowfullscreen', '');
@@ -735,6 +742,9 @@ function initLazyVideoEmbeds(root) {
   };
 
   const embeds = root.querySelectorAll('.cs-embed');
+  /* Click/keyboard is a deliberate user action — always plays, even if
+     Pause Media is currently on (same as prefers-reduced-motion never
+     blocking a user-initiated play, only ambient autoplay). */
   embeds.forEach(el => {
     el.addEventListener('click', () => playEmbed(el));
     el.addEventListener('keydown', e => {
@@ -744,7 +754,9 @@ function initLazyVideoEmbeds(root) {
 
   if (!('IntersectionObserver' in window)) return;   /* click-to-play still works */
   const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => { if (entry.isIntersecting) playEmbed(entry.target); });
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !isMotionPaused()) playEmbed(entry.target);
+    });
   }, { threshold: 0.5 });
   embeds.forEach(el => observer.observe(el));
 }
@@ -1364,22 +1376,45 @@ function bindGlobalEvents() {
    this function only owns the button + the body class it reads from.
    ════════════════════════════════════════════════════════════════════════ */
 function initPauseMediaControl() {
-  const btn = byId('fg-pause-btn');
-  if (!btn) return;   /* footer-global isn't on every page in every build */
-  const label = byId('fg-pause-label');
+  /* Both footers expose the same control (footer-global's light-theme
+     .fg-pause and footer-home's dark-theme .foot-pause) — one shared
+     motion-paused state, kept in sync across whichever button exists. */
+  const controls = [
+    { btn: byId('fg-pause-btn'),   label: byId('fg-pause-label') },
+    { btn: byId('home-pause-btn'), label: byId('home-pause-label') },
+  ].filter(c => c.btn);
+  if (!controls.length) return;
 
   const applyState = paused => {
     document.body.classList.toggle('motion-paused', paused);
-    btn.setAttribute('aria-pressed', String(paused));
-    label.textContent = paused ? 'Play Media' : 'Pause Media';
+    controls.forEach(({ btn, label }) => {
+      btn.setAttribute('aria-pressed', String(paused));
+      label.textContent = paused ? 'Play Media' : 'Pause Media';
+    });
+    setEmbeddedMediaState(paused);
   };
 
   applyState(localStorage.getItem('heal-ai-motion-paused') === '1');
 
-  btn.addEventListener('click', () => {
+  controls.forEach(({ btn }) => btn.addEventListener('click', () => {
     const next = !document.body.classList.contains('motion-paused');
     localStorage.setItem('heal-ai-motion-paused', next ? '1' : '0');
     applyState(next);
+  }));
+}
+
+/**
+ * Extends Pause Media beyond the hero canvas to actual video: sends the
+ * YouTube iframe postMessage API's pause/play command to every currently
+ * loaded embed — the training-video modal and any already-playing Case
+ * Studies embeds. Requires enablejsapi=1 on each iframe's src (set where
+ * they're created: openVideo() and initLazyVideoEmbeds()). No-ops safely
+ * if nothing is loaded yet — there's nothing to pause.
+ */
+function setEmbeddedMediaState(paused) {
+  const msg = JSON.stringify({ event: 'command', func: paused ? 'pauseVideo' : 'playVideo', args: [] });
+  $$('.vm-frame iframe, .cs-embed iframe').forEach(f => {
+    if (f.src) f.contentWindow.postMessage(msg, '*');
   });
 }
 

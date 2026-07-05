@@ -1863,6 +1863,23 @@ footer {
   font-size: 12px;
   color: rgba(255, 255, 255, .5);
 }
+/* Dark-theme sibling of .fg-pause (footer-global uses a light background;
+   footer-home is dark, so this needs its own contrast-appropriate styling
+   rather than sharing the class). Same shared #motion-paused state either
+   way — see initPauseMediaControl() in app.js. */
+.foot-pause {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, .7);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: all var(--t-fast);
+}
+.foot-pause:hover { border-color: var(--cardinal-light); color: #fff; }
+.foot-pause-icon  { font-size: 9px; letter-spacing: -1px; }
+.foot-pause[aria-pressed="true"] .foot-pause-icon::before { content: '\25B6'; letter-spacing: 0; }
 
 .hidden-footer { display: none; }
 

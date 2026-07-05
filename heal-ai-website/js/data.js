@@ -71,9 +71,9 @@ const NAV_ITEMS = [
      "url"       → opens buttons[].url in a new tab
 ─────────────────────────────────────────────────────────────────────────── */
 const HERO_COPY = {
-  eyebrow: 'A toolkit for ethical clinical AI evaluation',
-  headline: 'If your health system is implementing AI tools — <em>here is how to assess them ethically.</em>',
-  sub: 'HEAL-AI is a Stanford toolkit for external health systems who want a structured, patient-inclusive way to evaluate clinical AI: videos, templates, sample reports, and a playbook for adapting our process to your institution.',
+  eyebrow: 'The human layer of AI governance',
+  headline: 'Your AI governance checks the model. <em>We check what happens when your people use it.</em>',
+  sub: 'HEAL-AI runs structured ethical reviews of healthcare AI tools — before and after they go live — by talking directly to the patients, clinicians, and staff closest to them, then bringing what we hear back to the people deciding whether a tool moves forward.',
   buttons: [
     { label: 'See the process →', action: 'page:process',   variant: 'prime' },
     { label: 'Browse resources',  action: 'page:resources', variant: 'second' },
@@ -88,7 +88,7 @@ const HERO_COPY = {
    `bullets` accepts any number of pillar cards — the layout flexes.
 ─────────────────────────────────────────────────────────────────────────── */
 const HOME_ABOUT = {
-  statement: "If your health system is implementing AI tools and you want a <em>structured way to assess them ethically</em>, you're in the right place. We've spent three years building, testing, and publishing an evaluation process at Stanford — now we share it openly so you can adapt it for your institution.",
+  statement: "Workflow friction. Value collisions. Gaps between what people were promised and what they experience. None of it shows up in a monitoring dashboard — <em>it shows up when we talk to the people closest to the tool.</em> Our process sits alongside the AI governance you already have, and ends in a clear call: move forward, change it, pause it, or decline.",
   bullets: [
     { letter: 'F', title: 'Fair, Useful, Reliable',
       body: "Grounded in Stanford's FURM framework — peer-reviewed, evidence-based." },
