@@ -214,6 +214,14 @@ const VIDEOS = [
 
    EDIT HERE  →  add new items to any items[] or rewrite intro copy.
    The 8 SAMPLE REPORTS are the spec-required deliverables — keep all 8.
+
+   PROVENANCE NOTE (migrated content)
+     Items below marked with a trailing "migrated from heal-ai.stanford.edu"
+     comment were pulled from the live Stanford site's /resources page and
+     slotted into whichever existing tab already matched their topic. Where
+     no real content existed for a placeholder (still `href:'#'`), the
+     placeholder was left untouched rather than invented. `state:'soon'`
+     items reflect the source site's own "Coming soon" labels, not ours.
 ─────────────────────────────────────────────────────────────────────────── */
 const RESOURCE_CATEGORIES = [
   /* ─ Tab 1 ─ Understanding the Process ─────────────────────────────── */
@@ -234,6 +242,10 @@ const RESOURCE_CATEGORIES = [
         sub: 'How HEAL-AI maps to Digital Medicine Society standards.' },
       { h: 'Glossary',              icon: 'book',  state: 'ready', href: '#',
         sub: 'Plain-language definitions for FURM, EOP, intake, and more.' },
+      { h: 'Detailed data-collection protocol', icon: 'sheet', state: 'soon',
+        sub: 'Step-by-step protocol for arranging and conducting stakeholder data collection.' }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Step-by-step process summary', icon: 'paper', state: 'soon',
+        sub: 'A condensed walkthrough of the entire ethics assessment process, start to finish.' }, /* migrated from heal-ai.stanford.edu */
     ],
   },
 
@@ -247,14 +259,22 @@ const RESOURCE_CATEGORIES = [
       bullets: ['Pull the interview guides', 'Use the thematic template', 'Pair with Video 03'],
     },
     items: [
-      { h: 'Developer interview guide',    icon: 'mic',   state: 'soon',
-        sub: 'For the team that built or vended the AI tool.' },
-      { h: 'Clinical user interview guide',icon: 'mic',   state: 'soon',
-        sub: 'For clinicians actively using the tool at the point of care.' },
-      { h: 'Thematic analysis template',   icon: 'sheet', state: 'ready', href: '#',
-        sub: 'Spreadsheet for coding interview transcripts.' },
-      { h: 'Scheduling &amp; logistics',   icon: 'cal',   state: 'ready', href: '#',
-        sub: 'Outreach scripts, calendar templates, recording norms.' },
+      { h: 'Interview guide for tool developers',      icon: 'mic',   state: 'soon',
+        sub: 'Template interview guide for the team that built or vended the AI tool, customizable per use case.' }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Interview guide for prospective tool users', icon: 'mic', state: 'soon',
+        sub: 'Template interview guide for clinicians expected to use the tool, customizable per use case.' }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Thematic analysis template',   icon: 'sheet', state: 'ready',
+        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/template_for_thematic_content_analysis_of_interview_and_focus_group_transcripts.docx',
+        sub: 'Template for thematic content analysis of interview and focus group transcripts.' }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Interview &amp; focus group tracking sheet', icon: 'cal', state: 'ready',
+        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/tracking_sheet_for_recording_progress_of_stakeholder_interviews_and_patient_focus_group.xlsx',
+        sub: 'Spreadsheet for tracking progress of stakeholder interviews and the patient focus group.' }, /* migrated from heal-ai.stanford.edu */
+      { h: '&ldquo;What to Expect&rdquo; guide for use-case submissions', icon: 'paper', state: 'ready',
+        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/what_to_expect_document_for_teams_submitting_proposed_use_cases_for_ethical_assessment.docx',
+        sub: 'What teams should expect when submitting a proposed use case for ethical assessment.' }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Expert Oversight Panel meeting template', icon: 'paper', state: 'ready',
+        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/template_for_meetings_with_expert_oversight_panel.docx',
+        sub: 'Template for structuring meetings with the Expert Oversight Panel.' }, /* migrated from heal-ai.stanford.edu */
     ],
   },
 
@@ -269,13 +289,16 @@ const RESOURCE_CATEGORIES = [
     },
     items: [
       { h: "Moderator's guide",                icon: 'mic',   state: 'soon',
-        sub: '90-minute focus group structure with prompt library.' },
+        sub: "Template patient focus group moderator's guide, customizable per use case." }, /* refined from heal-ai.stanford.edu */
       { h: 'Recruitment script',               icon: 'mail',  state: 'ready', href: '#',
         sub: 'Outreach language used with the Stanford patient council.' },
       { h: 'Fundamentals training curriculum', icon: 'book',  state: 'ready', href: '#',
         sub: '8-hour onboarding for new patient partners.' },
       { h: 'Compensation &amp; consent template', icon: 'paper', state: 'ready', href: '#',
         sub: 'Compensation rates, consent language, IRB notes.' },
+      { h: 'What should patients be told about AI use?', icon: 'link', state: 'ready',
+        href: 'https://healthpolicy.fsi.stanford.edu/news/ethical-obligations-inform-patients-about-use-ai-tools',
+        sub: "HEAL-AI's JAMA commentary on how health systems should answer: ask, tell, or neither?" }, /* migrated from heal-ai.stanford.edu */
     ],
   },
 
@@ -297,17 +320,26 @@ const RESOURCE_CATEGORIES = [
       { h: 'Cover-letter template', icon: 'mail',  state: 'ready', href: '#',
         sub: 'For sharing the EOP with clinical and operational leadership.' },
     ],
-    /* The 8 SAMPLE REPORTS — required by spec. `href` lets you point each at
-       a real PDF / Drive link once redacted artifacts are uploaded. */
+    /* The 8 SAMPLE REPORTS — required by spec. Names, order, and hrefs
+       migrated from heal-ai.stanford.edu/resources (Ethics Assessment
+       Reports section); descriptions are the real report subtitles. */
     reports: [
-      { code: '01', name: 'HeartRead',           sub: 'Cardiology imaging triage',         href: '#' },
-      { code: '02', name: 'NoteBuddy',           sub: 'Ambient clinical scribing',         href: '#' },
-      { code: '03', name: 'AuthorizeMe',         sub: 'Prior-authorization assistant',     href: '#' },
-      { code: '04', name: 'RadiRead',            sub: 'Radiology report draft',            href: '#' },
-      { code: '05', name: 'Copilot',             sub: 'Clinical documentation copilot',    href: '#' },
-      { code: '06', name: 'Payment Probability', sub: 'Revenue cycle prediction',          href: '#' },
-      { code: '07', name: 'LabAlert',            sub: 'Critical-value flagging',           href: '#' },
-      { code: '08', name: 'SendOff',             sub: 'Discharge summary generation',      href: '#' },
+      { code: '01', name: 'HeartRead', href: 'https://heal-ai.stanford.edu/hcm-ethical-assessment',
+        sub: 'A predictive algorithm to screen for hypertrophic cardiomyopathy.' },
+      { code: '02', name: 'NoteBuddy', href: 'https://heal-ai.stanford.edu/nursing-notes-summarization-large-language-model-generate-nursing-notes',
+        sub: 'A large language model to generate nursing notes.' },
+      { code: '03', name: 'AuthorizeMe', href: 'https://heal-ai.stanford.edu/authorizeme-ethics-assessment',
+        sub: 'A generative AI tool to help secure insurance prior authorizations.' },
+      { code: '04', name: 'RadiRead', href: 'https://heal-ai.stanford.edu/radiread',
+        sub: 'A tool to help radiologists generate imaging reports.' },
+      { code: '05', name: 'Copilot', href: 'https://heal-ai.stanford.edu/dax-copilot-ethical-assessment',
+        sub: 'An ambient scribe tool to generate summary notes on clinic visits.' },
+      { code: '06', name: 'Payment Probability &amp; Denial Appeal Drafter', href: 'https://heal-ai.stanford.edu/pp-and-dd',
+        sub: 'LLMs predicting the likelihood of successfully challenging an insurance denial and drafting appeal letters.' },
+      { code: '07', name: 'LabAlert', href: 'https://heal-ai.stanford.edu/lvlt',
+        sub: 'An AI tool to help reduce low-value lab tests.' },
+      { code: '08', name: 'SendOff', href: 'https://heal-ai.stanford.edu/sendoff',
+        sub: 'An algorithm for predicting risk of hospital readmission.' },
     ],
   },
 
@@ -317,18 +349,64 @@ const RESOURCE_CATEGORIES = [
     label: 'Adapting for Your Institution',
     intro: {
       h: 'Make this process yours.',
-      p: 'Institution-level resources for governance structure, IT integration, staffing models, and the forthcoming DiME Playbook.',
-      bullets: ['Skim the adaptation worksheet', 'Watch Video 06', 'Wait-list the DiME Playbook'],
+      p: 'Institution-level resources for governance structure, IT integration, staffing models, and the published DiME Playbook.',
+      bullets: ['Skim the adaptation worksheet', 'Watch Video 06', 'Read the DiME Playbook'],
     },
     items: [
       { h: 'Adaptation worksheet',         icon: 'sheet', state: 'ready', href: '#',
         sub: 'A self-assessment to right-size the process for your institution.' },
-      { h: 'DiME Playbook',                icon: 'book',  state: 'soon',
-        sub: 'Forthcoming joint publication with the Digital Medicine Society.' },
+      { h: 'DiME Playbook',                icon: 'book',  state: 'ready',
+        href: 'https://dimesociety.org/ai-implementation-in-healthcare-playbook/',
+        sub: "Digital Medicine Society's published playbook for implementing AI in healthcare responsibly and equitably." }, /* migrated from heal-ai.stanford.edu — now published, was "soon" */
       { h: 'Cross-institutional briefing deck', icon: 'deck', state: 'ready', href: '#',
         sub: 'For securing executive sponsorship at your health system.' },
       { h: 'IRB &amp; legal review notes', icon: 'paper', state: 'ready', href: '#',
         sub: 'How Stanford routed this through governance — translatable to other institutions.' },
+      { h: "Project tracking sheet (full process)", icon: 'sheet', state: 'soon',
+        sub: "Project manager's sheet for tracking progress across the entire ethics assessment process." }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Process-improvement metrics', icon: 'sheet', state: 'ready',
+        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/metrics_for_assessing_the_usefulness_of_the_ethical_assessment_process.docx',
+        sub: 'Metrics for assessing the usefulness of the ethical assessment process.' }, /* migrated from heal-ai.stanford.edu */
+    ],
+  },
+
+  /* ─ Tab 6 ─ Case Studies & Talks ─────────────────────────────────────
+       New tab (not in the original boilerplate) added specifically to
+       hold real recorded case studies and talks migrated from
+       heal-ai.stanford.edu/resources. Kept separate from the VIDEOS array
+       above: VIDEOS is the still-unproduced 6-part training curriculum
+       (Phase 2, gated by SHOW_VIDEOS) — these are different, already-
+       published recordings, so folding them into VIDEOS would misrepresent
+       both. Rendered as ordinary resource-card links (opens in a new tab),
+       matching how every other tab already links out to external media.
+     ─────────────────────────────────────────────────────────────────── */
+  {
+    id: 'cases',
+    label: 'Case Studies &amp; Talks',
+    intro: {
+      h: 'See the framework applied.',
+      p: "Recorded case studies and conference talks where HEAL-AI's directors walk through real value collisions, workflow barriers, and the assessment process itself.",
+      bullets: ['Start with the case studies', 'Watch the CHAI Summit talk', 'Watch the HAI workshop talk'],
+    },
+    items: [
+      { h: "Unmasking AI's ethical fault lines", icon: 'video', state: 'ready',
+        href: 'https://www.youtube.com/watch?v=JXWICqLS0GM',
+        sub: "Case study 1 — Stanford Medicine's battle with value collisions in mortality prediction tools." }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Beyond accuracy: autonomous AI in trial', icon: 'video', state: 'ready',
+        href: 'https://www.youtube.com/watch?v=ZGiQLuPNq-c',
+        sub: "Case study 2 — Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks." }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Workflow issues as deployment barriers', icon: 'video', state: 'ready',
+        href: 'https://www.youtube.com/watch?v=96TKfJRnA-c',
+        sub: 'Case study 3 — why workflow issues are often critical barriers to AI implementation.' }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Lessons learned from the frontlines', icon: 'video', state: 'ready',
+        href: 'https://www.youtube.com/watch?v=WCS9lchlAa8',
+        sub: 'Case study 4 — recurring system-level issues to address before deploying AI in healthcare.' }, /* migrated from heal-ai.stanford.edu */
+      { h: "Stanford's Ethical Assessment Process: What and Why", icon: 'video', state: 'ready',
+        href: 'https://drive.google.com/file/d/1rNubDnBNKaHNSnrBgoc2l4hLzn4YZ9LX/preview',
+        sub: "Drs. Char and Mello's overview, presented at CHAI's Leadership Summit, June 2025." }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Stanford HAI Health Policy Workshop talk', icon: 'video', state: 'ready',
+        href: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview',
+        sub: "Presentation at the Stanford Institute for Human-Centered AI's Health Policy Workshop, June 2025." }, /* migrated from heal-ai.stanford.edu */
     ],
   },
 ];
