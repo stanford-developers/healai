@@ -800,7 +800,6 @@ function renderTeam() {
      This is a self-contained renderer wrapped in an IIFE pattern (called
      via initHeroCanvas()) to keep its many internal variables off the
      global scope. The CRITICAL externals it reads:
-       • PAPERS                  → hover/click metadata (data.js)
        • FEATURES.heroAnimation  → master on/off toggle (config.js)
        • prefers-reduced-motion  → auto-respected via matchMedia
 
@@ -840,7 +839,7 @@ function initHeroCanvas() {
         x: cx + Math.cos(ang) * d, y: cy + Math.sin(ang) * d,
         r: br, baseR: br,
         ax: cx + Math.cos(ang) * d, ay: cy + Math.sin(ang) * d,
-        isRes: true, paper: PAPERS[i],
+        isRes: true, paper: null,
         blinkPhase: Math.random() * Math.PI * 2,
         blinkSpd: 0.022 + Math.random() * 0.014,
         driftPhase: Math.random() * Math.PI * 2,
@@ -1079,24 +1078,29 @@ function initHeroCanvas() {
 
   /* ── Resize handling ──────────────────────────────────────────────── */
   /*
-     IMPORTANT: canvas.offsetWidth can read as 0 at the moment defer-loaded
-     scripts run in the modular build (a layout-timing quirk that didn't
-     manifest in the single-file prototype). When that happens, the
-     <canvas> falls back to its default 300×150 backing buffer and gets
-     CSS-stretched to fill the hero — which makes every node, edge, and
-     triangle in the mesh appear ~6× too large.
+     IMPORTANT: canvas.offsetWidth can read as 0 (or a stale value) at the
+     moment defer-loaded scripts run — a layout-timing quirk that gets worse
+     once font swaps / late layout shifts happen after the first measurement.
+     A one-off window 'load' re-check isn't reliable enough: it can still
+     fire before the box settles, permanently freezing the backing buffer at
+     the wrong size while offsetWidth/offsetHeight report the true size.
 
-     Fix:
-       1) Fall back to window.innerWidth/innerHeight when offsetWidth is 0.
-       2) Re-run resize() on window 'load' so the final layout dimensions
-          are picked up after fonts + stylesheets have settled.
+     Fix: use a ResizeObserver on the canvas itself, so the backing buffer
+     is re-measured every time its actual rendered box changes, for any
+     reason (window resize, font load, layout shift) — not just the two
+     events we happened to think of.
   */
-  function resize() {
-    const w = canvas.offsetWidth  || window.innerWidth;
-    const h = canvas.offsetHeight || window.innerHeight;
+  function applySize(w, h) {
+    if (w === canvas.width && h === canvas.height) return;
     canvas.width  = w;
     canvas.height = h;
     build();
+  }
+
+  function resize() {
+    const w = canvas.offsetWidth  || window.innerWidth;
+    const h = canvas.offsetHeight || window.innerHeight;
+    applySize(w, h);
   }
 
   /* ── Mouse wiring ─────────────────────────────────────────────────── */
@@ -1121,10 +1125,19 @@ function initHeroCanvas() {
   });
 
   resize();
-  window.addEventListener('resize', resize);
-  /* Re-measure after the full load event so any late layout shifts
-     (fonts, stylesheets, web-font swap) are reflected in canvas size. */
-  window.addEventListener('load', resize);
+  if (window.ResizeObserver) {
+    new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const box = entry.contentBoxSize && entry.contentBoxSize[0];
+        const w = Math.round(box ? box.inlineSize : entry.contentRect.width);
+        const h = Math.round(box ? box.blockSize  : entry.contentRect.height);
+        if (w > 0 && h > 0) applySize(w, h);
+      }
+    }).observe(canvas);
+  } else {
+    window.addEventListener('resize', resize);
+    window.addEventListener('load', resize);
+  }
   requestAnimationFrame(frame);
 }
 
