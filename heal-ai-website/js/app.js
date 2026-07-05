@@ -1334,6 +1334,16 @@ function initHeroCanvas() {
     window.addEventListener('resize', resize);
     window.addEventListener('load', resize);
   }
+  /* On a cold cache (a visitor's genuine first load), the Google Fonts
+     <link> in index.html hasn't downloaded yet, so text first renders in
+     a fallback font, then swaps to the real one once it arrives — the
+     exact "layout shifts after fonts load" class of bug the resize
+     comment above already worries about. document.fonts.ready is the
+     standards-based signal for "every font actually finished loading,"
+     more precise than window.load, so force one more measurement then. */
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(resize);
+  }
   requestAnimationFrame(frame);
 }
 
