@@ -62,6 +62,10 @@ const $   = (sel) => document.querySelector(sel);
 const $$  = (sel) => Array.from(document.querySelectorAll(sel));
 const byId = (id) => document.getElementById(id);
 
+/** Site-wide "Pause Media" toggle (footer-global) — live check, unlike the
+ *  prefers-reduced-motion matchMedia captured once at hero-canvas init. */
+function isMotionPaused() { return document.body.classList.contains('motion-paused'); }
+
 /**
  * Build an inline 24×24 SVG using a named entry from the ICONS library
  * in data.js. Returns an SVG string ready to drop into innerHTML.
@@ -162,6 +166,36 @@ function setActivePage(name) {
 
   currentPage = name;
   closeMobileMenu();
+  updateFooterVisibility(name);
+}
+
+/**
+ * Home keeps its original footer; every other page shows #footer-global.
+ * Called from setActivePage() on every navigation, and once directly in
+ * init() since the very first page load never runs through setActivePage
+ * when there's no URL hash to apply.
+ *
+ * WHY THE DOM MOVE — every .page is `position:fixed; inset:0` with its own
+ * internal scroll (that's how instant page-swapping works here). A <footer>
+ * left as a sibling AFTER </main> sits behind whichever .page is active and
+ * is never reachable by scrolling — true for the ORIGINAL footer too, not
+ * something this introduced. Moving the relevant footer to be the active
+ * page's last child makes it part of that page's own scrollable content, so
+ * it actually appears once the user scrolls to the bottom.
+ */
+function updateFooterVisibility(name) {
+  const isHome = name === 'home';
+  const homeFooter   = byId('footer-home');
+  const globalFooter = byId('footer-global');
+  const activePage    = byId('page-' + name);
+
+  homeFooter.classList.toggle('hidden-footer', !isHome);
+  globalFooter.classList.toggle('hidden-footer', isHome);
+
+  const target = isHome ? homeFooter : globalFooter;
+  if (activePage && target.parentElement !== activePage) {
+    activePage.appendChild(target);
+  }
 }
 
 function goPage(name) {
@@ -203,7 +237,7 @@ function renderNav() {
   mobile.appendChild(ms);
 
   /* Wire every Sign-up CTA on the site to SIGN_UP_URL */
-  ['nav-signup-btn', 'home-signup-btn', 'playbook-signup-btn', 'footer-signup']
+  ['nav-signup-btn', 'home-signup-btn', 'playbook-signup-btn', 'footer-signup', 'footer-global-signup']
     .forEach(id => {
       const el = byId(id);
       if (!el) return;
@@ -969,6 +1003,9 @@ function initHeroCanvas() {
   const mouse = {x: -9999, y: -9999};
   let nodes = [], triangles = [], edges = [], packets = [], hovered = null, nucleus = null;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  /* Live check (not captured once like reduceMotion) so the footer's
+     Pause Media toggle can freeze/resume the mesh at any time. */
+  const isPaused = () => reduceMotion || isMotionPaused();
 
   /* ── Layout: build all nodes around the canvas center ─────────────── */
   function build() {
@@ -1090,7 +1127,7 @@ function initHeroCanvas() {
     const all = nodes.concat([nucleus]);
     all.forEach(n => {
       if (n.ax === undefined) return;
-      n.driftPhase = (n.driftPhase || 0) + (reduceMotion ? 0 : 0.004);
+      n.driftPhase = (n.driftPhase || 0) + (isPaused() ? 0 : 0.004);
       n.x = n.ax + Math.cos(n.driftPhase) * 1.5;
       n.y = n.ay + Math.sin(n.driftPhase * 0.9) * 1.5;
     });
@@ -1137,7 +1174,7 @@ function initHeroCanvas() {
     });
 
     /* Travelling cardinal packets along edges */
-    if (!reduceMotion && Math.random() < 0.22) spawnPacket();
+    if (!isPaused() && Math.random() < 0.22) spawnPacket();
     for (let i = packets.length - 1; i >= 0; i--) {
       const p = packets[i];
       p.t += 0.014;
@@ -1177,7 +1214,7 @@ function initHeroCanvas() {
        No white core, no center dot. Just a soft cardinal halo + a solid
        cardinal disc with the shared drop-shadow glow.
     */
-    nucleus.phase += reduceMotion ? 0 : 0.018;
+    nucleus.phase += isPaused() ? 0 : 0.018;
     const coreBlink = 0.85 + 0.15 * Math.sin(nucleus.phase);
     /* Halo alpha values here (and on the research nodes below) were tuned
        DOWN to give a more subtle glow — solid bubble stays crisp but the
@@ -1202,7 +1239,7 @@ function initHeroCanvas() {
     */
     nodes.forEach(n => {
       if (!n.isRes) return;
-      n.blinkPhase += n.blinkSpd * (reduceMotion ? 0 : 1);
+      n.blinkPhase += n.blinkSpd * (isPaused() ? 0 : 1);
       const blink = 0.55 + 0.45 * Math.sin(n.blinkPhase);
       const rr = n.baseR * (1 + 0.14 * Math.sin(n.blinkPhase));
       const hg3 = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, rr * 4);
@@ -1320,7 +1357,148 @@ function bindGlobalEvents() {
 
 
 /* ═════════════════════════════════════════════════════════════════════════
-   ⑭ INIT — run every renderer once, then start the canvas loop
+   ⑭ PAUSE MEDIA — footer-global's site-wide reduced-motion toggle
+   ─────────────────────────────────────────────────────────────────────────
+   Persists across navigation/reloads via localStorage. isMotionPaused()
+   (② TINY HELPERS) is what the hero canvas actually checks each frame;
+   this function only owns the button + the body class it reads from.
+   ════════════════════════════════════════════════════════════════════════ */
+function initPauseMediaControl() {
+  const btn = byId('fg-pause-btn');
+  if (!btn) return;   /* footer-global isn't on every page in every build */
+  const label = byId('fg-pause-label');
+
+  const applyState = paused => {
+    document.body.classList.toggle('motion-paused', paused);
+    btn.setAttribute('aria-pressed', String(paused));
+    label.textContent = paused ? 'Play Media' : 'Pause Media';
+  };
+
+  applyState(localStorage.getItem('heal-ai-motion-paused') === '1');
+
+  btn.addEventListener('click', () => {
+    const next = !document.body.classList.contains('motion-paused');
+    localStorage.setItem('heal-ai-motion-paused', next ? '1' : '0');
+    applyState(next);
+  });
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ⑮ SITE SEARCH — footer-global's "search across everything"
+   ─────────────────────────────────────────────────────────────────────────
+   buildSearchIndex() walks the same content arrays every other renderer
+   reads from data.js, so the index can never drift out of sync with what's
+   actually on the page — there's no separate copy of the content to keep
+   updated. Matching is a simple case-insensitive substring check against
+   title + subtitle + keywords; good enough for a site this size without
+   pulling in a search library.
+   ════════════════════════════════════════════════════════════════════════ */
+function buildSearchIndex() {
+  const index = [];
+  const add = (title, sub, pageId, extra = {}) => {
+    if (!title) return;
+    index.push({ title: stripHTML(title), sub: stripHTML(sub || ''), pageId, ...extra });
+  };
+
+  NAV_ITEMS.forEach(n => add(n.label, '', n.id));
+
+  RESOURCE_CATEGORIES.forEach(cat => {
+    if (cat.items) {
+      cat.items.forEach(item => add(item.h, item.sub, 'resources', { tabId: cat.id }));
+    }
+    if (cat.reports) {
+      cat.reports.forEach(r => add(r.name, r.sub, 'resources', { tabId: cat.id, reportCode: r.code }));
+    }
+    if (cat.media) {
+      add(cat.media.featured.title, cat.media.featured.desc, 'resources', { tabId: cat.id });
+      cat.media.talks.forEach(t => add(t.h, t.sub, 'resources', { tabId: cat.id }));
+      cat.media.grid.forEach(g => add(g.title, g.desc, 'resources', { tabId: cat.id }));
+    }
+  });
+
+  FURM_STEPS.forEach(s => add(s.title, s.desc, 'process'));
+  GET_STARTED_STEPS.forEach(s => add(s.title, s.desc, 'home'));
+  PLAYBOOK_CARDS.forEach(c => add(c.h, c.desc, 'playbook'));
+  TEAM.forEach(t => add(t.name, t.role, 'about'));
+  ABOUT_CARDS.forEach(c => add(c.h, c.p, 'about'));
+  PP_STANFORD_LIST.forEach(i => add(i.h, i.body, 'patient'));
+  PP_EXTERNAL.forEach(i => add(i.h, i.body, 'patient'));
+  if (SHOW_VIDEOS) VIDEOS.forEach(v => add(v.title, v.desc, 'videos'));
+
+  return index;
+}
+
+function initSiteSearch() {
+  const input   = byId('fg-search-input');
+  const results = byId('fg-search-results');
+  if (!input) return;
+
+  const index = buildSearchIndex();
+  let activeIdx = -1;
+  let matches = [];
+
+  const close = () => {
+    results.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    activeIdx = -1;
+  };
+
+  const render = () => {
+    if (!matches.length) {
+      results.innerHTML = '<div class="fg-result-empty">No matches. Try a different term.</div>';
+      results.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      return;
+    }
+    results.innerHTML = matches.map((m, i) => `
+      <div class="fg-result${i === activeIdx ? ' active' : ''}" role="option" data-idx="${i}">
+        <div><span class="fg-result-title">${m.title}</span><span class="fg-result-meta">${m.pageId}</span></div>
+        ${m.sub ? `<div class="fg-result-sub">${m.sub}</div>` : ''}
+      </div>`).join('');
+    results.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  };
+
+  const go = m => {
+    goPage(m.pageId);
+    if (m.pageId === 'resources' && m.tabId) activateResourceTab(m.tabId, false);
+    if (m.reportCode) openReportDetail(m.reportCode);
+    input.value = '';
+    close();
+  };
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { close(); return; }
+    matches = index
+      .filter(e => (e.title + ' ' + e.sub).toLowerCase().includes(q))
+      .slice(0, 8);
+    activeIdx = -1;
+    render();
+  });
+
+  input.addEventListener('keydown', e => {
+    if (results.hidden) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, matches.length - 1); render(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); render(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (matches[activeIdx]) go(matches[activeIdx]); else if (matches[0]) go(matches[0]); }
+    else if (e.key === 'Escape') { close(); }
+  });
+
+  results.addEventListener('click', e => {
+    const row = e.target.closest('.fg-result');
+    if (row) go(matches[Number(row.dataset.idx)]);
+  });
+
+  document.addEventListener('click', e => {
+    if (!results.hidden && !e.target.closest('.fg-search')) close();
+  });
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ⑯ INIT — run every renderer once, then start the canvas loop
    ════════════════════════════════════════════════════════════════════════ */
 function init() {
   bootLoader();
@@ -1334,6 +1512,7 @@ function init() {
      the browser already owns whatever entry brought us to this URL. */
   const initialPage = location.hash.slice(1);
   if (initialPage) setActivePage(initialPage);
+  updateFooterVisibility(currentPage);   /* setActivePage() no-ops on the default (no-hash) load */
 
   /* Page-specific renderers */
   renderHero();
@@ -1350,6 +1529,8 @@ function init() {
 
   /* Document-level wiring */
   bindGlobalEvents();
+  initPauseMediaControl();
+  initSiteSearch();
 
   /* Hero canvas last — least critical, can run after content is painted */
   initHeroCanvas();

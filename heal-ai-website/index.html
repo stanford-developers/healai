@@ -498,7 +498,9 @@
  target="_blank" rel="noopener".
 ═════════════════════════════════════════════════════════════════════════════
 -->
-<footer>
+<!-- Home-only footer. Visibility toggled by updateFooterVisibility() in
+     app.js — hidden whenever currentPage !== 'home'. -->
+<footer id="footer-home">
   <div class="foot-grid">
     <div class="foot-brand">
       <div class="logo-mark">H</div>
@@ -527,6 +529,67 @@
   <div class="foot-bottom">
     <span>© 2026 Stanford HEAL-AI Lab</span>
     <span>Stanford Center for Biomedical Informatics Research</span>
+  </div>
+</footer>
+
+<!-- Every-page-but-Home footer, modeled on hai.stanford.edu's footer.
+     Visibility toggled by updateFooterVisibility() in app.js — shown
+     whenever currentPage !== 'home'. -->
+<footer id="footer-global" class="hidden-footer">
+  <div class="fg-top">
+    <div class="fg-brand">
+      <img class="fg-logo" src="assets/heal-ai-logo-cardinal.svg" alt="HEAL-AI" />
+      <div class="fg-brand-text">
+        <strong>Stanford Medicine</strong>
+        <span>HEAL-AI &middot; Health AI Evaluation</span>
+      </div>
+    </div>
+    <div class="fg-tools">
+      <div class="fg-search">
+        <svg class="fg-search-icon" aria-hidden="true" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="fg-search-input" placeholder="Search the site&hellip;" aria-label="Search HEAL-AI" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="fg-search-results" aria-autocomplete="list">
+        <div class="fg-search-results" id="fg-search-results" role="listbox" aria-label="Search results" hidden></div>
+      </div>
+      <button class="fg-pause" id="fg-pause-btn" type="button" aria-pressed="false">
+        <span class="fg-pause-icon" id="fg-pause-icon" aria-hidden="true">&#10074;&#10074;</span>
+        <span id="fg-pause-label">Pause Media</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="fg-nav">
+    <div class="fg-nav-col">
+      <h5>Navigate</h5>
+      <a href="#" data-page="process">Our Process</a>
+      <a href="#" data-page="resources">Resources</a>
+      <a href="#" data-page="patient">Patient Partner Panel</a>
+      <a href="#" data-page="playbook">Playbook</a>
+      <a href="#" data-page="about">About / Team</a>
+    </div>
+    <div class="fg-nav-col">
+      <h5>Participate</h5>
+      <a href="#" data-page="videos">Training Videos</a>
+      <a href="#" id="footer-global-signup" target="_blank" rel="noopener">Sign up for updates</a>
+    </div>
+  </div>
+
+  <div class="fg-bottom">
+    <a class="fg-su-logo" href="http://www.stanford.edu/" target="_blank" rel="noopener" aria-label="Stanford University">
+      <img src="assets/SUSig_Stack_White.png" alt="Stanford University" />
+    </a>
+    <nav class="fg-legal" aria-label="Stanford University links">
+      <a href="https://www.stanford.edu/" target="_blank" rel="noopener">Stanford Home</a>
+      <a href="https://visit.stanford.edu/plan/" target="_blank" rel="noopener">Maps &amp; Directions</a>
+      <a href="https://www.stanford.edu/search/" target="_blank" rel="noopener">Search Stanford</a>
+      <a href="https://emergency.stanford.edu/" target="_blank" rel="noopener">Emergency Info</a>
+      <a href="https://www.stanford.edu/site/terms/" target="_blank" rel="noopener">Terms of Use</a>
+      <a href="https://www.stanford.edu/site/privacy/" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://uit.stanford.edu/security/copyright-infringement" target="_blank" rel="noopener">Copyright</a>
+      <a href="https://adminguide.stanford.edu/chapter-1/subchapter-5/policy-1-5-4" target="_blank" rel="noopener">Trademarks</a>
+      <a href="http://exploredegrees.stanford.edu/nonacademicregulations/nondiscrimination/" target="_blank" rel="noopener">Non-Discrimination</a>
+      <a href="https://www.stanford.edu/site/accessibility" target="_blank" rel="noopener">Accessibility</a>
+    </nav>
+    <span class="fg-copyright">&copy; Stanford University. Stanford, California 94305.</span>
   </div>
 </footer>
 

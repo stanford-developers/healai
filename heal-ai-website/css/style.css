@@ -1864,6 +1864,117 @@ footer {
   color: rgba(255, 255, 255, .5);
 }
 
+.hidden-footer { display: none; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FOOTER-GLOBAL · every page but Home, modeled on hai.stanford.edu
+─────────────────────────────────────────────────────────────────────────────
+   Two zones, matching the reference: a light "tools" zone (brand + search +
+   Pause Media + our own nav links) and a dark Stanford-system bottom bar
+   (required legal links, unchanged in spirit from what Stanford's global
+   footer looks like elsewhere on *.stanford.edu).
+───────────────────────────────────────────────────────────────────────── */
+#footer-global { padding: 0; background: var(--bg-soft); color: var(--ink); }
+
+.fg-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 32px; flex-wrap: wrap;
+  max-width: 1320px; margin: 0 auto;
+  padding: 56px clamp(24px, 5vw, 80px) 40px;
+}
+.fg-brand { display: flex; align-items: center; gap: 16px; }
+.fg-logo  { width: 40px; height: 40px; flex-shrink: 0; }
+.fg-brand-text { display: flex; flex-direction: column; }
+.fg-brand-text strong { font-size: 15px; color: var(--ink); }
+.fg-brand-text span   { font-size: 12.5px; color: var(--ink-mid); }
+
+.fg-tools { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+.fg-search { position: relative; width: 260px; }
+.fg-search-icon {
+  position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--ink-low); pointer-events: none;
+}
+.fg-search input {
+  width: 100%;
+  padding: 11px 14px 11px 36px;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  transition: border-color var(--t-fast);
+}
+.fg-search input:focus { border-color: var(--cardinal); outline: none; }
+.fg-search-results {
+  position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+  max-height: 360px; overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-3);
+  z-index: 20;
+}
+.fg-result {
+  display: block; width: 100%; text-align: left;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.fg-result:last-child { border-bottom: none; }
+.fg-result:hover, .fg-result.active { background: var(--cardinal-soft); }
+.fg-result-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.fg-result-meta  { font-size: 11px; color: var(--cardinal); font-family: var(--mono); text-transform: uppercase; letter-spacing: .04em; margin-left: 6px; }
+.fg-result-sub   { font-size: 12px; color: var(--ink-mid); margin-top: 2px; line-height: 1.4; }
+.fg-result-empty { padding: 14px; font-size: 13px; color: var(--ink-mid); }
+
+.fg-pause {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 500; color: var(--ink-mid);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: all var(--t-fast);
+}
+.fg-pause:hover { border-color: var(--cardinal); color: var(--cardinal); }
+.fg-pause-icon  { font-size: 10px; letter-spacing: -1px; }
+.fg-pause[aria-pressed="true"] .fg-pause-icon::before { content: '\25B6'; letter-spacing: 0; }
+
+.fg-nav {
+  display: flex; gap: 64px;
+  max-width: 1320px; margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 80px) 40px;
+  border-top: 1px solid var(--line);
+  padding-top: 32px;
+}
+.fg-nav-col h5 {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-low); font-weight: 600;
+  margin-bottom: 14px;
+}
+.fg-nav-col a {
+  display: block;
+  font-size: 13.5px; color: var(--ink-mid);
+  margin-bottom: 9px;
+  transition: color var(--t-fast);
+}
+.fg-nav-col a:hover { color: var(--cardinal); }
+
+.fg-bottom {
+  display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
+  padding: 24px clamp(24px, 5vw, 80px);
+  background: var(--ink);
+}
+.fg-su-logo { flex-shrink: 0; display: flex; }
+.fg-su-logo img { height: 34px; width: auto; }
+.fg-legal { display: flex; gap: 16px 22px; flex-wrap: wrap; flex: 1; }
+.fg-legal a { font-size: 12px; color: rgba(255, 255, 255, .65); transition: color var(--t-fast); }
+.fg-legal a:hover { color: #fff; }
+.fg-copyright { font-size: 11.5px; color: rgba(255, 255, 255, .45); width: 100%; }
+
 
 /* ═══════════════════════════════════════════════════════════════════════
    §15 · RESPONSIVE BREAKPOINTS
@@ -1952,6 +2063,12 @@ footer {
 
   .foot-grid         { grid-template-columns: 1fr 1fr; gap: 32px; }
   footer             { padding: 48px 24px 28px; }
+  #footer-global     { padding: 0; }
+  .fg-top            { padding: 40px 24px 28px; flex-direction: column; align-items: stretch; }
+  .fg-tools          { flex-direction: column; align-items: stretch; }
+  .fg-search         { width: 100%; }
+  .fg-nav            { gap: 32px; padding: 0 24px 32px; padding-top: 28px; }
+  .fg-bottom         { padding: 20px 24px; }
 
   .coming-soon-card  { flex-direction: column; text-align: center; padding: 36px 24px; }
 
