@@ -1213,12 +1213,17 @@ function initHumanCanvas() {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
   requestAnimationFrame(frame);
 
-  /* Same watchdog rationale as initHeroCanvas() below. */
+  /* Same watchdog rationale as initHeroCanvas() below — including forcing
+     canvas.width to 0 first so applySize()'s "size unchanged, skip
+     rebuild" guard can't no-op this, and explicitly re-arming the rAF
+     loop in case it died rather than just re-measuring stale data. */
   setTimeout(() => {
     if (document.hidden) return;
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     for (let i = 3; i < data.length; i += 4) { if (data[i] !== 0) return; }
+    canvas.width = 0;
     resize();
+    requestAnimationFrame(frame);
   }, 1200);
 }
 
@@ -1369,13 +1374,20 @@ function initHeroCanvas() {
 
   /* ── Per-frame render ─────────────────────────────────────────────── */
   function frame() {
+    /* nucleus starts null and is only set inside build(); if frame() ever
+       fires before the first build() completes (or after some future
+       change makes that possible again), nodes.concat([nucleus]) below
+       would include a null entry and n.ax on it throws — silently killing
+       this rAF loop forever, which is indistinguishable from "the mesh
+       never showed up." Bail and retry next frame instead of crashing. */
+    if (!nucleus) { requestAnimationFrame(frame); return; }
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
     /* Gentle breathing animation around each node's anchor */
     const all = nodes.concat([nucleus]);
     all.forEach(n => {
-      if (n.ax === undefined) return;
+      if (!n || n.ax === undefined) return;
       n.driftPhase = (n.driftPhase || 0) + (isPaused() ? 0 : 0.004);
       n.x = n.ax + Math.cos(n.driftPhase) * 1.5;
       n.y = n.ay + Math.sin(n.driftPhase * 0.9) * 1.5;
@@ -1584,19 +1596,27 @@ function initHeroCanvas() {
   requestAnimationFrame(frame);
 
   /* Watchdog: verify the mesh actually painted something ~1.2s after init,
-     and force a full rebuild if not. This is a deliberate belt-and-
-     suspenders check — every failure mode we've found so far (a crash
-     before requestAnimationFrame was ever reached, a stale zero-size
-     backing buffer) is already fixed above, but this catches ANY other
-     way the canvas could end up empty on first load, known or not, at
-     the cost of one getImageData call that only ever runs once. */
+     and force a full rebuild + re-armed draw loop if not. This is a
+     deliberate belt-and-suspenders check — every failure mode we've found
+     so far (a crash before requestAnimationFrame was ever reached, a
+     stale zero-size backing buffer, nucleus being null mid-frame) is
+     already fixed above, but this catches ANY other way the canvas could
+     end up empty on first load, known or not, at the cost of one
+     getImageData call that only ever runs once. Forcing canvas.width to 0
+     first defeats applySize()'s "size unchanged, skip rebuild" guard —
+     otherwise a watchdog re-check at the SAME size as before would no-op
+     instead of actually rebuilding. requestAnimationFrame(frame) is
+     called explicitly too, in case the original loop died rather than
+     the canvas just being sized wrong. */
   setTimeout(() => {
     if (document.hidden) return;   /* backgrounded tab throttles rAF — not a bug */
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     for (let i = 3; i < data.length; i += 4) {
       if (data[i] !== 0) return;   /* found a painted pixel — mesh is fine */
     }
-    resize();   /* canvas is genuinely blank — force a fresh measure + rebuild */
+    canvas.width = 0;
+    resize();
+    requestAnimationFrame(frame);
   }, 1200);
 }
 
@@ -1834,10 +1854,17 @@ function init() {
   /* Hero canvases last — least critical, can run after content is painted.
      Human layer first so it's already built by the time the AI mesh (which
      visually sits on top of it) starts drawing, though neither actually
-     depends on the other's init order. */
-  initHumanCanvas();
-  initHeroCanvas();
-  initHeroScrollIntro();
+     depends on the other's init order.
+
+     Each gets its own try/catch: these are now three independent systems
+     (two canvases + the scroll-intro wiring) sharing one init() call, and
+     a synchronous throw in any one of them would otherwise abort every
+     call after it in this function — exactly the failure mode that once
+     made the AI mesh silently never appear at all. An error here logs to
+     the console instead of taking the other two down with it. */
+  try { initHumanCanvas(); }    catch (e) { console.error('initHumanCanvas failed:', e); }
+  try { initHeroCanvas(); }     catch (e) { console.error('initHeroCanvas failed:', e); }
+  try { initHeroScrollIntro(); } catch (e) { console.error('initHeroScrollIntro failed:', e); }
 }
 
 /* defer-loaded so the DOM is ready by the time this executes. */
