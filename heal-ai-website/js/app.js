@@ -135,6 +135,11 @@ function setActivePage(name) {
   cur.classList.remove('active');
   next.classList.add('active');
   next.scrollTop = 0;
+  /* Setting scrollTop programmatically doesn't synchronously fire a
+     'scroll' event, so without this, landing back on Home would keep
+     showing whatever hero crossfade state was left over from before you
+     scrolled away instead of resetting to the full-bleed intro. */
+  if (name === 'home') updateHeroScrollIntro();
 
   /* Sync top-nav buttons (in both desktop and mobile locations).
      a11y: top nav is NOT a tablist — it's primary site navigation, so
@@ -305,6 +310,71 @@ function renderHero() {
     el.addEventListener('click', () => routeAction(b.action));
     wrap.appendChild(el);
   });
+}
+
+/**
+ * Full-bleed intro → compact hero crossfade, tracked 1:1 with scroll.
+ *
+ * WHY #page-home's OWN scroll event, not window.scroll — every `.page` is
+ * `position:fixed` with its own internal overflow-y:auto (that's what
+ * makes instant page-switching work here); the window itself never
+ * scrolls on this site. See setActivePage()'s comment for the full story.
+ *
+ * --hero-progress (0 = just landed, 1 = fully settled) is a CSS custom
+ * property read by .hero-intro, .hero-content, #hero-canvas, and
+ * .scroll-cue's opacity/transform in style.css — updating one variable
+ * per frame is cheap and keeps every element's animation perfectly in
+ * sync without threading progress through each one separately in JS.
+ */
+const HERO_SETTLE_DISTANCE = 560;   /* px of scroll to fully cross-fade */
+
+/**
+ * Recomputes the hero's --hero-progress/--hero-out/--hero-in custom
+ * properties from #page-home's current scrollTop. Exposed at module level
+ * (not trapped in initHeroScrollIntro()'s closure) so setActivePage() can
+ * call it directly — setting `.scrollTop = 0` programmatically doesn't
+ * synchronously fire a 'scroll' event, so without this, returning to Home
+ * would keep showing whatever crossfade state was left over from before
+ * you navigated away instead of resetting to the full-bleed intro.
+ */
+function updateHeroScrollIntro() {
+  const page = byId('page-home');
+  const hero = document.querySelector('.hero');
+  if (!page || !hero) return;
+  const progress = Math.min(1, Math.max(0, page.scrollTop / HERO_SETTLE_DISTANCE));
+  /* Staggered, not simultaneous: the intro tagline fully fades out by 35%
+     of the scroll distance, then the real headline doesn't start fading
+     in until 50% — otherwise both are ~50% opaque at the same moment and
+     overlap into an unreadable double-exposure. The canvas zoom
+     (--hero-progress, used as-is below) stays continuous over the full
+     range since it doesn't clash with anything visually. */
+  const outProgress = Math.min(1, progress / 0.35);
+  const inProgress  = Math.min(1, Math.max(0, (progress - 0.5) / 0.35));
+  hero.style.setProperty('--hero-progress', progress);
+  hero.style.setProperty('--hero-out', outProgress);
+  hero.style.setProperty('--hero-in', inProgress);
+  hero.classList.toggle('hero-settled', progress > 0.05);
+}
+
+function initHeroScrollIntro() {
+  const page  = byId('page-home');
+  const track = byId('hero-scroll-track');
+  if (!page || !track) return;
+
+  /* .hero is position:sticky inside this track — the track needs to be
+     taller than the viewport by exactly HERO_SETTLE_DISTANCE so .hero
+     stays pinned for that whole scroll range instead of scrolling away
+     before the crossfade finishes. */
+  track.style.height = `calc(100vh + ${HERO_SETTLE_DISTANCE}px)`;
+
+  let ticking = false;
+  page.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { updateHeroScrollIntro(); ticking = false; });
+  }, { passive: true });
+
+  updateHeroScrollIntro();   /* correct initial state on load, before any scroll fires */
 }
 
 function routeAction(action) {
@@ -1581,6 +1651,7 @@ function init() {
 
   /* Hero canvas last — least critical, can run after content is painted */
   initHeroCanvas();
+  initHeroScrollIntro();
 }
 
 /* defer-loaded so the DOM is ready by the time this executes. */

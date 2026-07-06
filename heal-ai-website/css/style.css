@@ -392,8 +392,15 @@ nav.topnav {
    entirely the hero still renders fine because the radial-gradient
    background on .hero provides the same visual base.
    ─────────────────────────────────────────────────────────────────────── */
+/* .hero-scroll-track's height is set inline by initHeroScrollIntro() in
+   app.js (100vh + SETTLE_DISTANCE) — .hero stays pinned via position:sticky
+   for exactly that extra distance, so the crossfade plays out with the
+   hero fully framed in the viewport instead of scrolling away mid-animation,
+   then un-pins and scrolls normally once the intro has fully settled. */
+.hero-scroll-track { position: relative; }
+
 .hero {
-  position: relative;
+  position: sticky; top: 0;
   width: 100%;
   height: 100vh; min-height: 680px;
   overflow: hidden;
@@ -403,8 +410,51 @@ nav.topnav {
     #fafafa 50%,
     var(--cardinal-soft) 100%
   );
+  /* Scroll-linked crossfade state, all set every frame by
+     initHeroScrollIntro() in app.js as #page-home scrolls — NOT CSS
+     transitions, so they track the scroll gesture directly rather than
+     animating on a timer.
+       --hero-progress → raw 0→1 over the full settle distance; drives
+                          the canvas zoom, which doesn't clash with
+                          anything else so it can stay continuous.
+       --hero-out       → 0→1 over the FIRST 35% of the distance; the
+                          intro tagline + scroll cue fade out on this.
+       --hero-in        → 0→1 over the LAST 35% (50%→85%); the real
+                          headline/sub/buttons fade in on this instead —
+                          staggered rather than simultaneous with --hero-out,
+                          so the two text layers never sit at ~50% opacity
+                          on top of each other mid-scroll. */
+  --hero-progress: 0;
+  --hero-out: 0;
+  --hero-in: 0;
 }
-#hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+#hero-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;
+  /* Slight zoom-out as the intro settles, so the mesh visibly "minimizes"
+     alongside the text crossfade instead of just sitting there while text
+     changes around it. */
+  transform: scale(calc(1 + (1 - var(--hero-progress, 0)) * 0.12));
+}
+
+/* Full-bleed intro tagline — the only text visible at --hero-progress: 0.
+   Fades and drifts up as the user scrolls; see .hero-content below for
+   the mirror-image animation (fades/slides in as this fades/slides out). */
+.hero-intro {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 24px;
+  pointer-events: none;
+  opacity: calc(1 - var(--hero-out, 0));
+}
+.hero-intro-tagline {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(28px, 4.2vw, 54px);
+  color: var(--ink);
+  text-align: center;
+  max-width: 760px;
+  transform: translateY(calc(var(--hero-out, 0) * -50px));
+}
 
 /* NOTE: Legacy decorative chrome (`.hai-badge`, `.hero-meta`, `.hm-dot`,
    `@keyframes pulseDot`, `.quote-mark`) was removed per the brand cleanup
@@ -445,7 +495,9 @@ nav.topnav {
 .nt-hint  { font-family: var(--mono); font-size: 9px; color: var(--ink-low);
             margin-top: 8px; letter-spacing: .06em; text-transform: uppercase; }
 
-/* Hero text + buttons (positioned bottom-left of the hero) */
+/* Hero text + buttons (positioned bottom-left of the hero). Mirror image
+   of .hero-intro-tagline: hidden/offset at --hero-progress: 0, fades and
+   slides up into its normal resting position as the user scrolls. */
 .hero-content {
   position: relative; z-index: 3;
   height: 100%;
@@ -453,8 +505,13 @@ nav.topnav {
   max-width: 1320px;
   display: flex; flex-direction: column; justify-content: flex-end;
   pointer-events: none;                  /* let canvas hover pass through */
+  opacity: var(--hero-in, 0);
+  transform: translateY(calc((1 - var(--hero-in, 0)) * 26px));
 }
-.hero-content > * { pointer-events: auto; }  /* but the actual text/buttons stay clickable */
+/* Buttons/links only become clickable once the intro has meaningfully
+   settled — otherwise they'd sit invisibly clickable over the full-bleed
+   intro moment. Toggled by initHeroScrollIntro() in app.js. */
+.hero.hero-settled .hero-content > * { pointer-events: auto; }
 
 .hero-eye {
   display: flex; align-items: center; gap: 10px;
@@ -526,6 +583,9 @@ nav.topnav {
   font-family: var(--mono); font-size: 10px;
   letter-spacing: .2em; text-transform: uppercase;
   color: var(--ink-low);
+  /* It's a "scroll to continue" hint for the full-bleed intro — fade it
+     out early (by 40% progress) rather than lingering the whole crossfade. */
+  opacity: calc(1 - var(--hero-out, 0));
 }
 .scroll-bar {
   width: 36px; height: 1.5px;

@@ -174,10 +174,30 @@
   <section class="page active" id="page-home" aria-labelledby="home-hero-h">
 
     <!-- HERO ────────────────────────────────────────────────────────────── -->
+    <!-- Extra-tall wrapper so .hero (position:sticky inside it) stays
+         pinned full-viewport WHILE the intro→compact crossfade plays out,
+         instead of just scrolling away mid-animation. Once the user has
+         scrolled past this wrapper's height, .hero un-pins and normal
+         scrolling continues into the About section below. Height is set
+         inline by initHeroScrollIntro() in app.js (100vh + the settle
+         distance) since that keeps the "how far to scroll" number in one
+         place (SETTLE_DISTANCE in app.js) instead of duplicated in CSS. -->
+    <div class="hero-scroll-track" id="hero-scroll-track">
     <section class="hero" aria-label="HEAL-AI introduction">
       <!-- Canvas is decorative (a11y-hidden). Renders the cardinal-mesh
            animation. Code lives in app.js → initHeroCanvas(). -->
       <canvas id="hero-canvas" aria-hidden="true"></canvas>
+
+      <!-- Full-bleed intro: the ONLY thing visible on first landing (mesh +
+           this one line). Crossfades into .hero-content below as the user
+           scrolls — driven by --hero-progress, a CSS custom property set
+           on .hero by initHeroScrollIntro() in app.js. Purely decorative
+           duplicate of the real eyebrow copy, so it's aria-hidden; a
+           screen reader gets the real heading structure from
+           .hero-content regardless of scroll position. -->
+      <div class="hero-intro" id="hero-intro" aria-hidden="true">
+        <p class="hero-intro-tagline">The human layer of AI governance</p>
+      </div>
 
       <!--
         Hero text content. To change the headline / sub / button labels,
@@ -192,6 +212,7 @@
 
       <div class="scroll-cue" aria-hidden="true"><div class="scroll-bar"></div>Scroll</div>
     </section>
+    </div>
 
     <!-- ABOUT / POSITIONING STATEMENT ──────────────────────────────────── -->
     <!-- Positioning statement + bullet pillars. Both come from HOME_ABOUT.
