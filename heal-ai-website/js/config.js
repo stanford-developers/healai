@@ -67,21 +67,6 @@ const SIGN_UP_URL = 'https://docs.google.com/forms/d/e/REPLACE-WITH-FORM-ID/view
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ③ BRAND CONSTANTS
-─────────────────────────────────────────────────────────────────────────────
-   Renders into the loader headline + logo mark. Keep BRAND short — it's
-   set letter-by-letter as an animated splash.
-
-   ARCHITECTURAL NOTE
-     We deliberately store the brand here (not in HTML) so that:
-       (a) the loader can animate letters one at a time, and
-       (b) renaming requires touching one constant, not the markup.
-─────────────────────────────────────────────────────────────────────────── */
-const BRAND = 'HEAL-AI';
-const BRAND_SUBTITLE = 'Stanford Medicine · Health AI Evaluation';
-
-
-/* ─────────────────────────────────────────────────────────────────────────
    ④ ROUTING — page identifiers
 ─────────────────────────────────────────────────────────────────────────────
    These IDs must match the `id` attribute on each <section class="page">
@@ -127,6 +112,8 @@ const FEATURES = {
    here, not inside app.js, to keep the brand feel coherent.
 ─────────────────────────────────────────────────────────────────────────── */
 const TIMINGS = {
-  loaderHoldMs: 1900,   /* total time the loader splash is on screen */
-  loaderLetterMs: 90,   /* delay between each letter fade-in */
+  /* total time the loader splash is on screen — the liquid-fill CSS
+     animation itself runs 1.6s, so this leaves a ~600ms beat with the
+     logo fully filled before the exit fade starts. */
+  loaderHoldMs: 2200,
 };

@@ -86,31 +86,14 @@ function openSignUp() { window.open(SIGN_UP_URL, '_blank', 'noopener'); }
 /* ═════════════════════════════════════════════════════════════════════════
    ③ LOADER
    ─────────────────────────────────────────────────────────────────────────
-   Letter-by-letter brand fade-in, then a line slide + sub fade. The
-   element is then dismissed by class toggle. Honors FEATURES.showLoader.
+   The liquid-fill animation itself is pure CSS (@keyframes loader-rise,
+   autoplays the instant the element paints) — this only owns the hold
+   time and the fade-out dismissal. Honors FEATURES.showLoader.
    ════════════════════════════════════════════════════════════════════════ */
 function bootLoader() {
   const loader = byId('loader');
   if (!FEATURES.showLoader) { loader.remove(); return; }
 
-  const hl = byId('loader-hl');
-  /* Build the headline letter-by-letter so each can animate independently */
-  BRAND.split('').forEach(ch => {
-    const s = document.createElement('span');
-    if (ch === ' ') { s.className = 'sp'; s.innerHTML = '&nbsp;'; }
-    else { s.textContent = ch; }
-    hl.appendChild(s);
-  });
-  byId('loader-sub').textContent = BRAND_SUBTITLE;
-
-  /* Cascade fade-in */
-  hl.querySelectorAll('span:not(.sp)').forEach((s, i) =>
-    setTimeout(() => s.classList.add('in'), 90 + i * TIMINGS.loaderLetterMs)
-  );
-  setTimeout(() => byId('loader-line').classList.add('in'), 520);
-  setTimeout(() => byId('loader-sub').classList.add('in'),  720);
-
-  /* Dismiss */
   document.body.style.overflow = 'hidden';
   setTimeout(() => {
     loader.classList.add('exit');

@@ -74,15 +74,19 @@
 ═════════════════════════════════════════════════════════════════════════════
  1 · LOADER
 ─────────────────────────────────────────────────────────────────────────────
- Brand splash that fades out on initial load. The headline letters are
- inserted by JS so they can animate in one-by-one. To rename the loader
- headline, change BRAND in /js/config.js — DO NOT hard-code it here.
+ Liquid-fill brand splash: the HEAL-AI logo mark sits as a light outline,
+ and a cardinal-red copy of the same mark rises up through it (clip-path
+ animation with a wavy top edge — see @keyframes loader-rise in style.css)
+ like it's filling with water. White background, no other elements —
+ bootLoader() in app.js only handles the hold/exit timing; the fill
+ animation itself autoplays via CSS the moment the page paints.
 ═════════════════════════════════════════════════════════════════════════════
 -->
 <div id="loader" aria-hidden="true">
-  <div class="loader-hl" id="loader-hl"></div>
-  <div class="loader-line" id="loader-line"></div>
-  <div class="loader-sub" id="loader-sub">Stanford Medicine · Health AI Evaluation</div>
+  <div class="loader-fill-wrap">
+    <div class="loader-logo-outline"></div>
+    <div class="loader-logo-fill"></div>
+  </div>
 </div>
 
 

@@ -208,58 +208,54 @@ svg     { display: block; max-width: 100%; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   §4 · LOADER
+   §4 · LOADER — liquid-fill brand splash
    ───────────────────────────────────────────────────────────────────────
-   Centered brand splash. Letters fade up one-by-one (animation driven by
-   class toggles in app.js — keep these `.in` selectors intact).
+   Two copies of the same logo, both turned into flat silhouettes via
+   mask-image (the logo file itself is the mask/stencil, so this works
+   with the one existing SVG asset — no separately-colored file needed):
+     .loader-logo-outline → light gray, always fully visible underneath.
+     .loader-logo-fill    → solid cardinal, clipped by an animated
+                            wavy-edged polygon that rises from the bottom
+                            (rest state, 0% filled) to the top (100%
+                            filled) — see @keyframes loader-rise below.
+   The polygon keeps the same 9 vertices at every keyframe (7 wave points
+   across the top edge + 2 fixed bottom corners) with only their Y values
+   changing — that vertex-count consistency is what lets the browser
+   interpolate a smooth, wobbly "waterline" between keyframes instead of
+   just snapping between shapes.
    ─────────────────────────────────────────────────────────────────────── */
 #loader {
   position: fixed; inset: 0;
   background: var(--bg);
   z-index: 9999;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  transition: opacity .7s ease .2s, visibility .7s ease .2s;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .6s ease .1s, visibility .6s ease .1s;
 }
 #loader.exit { opacity: 0; visibility: hidden; }
 
-.loader-hl {
-  font-family: var(--serif);
-  font-size: clamp(44px, 7vw, 86px);
-  font-weight: 500;
-  letter-spacing: .04em;
-  color: var(--ink);
-  display: flex;
+.loader-fill-wrap {
+  position: relative;
+  width: clamp(220px, 34vw, 420px);
+  aspect-ratio: 540 / 200;   /* intrinsic ratio of heal-ai-logo-cardinal.svg */
 }
-.loader-hl span {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity .45s ease, transform .45s ease;
+.loader-logo-outline,
+.loader-logo-fill {
+  position: absolute; inset: 0;
+  -webkit-mask: url('../assets/heal-ai-logo-cardinal.svg') center / contain no-repeat;
+          mask: url('../assets/heal-ai-logo-cardinal.svg') center / contain no-repeat;
 }
-.loader-hl .sp     { width: .28em; }      /* a "space" letter slot */
-.loader-hl span.in { opacity: 1; transform: none; }
-
-.loader-line {
-  width: 0; height: 2px;
+.loader-logo-outline { background: var(--line-strong); }
+.loader-logo-fill {
   background: var(--cardinal);
-  margin-top: 22px;
-  border-radius: 2px;
-  transition: width .8s var(--ease) .55s;
+  animation: loader-rise 1.6s cubic-bezier(.4, 0, .2, 1) forwards;
 }
-.loader-line.in { width: 140px; }
-
-.loader-sub {
-  margin-top: 14px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .2em;
-  color: var(--ink-low);
-  text-transform: uppercase;
-  opacity: 0;
-  transition: opacity .5s ease 1s;
+@keyframes loader-rise {
+  0%   { clip-path: polygon(0% 100%, 16% 101%, 33% 100%, 50% 102%, 67% 100%, 84% 101%, 100% 100%, 100% 100%, 0% 100%); }
+  35%  { clip-path: polygon(0% 72%, 16% 68%, 33% 74%, 50% 67%, 67% 73%, 84% 69%, 100% 72%, 100% 100%, 0% 100%); }
+  65%  { clip-path: polygon(0% 42%, 16% 46%, 33% 40%, 50% 47%, 67% 41%, 84% 45%, 100% 42%, 100% 100%, 0% 100%); }
+  88%  { clip-path: polygon(0% 16%, 16% 12%, 33% 18%, 50% 11%, 67% 17%, 84% 13%, 100% 16%, 100% 100%, 0% 100%); }
+  100% { clip-path: polygon(0% -6%, 16% -6%, 33% -6%, 50% -6%, 67% -6%, 84% -6%, 100% -6%, 100% 100%, 0% 100%); }
 }
-.loader-sub.in { opacity: 1; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
