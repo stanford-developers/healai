@@ -184,6 +184,17 @@
          place (SETTLE_DISTANCE in app.js) instead of duplicated in CSS. -->
     <div class="hero-scroll-track" id="hero-scroll-track">
     <section class="hero" aria-label="HEAL-AI introduction">
+      <!-- "Human layer": a denser, paler, more organic network spanning the
+           whole hero (unlike the AI mesh, which clusters center-right) —
+           the visual metaphor for the human complexity (conversations,
+           workflows, relationships) that the AI governance mesh distills
+           out of. Sits behind everything via z-index. Code lives in
+           app.js → initHumanCanvas(). Independent canvas/node-set from
+           the AI mesh on purpose — makes the future collapse-into-AI-mesh
+           morph tractable (interpolating between two known node sets)
+           instead of trying to repurpose one system for both jobs. -->
+      <canvas id="human-canvas" aria-hidden="true"></canvas>
+
       <!-- Canvas is decorative (a11y-hidden). Renders the cardinal-mesh
            animation. Code lives in app.js → initHeroCanvas(). -->
       <canvas id="hero-canvas" aria-hidden="true"></canvas>

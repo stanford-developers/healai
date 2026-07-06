@@ -1058,6 +1058,172 @@ function renderPartnerLogos() {
 
 
 /* ═════════════════════════════════════════════════════════════════════════
+   ⑫.5 HUMAN-LAYER CANVAS — dense, pale, organic network behind the AI mesh
+   ─────────────────────────────────────────────────────────────────────────
+   The visual metaphor for "human complexity" (conversations, workflows,
+   relationships) that the AI governance mesh (initHeroCanvas, below)
+   distills out of. Deliberately a SEPARATE canvas and node system, not a
+   second layer drawn into the AI mesh's own canvas/arrays — keeping them
+   independent is what makes a future "collapse into the AI mesh" scroll
+   morph tractable (interpolating between two known node sets) instead of
+   trying to repurpose one system for two visually and semantically
+   different jobs.
+
+   DELIBERATELY UNDERSTATED — per spec this should read as background
+   texture, not a second focal point: many more nodes than the AI mesh,
+   but smaller, thinner-lined, lower-opacity, and in a paler warm blush
+   tone instead of cardinal. Spans the FULL hero width (including the
+   left side the AI mesh doesn't reach) via a jittered grid rather than
+   the AI mesh's off-center radial clusters.
+
+   Reuses the exact same resize/ResizeObserver/fonts.ready/watchdog
+   pattern as initHeroCanvas() below — that pattern exists because of a
+   real bug history on this canvas; no reason to re-risk it here.
+   ════════════════════════════════════════════════════════════════════════ */
+function initHumanCanvas() {
+  const canvas = byId('human-canvas');
+  if (!canvas || !FEATURES.heroAnimation) return;
+  const ctx = canvas.getContext('2d');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const isPaused = () => reduceMotion || isMotionPaused();
+  const HUE = '196,160,148';   /* warm blush — deliberately NOT cardinal */
+
+  let nodes = [], edges = [], pulses = [];
+
+  function build() {
+    nodes = []; pulses = [];
+    const W = canvas.width, H = canvas.height;
+    /* Jittered grid, not radial clusters — the point is even coverage
+       across the whole canvas (especially the left side the AI mesh never
+       reaches), not a centered focal shape. */
+    const COLS = 12, ROWS = 8;
+    const cellW = W / COLS, cellH = H / ROWS;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const x = c * cellW + cellW / 2 + (Math.random() - 0.5) * cellW * 0.8;
+        const y = r * cellH + cellH / 2 + (Math.random() - 0.5) * cellH * 0.8;
+        nodes.push({ x, y, ax: x, ay: y, r: 1 + Math.random() * 1.2, driftPhase: Math.random() * Math.PI * 2 });
+      }
+    }
+    buildMesh();
+  }
+
+  function distSq(a, b) { const dx = a.x - b.x, dy = a.y - b.y; return dx * dx + dy * dy; }
+
+  /* Thin k-NN mesh, k=3 (vs the AI mesh's k=4) — sparser connections read
+     as "loosely networked" rather than "densely engineered." */
+  function buildMesh() {
+    edges = [];
+    const k = 3;
+    const seen = {};
+    nodes.forEach((n, i) => {
+      const dists = nodes
+        .map((m, j) => ({ j, d: distSq(n, m) }))
+        .filter(o => o.j !== i)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, k);
+      dists.forEach(o => {
+        const key = i < o.j ? i + ',' + o.j : o.j + ',' + i;
+        if (seen[key]) return;
+        seen[key] = true;
+        edges.push([i, o.j]);
+      });
+    });
+    edges.points = nodes;
+  }
+
+  /* "Occasional flowing pulses" — deliberately rare (~0.5/sec at 60fps),
+     unlike the AI mesh's more frequent packets, so it reads as ambient
+     rather than active/busy. */
+  function spawnPulse() {
+    if (!edges.length) return;
+    const e = edges[Math.floor(Math.random() * edges.length)];
+    const a = edges.points[e[0]], b = edges.points[e[1]];
+    if (!a || !b) return;
+    pulses.push({ sx: a.x, sy: a.y, dx: b.x, dy: b.y, t: 0 });
+  }
+
+  function frame() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    nodes.forEach(n => {
+      n.driftPhase += isPaused() ? 0 : 0.0025;
+      n.x = n.ax + Math.cos(n.driftPhase) * 2.2;
+      n.y = n.ay + Math.sin(n.driftPhase * 0.85) * 2.2;
+    });
+
+    const pts = edges.points;
+    edges.forEach(e => {
+      const a = pts[e[0]], b = pts[e[1]];
+      if (!a || !b) return;
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(${HUE},0.16)`;
+      ctx.lineWidth = 0.45;
+      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    });
+
+    nodes.forEach(n => {
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${HUE},0.32)`;
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    if (!isPaused() && Math.random() < 0.008) spawnPulse();
+    pulses.forEach(p => {
+      p.t += 0.012;
+      const x = p.sx + (p.dx - p.sx) * p.t;
+      const y = p.sy + (p.dy - p.sy) * p.t;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${HUE},${Math.sin(p.t * Math.PI) * 0.5})`;
+      ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    pulses = pulses.filter(p => p.t < 1);
+
+    requestAnimationFrame(frame);
+  }
+
+  function applySize(w, h) {
+    if (w === canvas.width && h === canvas.height) return;
+    canvas.width = w; canvas.height = h;
+    build();
+  }
+  function resize() {
+    const w = canvas.offsetWidth || window.innerWidth;
+    const h = canvas.offsetHeight || window.innerHeight;
+    applySize(w, h);
+  }
+
+  resize();
+  if (window.ResizeObserver) {
+    new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const box = entry.contentBoxSize && entry.contentBoxSize[0];
+        const w = Math.round(box ? box.inlineSize : entry.contentRect.width);
+        const h = Math.round(box ? box.blockSize : entry.contentRect.height);
+        if (w > 0 && h > 0) applySize(w, h);
+      }
+    }).observe(canvas);
+  } else {
+    window.addEventListener('resize', resize);
+    window.addEventListener('load', resize);
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
+  requestAnimationFrame(frame);
+
+  /* Same watchdog rationale as initHeroCanvas() below. */
+  setTimeout(() => {
+    if (document.hidden) return;
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 3; i < data.length; i += 4) { if (data[i] !== 0) return; }
+    resize();
+  }, 1200);
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
    ⑬ HERO CANVAS — cardinal polygonic mesh + 8 clickable research nodes
    ─────────────────────────────────────────────────────────────────────────
    ARCHITECTURAL NOTE
@@ -1665,7 +1831,11 @@ function init() {
   initPauseMediaControl();
   initSiteSearch();
 
-  /* Hero canvas last — least critical, can run after content is painted */
+  /* Hero canvases last — least critical, can run after content is painted.
+     Human layer first so it's already built by the time the AI mesh (which
+     visually sits on top of it) starts drawing, though neither actually
+     depends on the other's init order. */
+  initHumanCanvas();
   initHeroCanvas();
   initHeroScrollIntro();
 }

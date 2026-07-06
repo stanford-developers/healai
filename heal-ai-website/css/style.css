@@ -428,6 +428,10 @@ nav.topnav {
   --hero-out: 0;
   --hero-in: 0;
 }
+/* Sits behind #hero-canvas (z-index 0 vs 1) — see the index.html comment
+   above the <canvas> tags for why this is a wholly separate canvas/node
+   system rather than a second layer drawn onto the same one. */
+#human-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 #hero-canvas {
   position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;
   /* Slight zoom-out as the intro settles, so the mesh visibly "minimizes"
