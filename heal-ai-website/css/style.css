@@ -439,21 +439,25 @@ nav.topnav {
 /* Full-bleed intro tagline — the only text visible at --hero-progress: 0.
    Fades and drifts up as the user scrolls; see .hero-content below for
    the mirror-image animation (fades/slides in as this fades/slides out). */
+/* Anchored bottom-left with the SAME padding as .hero-content below, so
+   the label sits exactly where .hero-eye (the settled eyebrow) will
+   appear once the crossfade completes — an understated corporate label,
+   not a decorative centered headline. */
 .hero-intro {
   position: absolute; inset: 0; z-index: 2;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 24px;
+  display: flex; align-items: flex-end;
+  padding: 0 72px 84px;
   pointer-events: none;
   opacity: calc(1 - var(--hero-out, 0));
 }
 .hero-intro-tagline {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: clamp(28px, 4.2vw, 54px);
-  color: var(--ink);
-  text-align: center;
-  max-width: 760px;
-  transform: translateY(calc(var(--hero-out, 0) * -50px));
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: var(--cardinal-dark);
+  transform: translateY(calc(var(--hero-out, 0) * -30px));
 }
 
 /* NOTE: Legacy decorative chrome (`.hai-badge`, `.hero-meta`, `.hm-dot`,

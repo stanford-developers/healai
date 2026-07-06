@@ -1416,6 +1416,22 @@ function initHeroCanvas() {
     document.fonts.ready.then(resize);
   }
   requestAnimationFrame(frame);
+
+  /* Watchdog: verify the mesh actually painted something ~1.2s after init,
+     and force a full rebuild if not. This is a deliberate belt-and-
+     suspenders check — every failure mode we've found so far (a crash
+     before requestAnimationFrame was ever reached, a stale zero-size
+     backing buffer) is already fixed above, but this catches ANY other
+     way the canvas could end up empty on first load, known or not, at
+     the cost of one getImageData call that only ever runs once. */
+  setTimeout(() => {
+    if (document.hidden) return;   /* backgrounded tab throttles rAF — not a bug */
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] !== 0) return;   /* found a painted pixel — mesh is fine */
+    }
+    resize();   /* canvas is genuinely blank — force a fresh measure + rebuild */
+  }, 1200);
 }
 
 
