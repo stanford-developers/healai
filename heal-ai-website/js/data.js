@@ -227,6 +227,7 @@ const RESOURCE_CATEGORIES = [
   /* ─ Tab 1 ─ Understanding the Process ─────────────────────────────── */
   {
     id: 'understand',
+    icon: 'clock',
     label: 'Understanding the Process',
     intro: {
       h: 'Start here.',
@@ -252,6 +253,7 @@ const RESOURCE_CATEGORIES = [
   /* ─ Tab 2 ─ Running Stakeholder Interviews ────────────────────────── */
   {
     id: 'interviews',
+    icon: 'people',
     label: 'Running Stakeholder Interviews',
     intro: {
       h: 'Get usable signal from developers, users, and owners.',
@@ -281,6 +283,7 @@ const RESOURCE_CATEGORIES = [
   /* ─ Tab 3 ─ Running a Patient Partner Group ───────────────────────── */
   {
     id: 'panel',
+    icon: 'people',
     label: 'Running a Patient Partner Group',
     intro: {
       h: 'Bring patient voice into the room.',
@@ -308,6 +311,7 @@ const RESOURCE_CATEGORIES = [
      ─────────────────────────────────────────────────────────────────── */
   {
     id: 'reports',
+    icon: 'paper',
     label: 'Writing &amp; Delivering Your Report',
     intro: {
       h: 'The Ethics &amp; Operations Plan, end-to-end.',
@@ -346,6 +350,7 @@ const RESOURCE_CATEGORIES = [
   /* ─ Tab 5 ─ Adapting for Your Institution ──────────────────────────── */
   {
     id: 'adapt',
+    icon: 'building',
     label: 'Adapting for Your Institution',
     intro: {
       h: 'Make this process yours.',
@@ -393,6 +398,7 @@ const RESOURCE_CATEGORIES = [
      ─────────────────────────────────────────────────────────────────── */
   {
     id: 'cases',
+    icon: 'briefcase',
     label: 'Case Studies &amp; Talks',
     intro: {
       h: 'See the framework applied.',
@@ -729,6 +735,8 @@ const ICONS = {
   people:   '<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.6 1.7-4.8 4-5.6"/>',
   chip:     '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
   coin:     '<circle cx="12" cy="12" r="9"/><path d="M9 9h4a2 2 0 1 1 0 4h-4M9 15h5"/>',
+  clock:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+  briefcase:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/>',
   arrowOut: '<path d="M7 17L17 7M9 7h8v8"/>',
   arrowR:   '<path d="M7 5l7 7-7 7"/>',
   play:     '<path d="M8 5v14l11-7z"/>',

@@ -1147,17 +1147,18 @@ nav.topnav {
 
 /*
    RESOURCES TAB STRIP
-   On wide viewports the 5 tabs wrap freely (`flex-wrap: wrap`).
-   On mobile we keep them on ONE row and let the user swipe horizontally
-   — `flex-wrap: nowrap` kicks in at ≤900px (see §15), `overflow-x: auto`
-   enables the swipe, and the scrollbar is visually hidden so the strip
-   reads as a clean ribbon. Scroll-snap aligns each tab cleanly into view.
+   Icon-card tabs, one row of 6 equal-width boxes on desktop. The active
+   tab gets a filled cardinal card + a downward-pointing triangle (::after,
+   CSS clip-path) so it visually "points at" the panel content below it.
+   On mobile we drop to a horizontally-swipeable row of fixed-width cards
+   — `grid-auto-flow: column` + `overflow-x: auto` (see §15) — since 6
+   equal-fraction columns would get too cramped on a phone.
 */
 .rt-bar {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 44px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
@@ -1168,21 +1169,37 @@ nav.topnav {
 .rt-bar::-webkit-scrollbar { display: none; }  /* Chrome / Safari / new Edge */
 
 .rt-tab {
-  display: inline-flex; align-items: center; gap: 10px;
-  padding: 11px 18px;
-  border-radius: 8px;
-  font-size: 13px; font-weight: 500;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px;
+  padding: 20px 12px 24px;
+  border-radius: 10px;
+  font-size: 13px; font-weight: 500; line-height: 1.35;
   color: var(--ink-mid);
-  white-space: nowrap;
-  min-height: 44px;
-  border: 1px solid transparent;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  position: relative;
   scroll-snap-align: start;
   /* Uniform ease-in-out micro-interaction across all interactive states */
   transition: all .25s ease-in-out;
 }
-.rt-tab:hover { color: var(--ink); background: var(--cardinal-tint); }
-.rt-tab.on    { background: var(--cardinal); color: #fff; font-weight: 600; }
-.rt-tab .n    { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; opacity: .85; }
+.rt-tab-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+}
+.rt-tab-icon svg { width: 100%; height: 100%; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.rt-tab:hover { color: var(--ink); border-color: var(--cardinal-light); }
+.rt-tab.on    { background: var(--cardinal); color: #fff; font-weight: 600; border-color: var(--cardinal); }
+/* The little downward-pointing tail — only on the active tab, points at
+   the panel content that just appeared beneath the strip. */
+.rt-tab.on::after {
+  content: '';
+  position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+  width: 16px; height: 8px;
+  background: var(--cardinal);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.rt-tab .n    { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; opacity: .8; display: block; margin-bottom: 2px; }
 
 /* Tabpanel fade-in (.on toggled by JS) */
 .rt-panel { display: none; }
@@ -1443,8 +1460,14 @@ nav.topnav {
   grid-template-columns: 1fr 1fr;
 }
 .pp-side { padding: 64px 56px; }
-.pp-side.stanford { background: var(--bg-soft); border-right: 1px solid var(--line); }
-.pp-side.external { background: var(--bg); }
+/* --bg-warm per the root-variable doc comment ("used on the patient-panel
+   Stanford side to differentiate it from the external side") — this had
+   drifted to --bg-soft, which is exactly what footer-global's background
+   also uses, so the two visually fused together with no seam once you
+   scrolled to the bottom of this page. border-bottom adds a hard line on
+   top of the color difference so the boundary reads clearly either way. */
+.pp-side.stanford { background: var(--bg-warm); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); }
+.pp-side.external { background: var(--bg); border-bottom: 1px solid var(--line-strong); }
 
 .pp-tag {
   display: inline-flex; align-items: center; gap: 8px;
@@ -2124,9 +2147,10 @@ footer {
   /* Hero ornament selectors removed (badge + meta were deleted in cleanup) */
   .scroll-cue        { right: 24px; }
 
-  /* Resources tab strip: keep tabs on one line and let the user swipe.
-     `flex-wrap: nowrap` activates here (was wrap at desktop). */
-  .rt-bar            { flex-wrap: nowrap; }
+  /* Resources tab strip: 6 equal grid columns get too cramped on a phone —
+     switch to a horizontally-swipeable row of fixed-width cards instead. */
+  .rt-bar            { display: flex; }
+  .rt-tab            { flex: 0 0 128px; }
 
   .foot-grid         { grid-template-columns: 1fr 1fr; gap: 32px; }
   footer             { padding: 48px 24px 28px; }

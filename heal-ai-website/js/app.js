@@ -569,7 +569,9 @@ function renderResources() {
     tab.setAttribute('aria-selected', isFirst ? 'true' : 'false');
     tab.setAttribute('aria-controls', 'rt-pan-' + cat.id);
     tab.tabIndex = isFirst ? 0 : -1;   /* roving tabindex */
-    tab.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span>${cat.label}`;
+    tab.innerHTML = `
+      <span class="rt-tab-icon">${svgIcon(cat.icon)}</span>
+      <span class="rt-tab-text"><span class="n">${String(i + 1).padStart(2, '0')}</span>${cat.label}</span>`;
     tab.addEventListener('click',   () => activateResourceTab(cat.id, true));
     tab.addEventListener('keydown', e  => handleTabKeydown(e, i));
     bar.appendChild(tab);
