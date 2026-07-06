@@ -983,6 +983,22 @@ function renderTeam() {
   }).join('');
 }
 
+/**
+ * Scrolling partner/funder logo marquee — CSS-driven, not JS-animated.
+ * The track is rendered TWICE back to back; @keyframes partner-scroll
+ * (style.css) translates it by exactly -50% (one copy's width) and loops,
+ * so the seam between the end of copy 1 and the start of copy 2 is
+ * invisible. Pausing (prefers-reduced-motion, or the site's own Pause
+ * Media toggle) is handled entirely in CSS — see .motion-paused there.
+ */
+function renderPartnerLogos() {
+  const mount = byId('about-partners');
+  if (!mount) return;
+  const logo = l => `<div class="partner-logo"><img src="${l.file}" alt="${l.name}" loading="lazy"></div>`;
+  const copy = PARTNER_LOGOS.map(logo).join('');
+  mount.innerHTML = `<div class="partner-track">${copy}${copy}</div>`;
+}
+
 
 
 
@@ -1571,6 +1587,7 @@ function init() {
   renderPlaybook();
   renderAboutCards();
   renderTeam();
+  renderPartnerLogos();
 
   /* Document-level wiring */
   bindGlobalEvents();

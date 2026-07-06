@@ -679,6 +679,24 @@ const ABOUT_CARDS = [
     p: 'Ethics review cannot be left to individual departments. A centralized, transparent, patient-inclusive process is not optional — it is the only way clinical AI earns genuine trust. HEAL-AI provides that process, and now shares it openly.' },
 ];
 
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PARTNER_LOGOS · scrolling logo marquee, About page (below the team grid)
+─────────────────────────────────────────────────────────────────────────────
+   All 6 source files are genuinely transparent PNG/SVG (verified — alpha=0
+   at every corner), which is what makes the grayscale-by-default/color-on-
+   hover treatment in renderPartnerLogos() (app.js) look clean instead of
+   showing mismatched background boxes.
+─────────────────────────────────────────────────────────────────────────── */
+const PARTNER_LOGOS = [
+  { name: 'Stanford HAI',                     file: 'assets/partners/hai.png' },
+  { name: 'Stanford Health Care',             file: 'assets/partners/stanfordhc.png' },
+  { name: 'Gordon and Betty Moore Foundation', file: 'assets/partners/Gordon_and_Betty_Moore_Foundation_logo.svg' },
+  { name: 'PCORI',                            file: 'assets/partners/pcori.png' },
+  { name: 'Lana Vento Charitable Trust',      file: 'assets/partners/lana_vento.png' },
+  { name: 'Impact Labs',                      file: 'assets/partners/impactlabs.png' },
+];
+
 /* ─────────────────────────────────────────────────────────────────────────
    ⑭ ICONS · inline SVG icon library
 ─────────────────────────────────────────────────────────────────────────────

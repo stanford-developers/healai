@@ -1819,6 +1819,57 @@ nav.topnav {
   .team-grid { gap: 20px; }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   PARTNER LOGO MARQUEE — About page, below the team grid
+─────────────────────────────────────────────────────────────────────────────
+   Two identical copies of the track sit side by side (renderPartnerLogos()
+   duplicates the array); @keyframes partner-scroll moves the whole thing
+   left by exactly -50%, i.e. one copy's width, so the loop point is
+   invisible — the track just keeps going. Grayscale-by-default + full
+   color on hover is the standard "logo wall" treatment; it only reads
+   clean because every source file is genuinely transparent (verified when
+   these were added — see the PARTNER_LOGOS comment in data.js).
+───────────────────────────────────────────────────────────────────────── */
+.section-partners { padding-top: 8px; }
+.partner-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.partner-track {
+  display: flex;
+  align-items: center;
+  gap: 72px;
+  width: max-content;
+  animation: partner-scroll 32s linear infinite;
+}
+/* Site-wide Pause Media toggle (initPauseMediaControl in app.js) — the
+   universal prefers-reduced-motion override in §16 already zeroes out
+   animation-duration for OS-level motion sensitivity; this covers the
+   manual, in-page toggle on top of that. */
+body.motion-paused .partner-track { animation-play-state: paused; }
+@keyframes partner-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.partner-logo {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  height: 56px;
+}
+.partner-logo img {
+  max-height: 100%; max-width: 160px; width: auto;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: .5;
+  transition: filter var(--t-fast), opacity var(--t-fast);
+}
+.partner-logo:hover img { filter: grayscale(0); opacity: 1; }
+@media (max-width: 640px) {
+  .partner-track { gap: 48px; }
+  .partner-logo  { height: 40px; }
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════
    §14 · FOOTER
