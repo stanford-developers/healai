@@ -414,34 +414,20 @@ nav.topnav {
      initHeroScrollIntro()/updateHeroScrollIntro() in app.js as #page-home
      scrolls — NOT CSS transitions, so they track the scroll gesture
      directly rather than animating on a timer.
-       --hero-progress  → raw 0→1 over the full settle distance; drives
+       --hero-progress → raw 0→1 over the full settle distance; drives
                           the canvas zoom and the human-layer collapse,
                           neither of which clash with anything else so
                           they can stay continuous.
-       --hero-out       → 0→1 over the FIRST 35% of the distance; only
-                          the scroll cue fades out on this now (the intro
-                          tagline used to as a block, before its letters
-                          got their own --letter-travel/--letter-opacity
-                          animation below).
+       --hero-out       → 0→1 over the FIRST 35% of the distance; the
+                          intro tagline + scroll cue fade out on this.
        --hero-in        → 0→1 over the LAST 35% (50%→85%); the real
                           headline/sub/buttons fade in on this instead —
                           staggered rather than simultaneous with --hero-out,
-                          so the old block-crossfade never sat both text
-                          layers at ~50% opacity on top of each other.
-       --letter-travel  → 0→1 over 0%→85% of the distance; each intro
-                          letter's own position interpolates toward its
-                          measured #hero-eyebrow destination on this.
-       --letter-opacity → 1→0, literally 1 minus --hero-in — the intro
-                          letters are fully gone at exactly the moment
-                          the real eyebrow is fully in, so the handoff
-                          between "traveling letter" and "real letter" is
-                          invisible. */
+                          so the two text layers never sit at ~50% opacity
+                          on top of each other mid-scroll. */
   --hero-progress: 0;
   --hero-out: 0;
   --hero-in: 0;
-  --letter-travel: 0;
-  --letter-opacity: 1;
-  --letter-scatter-env: 0;
 }
 /* Sits behind #hero-canvas (z-index 0 vs 1) — see the index.html comment
    above the <canvas> tags for why this is a wholly separate canvas/node
@@ -474,15 +460,12 @@ nav.topnav {
    the label sits exactly where .hero-eye (the settled eyebrow) will
    appear once the crossfade completes — an understated corporate label,
    not a decorative centered headline. */
-/* #5 — text morph. Opacity/transform used to live on .hero-intro /
-   .hero-intro-tagline as one block-level crossfade; now each LETTER
-   inside .hero-intro-tagline animates individually (.ht-letter below),
-   so the container itself just positions — no fade/transform of its own. */
 .hero-intro {
   position: absolute; inset: 0; z-index: 2;
   display: flex; align-items: flex-end;
   padding: 0 72px 84px;
   pointer-events: none;
+  opacity: calc(1 - var(--hero-out, 0));
 }
 .hero-intro-tagline {
   font-family: var(--sans);
@@ -491,36 +474,11 @@ nav.topnav {
   letter-spacing: .24em;
   text-transform: uppercase;
   color: var(--cardinal-dark);
-}
-/* Each letter travels from its intro position to its exact #hero-eyebrow
-   position (--dx/--dy, measured once per layout by measureLetterMorph()
-   in app.js — a FLIP-style transition, not a guess) while the WHOLE
-   scroll gesture is still in progress, not after. --letter-travel and
-   --letter-opacity are the only two properties updated per scroll frame
-   (on .hero, alongside --hero-progress/out/in); every letter reads the
-   same two values and combines them with its own already-known --dx/--dy,
-   so animating 30+ letters costs one custom-property write per frame,
-   not thirty. --scatter-x/y is a small one-time-random per-letter
-   "drift apart" offset that peaks early and fades before travel commits
-   (see the sin() curve in updateHeroScrollIntro()) — without it every
-   letter would travel in a perfectly straight line, which reads as
-   mechanical rather than "reorganizing." */
-.ht-letter {
-  display: inline-block;
-  white-space: pre;
-}
-.hero-intro-tagline .ht-letter {
-  /* Scatter is scaled by --letter-scatter-env (a 0→1→0 envelope that
-     peaks early and is back to ~0 well before travel commits — see
-     updateHeroScrollIntro()), NOT applied at full strength unconditionally.
-     Without that multiplier every letter sits scattered even at rest
-     (--letter-travel: 0), which is wrong — at rest the line should read
-     clean, not pre-broken. */
-  transform: translate(
-    calc(var(--dx, 0px) * var(--letter-travel, 0) + var(--scatter-x, 0px) * var(--letter-scatter-env, 0)),
-    calc(var(--dy, 0px) * var(--letter-travel, 0) + var(--scatter-y, 0px) * var(--letter-scatter-env, 0))
-  );
-  opacity: var(--letter-opacity, 1);
+  /* The whole line travels straight up as it fades — a simple block
+     morph, not a per-letter effect. Lands close to where .hero-eye
+     (the settled eyebrow) sits, so the handoff into --hero-in reads as
+     one continuous upward motion rather than two disconnected states. */
+  transform: translateY(calc(var(--hero-out, 0) * -30px));
 }
 
 /* NOTE: Legacy decorative chrome (`.hai-badge`, `.hero-meta`, `.hm-dot`,
@@ -2247,6 +2205,8 @@ footer {
   .page-header       { padding-top: 108px; }
 
   .hero-content      { padding: 0 24px 80px; }
+  .hero-intro        { padding: 0 24px 80px; }
+  .hero-intro-tagline{ letter-spacing: .14em; }
   .hero h1           { font-size: clamp(36px, 8vw, 52px); }
 
   .stats-row         { grid-template-columns: 1fr; }
@@ -2296,6 +2256,10 @@ footer {
   /* .team-grid auto-fits — no override needed */
   .pp-stats          { grid-template-columns: 1fr; }
   .foot-grid         { grid-template-columns: 1fr; }
+
+  /* Narrower phones still wrap the intro tagline to two lines even at
+     the .14em letter-spacing set at 900px — tighten further here. */
+  .hero-intro-tagline{ font-size: 11px; letter-spacing: .08em; }
 }
 
 

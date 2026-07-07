@@ -200,16 +200,14 @@
       <canvas id="hero-canvas" aria-hidden="true"></canvas>
 
       <!-- Full-bleed intro: the ONLY thing visible on first landing (mesh +
-           this one line). Text is set by renderHero() in app.js from the
-           SAME HERO_COPY.eyebrow string as #hero-eyebrow below — one
-           source of truth, and it's what lets measureLetterMorph() pair
-           each letter here with its exact destination letter by index.
-           As the user scrolls, each letter individually drifts and
-           travels into its #hero-eyebrow position (see .ht-letter in
-           style.css) rather than the line just crossfading as a block —
-           purely decorative, so aria-hidden; a screen reader gets the
-           real heading structure from .hero-content regardless of scroll
-           position. -->
+           this one line). Crossfades into .hero-content below as the user
+           scrolls — driven by --hero-progress, a CSS custom property set
+           on .hero by initHeroScrollIntro() in app.js. Text is set by
+           renderHero() from the SAME HERO_COPY.eyebrow string as
+           #hero-eyebrow below — one source of truth. Purely decorative
+           duplicate of the real eyebrow copy, so it's aria-hidden; a
+           screen reader gets the real heading structure from
+           .hero-content regardless of scroll position. -->
       <div class="hero-intro" id="hero-intro" aria-hidden="true">
         <p class="hero-intro-tagline" id="hero-intro-tagline"></p>
       </div>

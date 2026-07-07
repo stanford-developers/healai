@@ -296,23 +296,9 @@ function closeMobileMenu() {
  *   "page:foo" → goPage('foo')
  *   "url"      → openSignUp()
  */
-/** Splits `text` into one <span class="ht-letter"> per character inside
- *  `el`. Used for both #hero-eyebrow and #hero-intro-tagline so
- *  measureLetterMorph() can pair them up letter-by-letter (same string,
- *  same index) and compute exactly how far each one has to travel. */
-function buildLetterSpans(el, text) {
-  el.innerHTML = '';
-  text.split('').forEach(ch => {
-    const s = document.createElement('span');
-    s.className = 'ht-letter';
-    s.textContent = ch;
-    el.appendChild(s);
-  });
-}
-
 function renderHero() {
-  buildLetterSpans(byId('hero-eyebrow'), HERO_COPY.eyebrow);
-  buildLetterSpans(byId('hero-intro-tagline'), HERO_COPY.eyebrow);
+  byId('hero-eyebrow').textContent      = HERO_COPY.eyebrow;
+  byId('hero-intro-tagline').textContent = HERO_COPY.eyebrow;
   byId('home-hero-h').innerHTML   = HERO_COPY.headline;
   byId('hero-sub').textContent    = HERO_COPY.sub;
 
@@ -357,76 +343,18 @@ function updateHeroScrollIntro() {
   const hero = document.querySelector('.hero');
   if (!page || !hero) return;
   const progress = Math.min(1, Math.max(0, page.scrollTop / HERO_SETTLE_DISTANCE));
-  /* Staggered, not simultaneous: the real headline doesn't start fading
-     in until 50% of the scroll distance, so the traveling intro letters
-     (below) have somewhere to land before the destination text appears
-     underneath them — otherwise both would be ~50% opaque at the same
-     moment and overlap into an unreadable double-exposure. The canvas
-     zoom (--hero-progress, used as-is below) stays continuous over the
-     full range since it doesn't clash with anything visually. */
+  /* Staggered, not simultaneous: the intro tagline fully fades out by 35%
+     of the scroll distance, then the real headline doesn't start fading
+     in until 50% — otherwise both are ~50% opaque at the same moment and
+     overlap into an unreadable double-exposure. The canvas zoom
+     (--hero-progress, used as-is below) stays continuous over the full
+     range since it doesn't clash with anything visually. */
   const outProgress = Math.min(1, progress / 0.35);
   const inProgress  = Math.min(1, Math.max(0, (progress - 0.5) / 0.35));
   hero.style.setProperty('--hero-progress', progress);
   hero.style.setProperty('--hero-out', outProgress);
   hero.style.setProperty('--hero-in', inProgress);
-  /* Letters finish traveling (and are fully faded, see --letter-opacity
-     below) by 85% of the distance — exactly when --hero-in reaches 1 and
-     the real #hero-eyebrow is fully visible, so the swap from "traveling
-     letter" to "real letter" happens with nothing left of the former to
-     see. --letter-opacity is deliberately just 1 - inProgress, not its
-     own separate curve: keeping it locked to --hero-in is what GUARANTEES
-     the handoff lines up instead of two independently-tuned curves
-     drifting apart. */
-  hero.style.setProperty('--letter-travel', Math.min(1, progress / 0.85));
-  hero.style.setProperty('--letter-opacity', 1 - inProgress);
-  /* "Letters drift apart, then travel" — a 0→1→0 envelope over the FIRST
-     30% of the distance (sin() of a 0→π ramp), so scatter is at its
-     strongest around 15% scrolled and back to ~0 by 30%, well before
-     --letter-travel's real committed movement (which continues to 85%)
-     takes over. Without this envelope the scatter offset in style.css
-     would apply at full strength unconditionally, including at rest. */
-  hero.style.setProperty('--letter-scatter-env', Math.sin(Math.min(1, progress / 0.3) * Math.PI));
   hero.classList.toggle('hero-settled', progress > 0.05);
-}
-
-/**
- * FLIP-measures how far each intro letter has to travel to land exactly
- * on its #hero-eyebrow counterpart, and writes that as --dx/--dy on the
- * letter itself (updateHeroScrollIntro() only ever writes the two SHARED
- * driving properties, --letter-travel/--letter-opacity — never touches
- * these per-letter ones). Both letter sets must exist (buildLetterSpans()
- * in renderHero()) and be laid out in their final position — .hero-content
- * is opacity-hidden at rest, not display:none, so it's already measurable
- * even before the user has scrolled a pixel.
- *
- * Re-run on resize/font-load, not just once: both the intro label (bottom-
- * left, viewport-relative) and the eyebrow (bottom of a 100%-height flex
- * column) shift position when the viewport or text metrics change, so a
- * delta measured at one size would be wrong at another.
- */
-function measureLetterMorph() {
-  const introLetters = $$('#hero-intro-tagline .ht-letter');
-  const eyeLetters   = $$('#hero-eyebrow .ht-letter');
-  if (!introLetters.length || introLetters.length !== eyeLetters.length) return;
-  introLetters.forEach((el, i) => {
-    const dest = eyeLetters[i];
-    if (!dest) return;
-    const a = el.getBoundingClientRect();
-    const b = dest.getBoundingClientRect();
-    el.style.setProperty('--dx', (b.left - a.left).toFixed(1) + 'px');
-    el.style.setProperty('--dy', (b.top - a.top).toFixed(1) + 'px');
-    /* One-time random "drift apart" direction/magnitude per letter — see
-       the .ht-letter comment in style.css for why this exists at all
-       (a perfectly straight per-letter path reads as mechanical). Only
-       set once: re-rolling on every resize would make letters visibly
-       jump to a new scatter direction mid-interaction. */
-    if (!el.style.getPropertyValue('--scatter-x')) {
-      const angle = Math.random() * Math.PI * 2;
-      const mag = 4 + Math.random() * 8;
-      el.style.setProperty('--scatter-x', (Math.cos(angle) * mag).toFixed(1) + 'px');
-      el.style.setProperty('--scatter-y', (Math.sin(angle) * mag).toFixed(1) + 'px');
-    }
-  });
 }
 
 function initHeroScrollIntro() {
@@ -448,14 +376,6 @@ function initHeroScrollIntro() {
   }, { passive: true });
 
   updateHeroScrollIntro();   /* correct initial state on load, before any scroll fires */
-
-  measureLetterMorph();
-  let resizeTimer = null;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(measureLetterMorph, 150);
-  });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureLetterMorph);
 }
 
 function routeAction(action) {
