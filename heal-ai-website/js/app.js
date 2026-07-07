@@ -388,9 +388,9 @@ function routeAction(action) {
 function renderHomeAbout() {
   byId('about-h').innerHTML = HOME_ABOUT.statement;
   const side = byId('about-bullets');
-  side.innerHTML = HOME_ABOUT.bullets.map(b => `
+  side.innerHTML = HOME_ABOUT.bullets.map((b, i) => `
     <div class="about-bullet">
-      <div class="about-bullet-icon" aria-hidden="true">${b.letter}</div>
+      <div class="about-bullet-icon" aria-hidden="true">${String(i + 1).padStart(2, '0')}</div>
       <div>
         <h4>${b.title}</h4>
         <p>${b.body}</p>

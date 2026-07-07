@@ -648,6 +648,9 @@ nav.topnav {
 .eyebrow::before { content: ''; width: 24px; height: 1.5px; background: var(--cardinal); }
 .eyebrow.on-dark { color: #fff; }
 .eyebrow.on-dark::before { background: #fff; }
+/* About section's eyebrow drops the little rule mark — quieter, more
+   like a plain editorial category label than a marketing accent. */
+.eyebrow-plain::before { content: none; }
 
 .h2 {
   font-family: var(--serif);
@@ -685,27 +688,35 @@ nav.topnav {
 .about-statement {
   font-family: var(--serif);
   font-size: clamp(24px, 2.4vw, 32px);
-  font-weight: 400; line-height: 1.4;
+  font-weight: 400; line-height: 1.5;
   letter-spacing: -.005em;
   color: var(--ink);
+  max-width: 640px;
 }
 .about-statement em { font-style: italic; color: var(--cardinal); font-weight: 500; }
 
-.about-side { display: flex; flex-direction: column; gap: 18px; }
+/* Evidence-block list, not feature cards: a hairline-divided column
+   (border-top on the container, border-bottom per row) instead of
+   individually-boxed, tinted, rounded cards — reads as a policy-report
+   principles list rather than a SaaS feature grid. */
+.about-side-label {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-low); font-weight: 500;
+  margin-bottom: 4px;
+}
+.about-side { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
 .about-bullet {
-  display: flex; gap: 14px; align-items: flex-start;
-  padding: 18px 22px;
-  background: var(--bg-soft);
-  border-left: 3px solid var(--cardinal);
-  border-radius: 4px;
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
 }
 .about-bullet-icon {
-  width: 28px; height: 28px;
-  border-radius: 6px;
-  background: var(--cardinal-tint); color: var(--cardinal);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: 13px;
-  flex-shrink: 0;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--cardinal);
+  width: 20px; flex-shrink: 0;
+  padding-top: 3px;
 }
 .about-bullet h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
 .about-bullet p  { font-size: 13px; color: var(--ink-mid); line-height: 1.6; }

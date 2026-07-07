@@ -88,13 +88,13 @@ const HERO_COPY = {
    `bullets` accepts any number of pillar cards — the layout flexes.
 ─────────────────────────────────────────────────────────────────────────── */
 const HOME_ABOUT = {
-  statement: "Workflow friction. Value collisions. Gaps between what people were promised and what they experience. None of it shows up in a monitoring dashboard — <em>it shows up when we talk to the people closest to the tool.</em> Our process sits alongside the AI governance you already have, and ends in a clear call: move forward, change it, pause it, or decline.",
+  statement: "Workflow friction. Value collisions. Gaps between what people were promised and what they experience. None of it shows up in a monitoring dashboard, <em>it shows up when we talk to the people closest to the tool.</em> Our process sits alongside the AI governance you already have, and ends in a clear call: move forward, change it, pause it, or decline.",
   bullets: [
-    { letter: 'F', title: 'Fair, Useful, Reliable',
+    { title: 'Fair, Useful, Reliable',
       body: "Grounded in Stanford's FURM framework — peer-reviewed, evidence-based." },
-    { letter: 'P', title: 'Patient-included',
+    { title: 'Patient-included',
       body: 'Structured patient-partner input is foundational, not a checkbox.' },
-    { letter: 'A', title: 'Adaptable',
+    { title: 'Adaptable',
       body: 'Templates &amp; playbook designed for cross-institutional use.' },
   ],
 };
