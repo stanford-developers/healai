@@ -72,8 +72,8 @@ const NAV_ITEMS = [
 ─────────────────────────────────────────────────────────────────────────── */
 const HERO_COPY = {
   eyebrow: 'The human layer of AI governance',
-  headline: 'Your AI governance checks the model. <em>We check what happens when your people use it.</em>',
-  sub: 'HEAL-AI runs structured ethical reviews of healthcare AI tools — before and after they go live — by talking directly to the patients, clinicians, and staff closest to them, then bringing what we hear back to the people deciding whether a tool moves forward.',
+  headline: 'Your AI governance checks the model. <em>We evaluate what happens when people use it.</em>',
+  sub: 'HEAL-AI runs structured ethical reviews of healthcare AI tools before and after they go live, talking directly to the patients, clinicians, and staff closest to them, then bringing what we hear back to the people deciding whether a tool moves forward.',
   buttons: [
     { label: 'See the process →', action: 'page:process',   variant: 'prime' },
     { label: 'Browse resources',  action: 'page:resources', variant: 'second' },
