@@ -27,8 +27,9 @@
    ⑥ FURM_STEPS ............. 4-step process methodology
    ⑦ VIDEOS ................. 6-part training series (Phase 2)
    ⑧ RESOURCE_CATEGORIES .... tabbed library, includes the 8 sample reports
+   ⑧b RESOURCE_GROUPS ....... Templates/Guides/Sample Reports Level-2 tabs
    ⑨ PP_STATS / PP_STANFORD / PP_EXTERNAL  ... patient partner panel content
-   ⑩ PLAYBOOK_CARDS ......... 6 institutional-adaptation cards
+   ⑩ PLAYBOOK_SECTIONS ...... 2-part internal process accordion + considerations
    ⑪ TEAM ................... about-page team grid
    ⑫ ABOUT_CARDS ............ "How we got here" / "What we believe"
    ⑬ PAPERS ................. hover content for the hero canvas research nodes
@@ -52,13 +53,11 @@
    EDIT HERE  →  rename labels or reorder items by editing this array.
 ─────────────────────────────────────────────────────────────────────────── */
 const NAV_ITEMS = [
-  { id: 'home',      label: 'Home' },
-  { id: 'process',   label: 'Process' },
-  { id: 'videos',    label: 'Videos',    videoOnly: true },
-  { id: 'resources', label: 'Resources' },
-  { id: 'patient',   label: 'Patient Panel' },
-  { id: 'playbook',  label: 'Playbook' },
-  { id: 'about',     label: 'About' },
+  { id: 'home',    label: 'Home' },
+  { id: 'toolkit', label: 'Toolkit' },
+  { id: 'videos',  label: 'Videos',    videoOnly: true },
+  { id: 'patient', label: 'Patient Panel' },
+  { id: 'about',   label: 'About' },
 ];
 
 
@@ -75,8 +74,8 @@ const HERO_COPY = {
   headline: 'Your AI governance checks the model. <em>We evaluate what happens when people use it.</em>',
   sub: 'HEAL-AI runs structured ethical reviews of healthcare AI tools before and after they go live, talking directly to the patients, clinicians, and staff closest to them, then bringing what we hear back to the people deciding whether a tool moves forward.',
   buttons: [
-    { label: 'See the process →', action: 'page:process',   variant: 'prime' },
-    { label: 'Browse resources',  action: 'page:resources', variant: 'second' },
+    { label: 'See the process →', action: 'page:toolkit',           variant: 'prime' },
+    { label: 'Browse resources',  action: 'page:toolkit:resources', variant: 'second' },
   ],
 };
 
@@ -91,7 +90,7 @@ const HOME_ABOUT = {
   statement: "Workflow friction. Value collisions. Gaps between what people were promised and what they experience. None of it shows up in a monitoring dashboard, <em>it shows up when we talk to the people closest to the tool.</em> Our process sits alongside the AI governance you already have, and ends in a clear call: move forward, change it, pause it, or decline.",
   bullets: [
     { title: 'Fair, Useful, Reliable',
-      body: "Grounded in Stanford's FURM framework — peer-reviewed, evidence-based." },
+      body: "Grounded in Stanford's FURM framework, peer-reviewed and evidence-based." },
     { title: 'Patient-included',
       body: 'Structured patient-partner input is foundational, not a checkbox.' },
     { title: 'Adaptable',
@@ -123,13 +122,13 @@ const GET_STARTED_STEPS = [
     action: 'page:videos' },
   { n: '02', icon: 'route',    title: 'Learn the process',
     desc: 'Walk through Intake → Stakeholder Interviewing → Expert Vetting → Delivery with worked examples.',
-    action: 'page:process' },
+    action: 'page:toolkit' },
   { n: '03', icon: 'download', title: 'Download resources',
     desc: 'Templates, interview guides, focus-group materials, and eight redacted sample reports.',
-    action: 'page:resources' },
+    action: 'page:toolkit:resources' },
   { n: '04', icon: 'book',     title: 'Adapt the playbook',
-    desc: 'Use the DiME Playbook to right-size the process for your institution.',
-    action: 'page:playbook' },
+    desc: 'Use the playbook to right-size the process for your institution.',
+    action: 'page:toolkit:playbook' },
   { n: '05', icon: 'mail',     title: 'Sign up for updates',
     desc: "Subscribe so you know when new videos, templates, and reports go live.",
     action: 'url' },
@@ -164,21 +163,21 @@ const FURM_STEPS = [
    • `embed` is the iframe URL. For YouTube, use the /embed/{id} form.
      For Vimeo, use https://player.vimeo.com/video/{id}.
    • `resources` is a list of short chip labels that link the user back to
-     the Resources page (chip handler in app.js → goPage('resources')).
+     the Toolkit page's Resources tab (chip handler in app.js).
    • These don't render at all when SHOW_VIDEOS is false (Phase 1).
 
    EDIT HERE  →  drop in the real embed URLs once the videos are uploaded.
 ─────────────────────────────────────────────────────────────────────────── */
 const VIDEOS = [
   { id: 'v1', num: '01', title: 'Welcome to HEAL-AI', duration: '8:42',
-    desc: 'Why centralized, ethics-grounded AI evaluation matters — and what this toolkit covers.',
+    desc: 'Why centralized, ethics-grounded AI evaluation matters, and what this toolkit covers.',
     embed: 'https://www.youtube.com/embed/REPLACE_ID',
     resources: ['Overview deck', 'Glossary', 'Intake template'] },
 
   { id: 'v2', num: '02', title: 'The FURM Framework', duration: '14:21',
-    desc: 'A deep-dive on Fair, Useful, Reliable Models — the analytic spine of every evaluation.',
+    desc: 'A deep dive on Fair, Useful, Reliable Models, the analytic spine of every evaluation.',
     embed: 'https://www.youtube.com/embed/REPLACE_ID',
-    resources: ['FURM whitepaper', 'DiME alignment notes'] },
+    resources: ['FURM whitepaper'] },
 
   { id: 'v3', num: '03', title: 'Running Stakeholder Interviews', duration: '19:08',
     desc: 'Field-tested guides for interviewing developers, clinical users, and operational owners.',
@@ -186,7 +185,7 @@ const VIDEOS = [
     resources: ['Developer guide', 'User guide', 'Thematic analysis template'] },
 
   { id: 'v4', num: '04', title: 'The Patient Partner Panel', duration: '17:55',
-    desc: 'Recruiting, training, and running a patient panel — and what it changes in practice.',
+    desc: 'Recruiting, training, and running a patient panel, and what it changes in practice.',
     embed: 'https://www.youtube.com/embed/REPLACE_ID',
     resources: ['Moderator guide', 'Recruitment script', 'Compensation template'] },
 
@@ -231,7 +230,7 @@ const RESOURCE_CATEGORIES = [
     label: 'Understanding the Process',
     intro: {
       h: 'Start here.',
-      p: 'A complete orientation: what FURM is, why it exists, what the four steps deliver, and how DiME aligns with our published methodology.',
+      p: 'A complete orientation: what FURM is, why it exists, and what the four steps deliver.',
       bullets: ['Read the overview deck', 'Watch Videos 01–02', 'Skim the FURM whitepaper'],
     },
     items: [
@@ -239,8 +238,6 @@ const RESOURCE_CATEGORIES = [
         sub: 'High-level introduction to HEAL-AI and the FURM framework.' },
       { h: 'FURM whitepaper',       icon: 'paper', state: 'ready', href: '#',
         sub: 'The peer-reviewed methodology paper. PDF, 18 pages.' },
-      { h: 'DiME alignment notes',  icon: 'link',  state: 'ready', href: '#',
-        sub: 'How HEAL-AI maps to Digital Medicine Society standards.' },
       { h: 'Glossary',              icon: 'book',  state: 'ready', href: '#',
         sub: 'Plain-language definitions for FURM, EOP, intake, and more.' },
       { h: 'Detailed data-collection protocol', icon: 'sheet', state: 'soon',
@@ -287,7 +284,7 @@ const RESOURCE_CATEGORIES = [
     label: 'Running a Patient Partner Group',
     intro: {
       h: 'Bring patient voice into the room.',
-      p: 'How we recruit, train, and run our 10-volunteer panel — and the facilitation artifacts you need to do the same.',
+      p: 'How we recruit, train, and run our 10-volunteer panel, and the facilitation artifacts you need to do the same.',
       bullets: ["Read Stanford's model", "Use the moderator's guide", 'Pair with Video 04'],
     },
     items: [
@@ -354,19 +351,16 @@ const RESOURCE_CATEGORIES = [
     label: 'Adapting for Your Institution',
     intro: {
       h: 'Make this process yours.',
-      p: 'Institution-level resources for governance structure, IT integration, staffing models, and the published DiME Playbook.',
-      bullets: ['Skim the adaptation worksheet', 'Watch Video 06', 'Read the DiME Playbook'],
+      p: 'Institution-level resources for governance structure, IT integration, and staffing models.',
+      bullets: ['Skim the adaptation worksheet', 'Watch Video 06', 'Read the IRB & legal review notes'],
     },
     items: [
       { h: 'Adaptation worksheet',         icon: 'sheet', state: 'ready', href: '#',
         sub: 'A self-assessment to right-size the process for your institution.' },
-      { h: 'DiME Playbook',                icon: 'book',  state: 'ready',
-        href: 'https://dimesociety.org/ai-implementation-in-healthcare-playbook/',
-        sub: "Digital Medicine Society's published playbook for implementing AI in healthcare responsibly and equitably." }, /* migrated from heal-ai.stanford.edu — now published, was "soon" */
       { h: 'Cross-institutional briefing deck', icon: 'deck', state: 'ready', href: '#',
         sub: 'For securing executive sponsorship at your health system.' },
       { h: 'IRB &amp; legal review notes', icon: 'paper', state: 'ready', href: '#',
-        sub: 'How Stanford routed this through governance — translatable to other institutions.' },
+        sub: 'How Stanford routed this through governance, translatable to other institutions.' },
       { h: "Project tracking sheet (full process)", icon: 'sheet', state: 'soon',
         sub: "Project manager's sheet for tracking progress across the entire ethics assessment process." }, /* migrated from heal-ai.stanford.edu */
       { h: 'Process-improvement metrics', icon: 'sheet', state: 'ready',
@@ -408,7 +402,7 @@ const RESOURCE_CATEGORIES = [
     media: {
       featured: {
         title: "Unmasking AI's ethical fault lines",
-        desc: "Case study 1 — Stanford Medicine's battle with value collisions in mortality prediction tools.",
+        desc: "Case study 1: Stanford Medicine's battle with value collisions in mortality prediction tools.",
         youtubeId: 'JXWICqLS0GM',
       },
       talks: [
@@ -421,17 +415,41 @@ const RESOURCE_CATEGORIES = [
       ],
       grid: [
         { title: 'Beyond accuracy: autonomous AI in trial',
-          desc: "Case study 2 — Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks.",
+          desc: "Case study 2: Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks.",
           youtubeId: 'ZGiQLuPNq-c' },
         { title: 'Workflow issues as deployment barriers',
-          desc: 'Case study 3 — why workflow issues are often critical barriers to AI implementation.',
+          desc: 'Case study 3: why workflow issues are often critical barriers to AI implementation.',
           youtubeId: '96TKfJRnA-c' },
         { title: 'Lessons learned from the frontlines',
-          desc: 'Case study 4 — recurring system-level issues to address before deploying AI in healthcare.',
+          desc: 'Case study 4: recurring system-level issues to address before deploying AI in healthcare.',
           youtubeId: 'WCS9lchlAa8' },
       ],
     },
   },
+];
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ⑧b RESOURCE_GROUPS · Level-2 tabs inside the Toolkit tab's Resources
+   panel (Templates / Guides / Sample Reports).
+─────────────────────────────────────────────────────────────────────────────
+   Each entry is one Level-2 tab. `categoryIds` points back at
+   RESOURCE_CATEGORIES entries by `id` — the categories themselves are
+   untouched; this array only controls how they're grouped and labeled.
+   A group with more than one categoryId renders each category as a
+   labeled sub-section stacked inside that tab's panel, rather than as
+   its own tab (see renderToolkitResources() in app.js).
+
+   EDIT HERE  →  reorder groups, or move a category to a different group,
+   by editing categoryIds. Do not duplicate a categoryId across groups.
+─────────────────────────────────────────────────────────────────────────── */
+const RESOURCE_GROUPS = [
+  { id: 'templates', icon: 'deck',  label: 'Templates',
+    categoryIds: ['interviews', 'panel'] },
+  { id: 'guides',    icon: 'book',  label: 'Guides',
+    categoryIds: ['understand', 'adapt', 'cases'] },
+  { id: 'reports',   icon: 'paper', label: 'Sample Reports',
+    categoryIds: ['reports'] },
 ];
 
 
@@ -472,7 +490,7 @@ const REPORT_DETAILS = {
   },
   '03': {
     overview: 'This large language model, nicknamed AuthorizeMe, is under consideration to streamline the insurance prior authorization (PA) process. Hospital financial staff currently prepare these requests manually, taking about 20 minutes each; because they are not clinically trained, key information in the EHR can be hard to find, leading to denials and care delays. AuthorizeMe automatically extracts patient information to populate PA forms and drafts answers to insurers’ medical questions, linking to source documents. Staff review and edit before submission. It is expected to cut preparation time by 25%.',
-    summary: "The prospective benefits appear to outweigh the risks and all stakeholders support moving forward. There is, however, a need for careful monitoring given uncertainty about whether financial staff — who have low familiarity with generative AI — can provide effective oversight of AI output. The ethics team's chief recommendation is that the health system provide technical assistance to build a user training curriculum and a monitoring plan.",
+    summary: "The prospective benefits appear to outweigh the risks and all stakeholders support moving forward. There is, however, a need for careful monitoring given uncertainty about whether financial staff, who have low familiarity with generative AI, can provide effective oversight of AI output. The ethics team's chief recommendation is that the health system provide technical assistance to build a user training curriculum and a monitoring plan.",
     issues: [
       'There is reason for concern about whether financial staff are sufficiently knowledgeable to know what to look for when reviewing output.',
       'PA request work is high-volume and repetitive, compounding the risk of missing errors and, over time, experiencing automation bias.',
@@ -506,8 +524,8 @@ const REPORT_DETAILS = {
     downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/copilot-ethics-report-for-external-distribution.docx',
   },
   '06': {
-    overview: 'Two AI tools — Payment Probability (PP) and Denial Appeal Drafter (DAD) — are being considered to improve how the Denials Management team handles denied insurance claims. PP assigns each denied claim a Likelihood of Payment score (0–100%) based on past claims and payment history, helping staff prioritize the most promising appeals. DAD then drafts the appeal letter itself, pulling clinical information from the denied visit and up to six months of related records, with citations linking to the supporting record. Both are powered by large language models; staff review and edit the output.',
-    summary: "For both tools, the prospective benefits of adoption appear to outweigh the risks, and stakeholders are enthusiastic about moving forward. The ethics team recommends deployment with safeguards focused on user training and performance evaluation. The primary risk is that inaccuracies in either tool's output could lead to lower, not higher, rates of successfully reversing denials — and the ethics team is not confident current users could reliably detect and fix such errors without additional training.",
+    overview: 'Two AI tools, Payment Probability (PP) and Denial Appeal Drafter (DAD), are being considered to improve how the Denials Management team handles denied insurance claims. PP assigns each denied claim a Likelihood of Payment score (0–100%) based on past claims and payment history, helping staff prioritize the most promising appeals. DAD then drafts the appeal letter itself, pulling clinical information from the denied visit and up to six months of related records, with citations linking to the supporting record. Both are powered by large language models; staff review and edit the output.',
+    summary: "For both tools, the prospective benefits of adoption appear to outweigh the risks, and stakeholders are enthusiastic about moving forward. The ethics team recommends deployment with safeguards focused on user training and performance evaluation. The primary risk is that inaccuracies in either tool's output could lead to lower, not higher, rates of successfully reversing denials, and the ethics team is not confident current users could reliably detect and fix such errors without additional training.",
     issues: [
       "The primary risk is that inaccuracies in the tools' output could lead to lower, not higher, rates of reversing denials.",
       'Measuring the net benefit of each tool separately will be challenging since both operate in the same workflow.',
@@ -518,10 +536,10 @@ const REPORT_DETAILS = {
     downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/pp-dad-ethics-report-for-external-distribution.docx',
   },
   '07': {
-    overview: 'This AI tool, nicknamed LabAlert, is designed to help reduce unnecessary lab testing for hospitalized patients. A significant portion of daily standing-order lab tests — especially repeated complete blood counts and chemistry panels — may not be clinically necessary after the first few days, yet can cause discomfort and disrupt sleep. LabAlert predicts whether a patient’s next test result is likely to be stable, using lab history, vital signs, and medications, and triggers an EHR notification prompting the doctor to reconsider the order.',
+    overview: 'This AI tool, nicknamed LabAlert, is designed to help reduce unnecessary lab testing for hospitalized patients. A significant portion of daily standing-order lab tests, especially repeated complete blood counts and chemistry panels, may not be clinically necessary after the first few days, yet can cause discomfort and disrupt sleep. LabAlert predicts whether a patient’s next test result is likely to be stable, using lab history, vital signs, and medications, and triggers an EHR notification prompting the doctor to reconsider the order.',
     summary: 'Stakeholders were consistently supportive of the tool, and patients were explicitly willing to trade a perceived low risk of missing something for a more comfortable, restful recovery. The top concern among developers and clinicians was that the model would underperform for patients with certain clinical profiles, underscoring the need to give physicians key information so they can make informed decisions about whether to accept an alert.',
     issues: [
-      'The top countervailing concern — voiced more by developers, clinicians, and experts than patients — was that the model would underperform for certain groups.',
+      'The top countervailing concern, voiced more by developers, clinicians, and experts than patients, was that the model would underperform for certain groups.',
       'All stakeholder groups recognized potential for automation bias, though none perceived it as high; alarm fatigue, intrinsic motivation, and accountability concerns seem likely to mitigate it.',
       "Stakeholders generally believed physicians should be informed of the model's false-positive/false-negative rates, the nature of its training data, and patient characteristics or groups for whom it may underperform.",
     ],
@@ -570,42 +588,69 @@ const PP_STANFORD_LIST = [
 
 const PP_EXTERNAL = [
   { h: 'Recruitment',
-    body: 'Start with the patient advisory groups you already have. Compensated, time-bounded engagement is easier to staff than open-ended advisory roles. Aim for racial, linguistic, and clinical diversity from day one — not after the first cohort.' },
+    body: 'Start with the patient advisory groups you already have. Compensated, time-bounded engagement is easier to staff than open-ended advisory roles. Aim for racial, linguistic, and clinical diversity from day one, not after the first cohort.' },
   { h: 'Training',
     body: 'An 8-hour fundamentals curriculum is the sweet spot. Cover: how AI is used in care, FURM basics, ethics-review vocabulary, and facilitation norms (turn-taking, dissent, paraphrasing). Open-source slides ship with the Playbook.' },
   { h: 'Facilitation',
     body: '90-minute focus groups, one tool at a time, with a trained moderator and a scribe. Always provide a one-pager on the tool in plain language 5 days in advance. Always close with written follow-up so quiet voices reach the record.' },
   { h: 'Compensation',
-    body: 'Compensate at a rate that signals respect — not the institutional minimum. Stanford pays per-meeting and per-deliverable. Build the compensation line into your evaluation program budget from the start; do not run it through volunteer overhead.' },
+    body: 'Compensate at a rate that signals respect, not the institutional minimum. Stanford pays per-meeting and per-deliverable. Build the compensation line into your evaluation program budget from the start; do not run it through volunteer overhead.' },
   { h: 'Scaling down',
-    body: "Smaller institutions can run a 4-person panel and a single annual cohort. The trade-off is throughput, not legitimacy — small panels work as long as recruitment is genuinely diverse and the facilitator is trained. Don't dilute the standard." },
+    body: "Smaller institutions can run a 4-person panel and a single annual cohort. The trade-off is throughput, not legitimacy: small panels work as long as recruitment is genuinely diverse and the facilitator is trained. Don't dilute the standard." },
   { h: 'Sustaining the program',
-    body: 'Hold quarterly community-of-practice meetings even when no tools are under review. Sustained engagement is what makes the third year of a panel valuable — partners build vocabulary, trust, and institutional memory you cannot buy.' },
+    body: 'Hold quarterly community-of-practice meetings even when no tools are under review. Sustained engagement is what makes the third year of a panel valuable: partners build vocabulary, trust, and institutional memory you cannot buy.' },
 ];
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ⑩ PLAYBOOK_CARDS · the 6 institutional-adaptation cards
+   ⑩ PLAYBOOK_SECTIONS · the 2-part internal operating process, rendered
+   as an expand/reveal accordion (see renderToolkitPlaybook() in app.js).
+   Each top-level section expands to reveal its sub-items.
+
+   NOTE: this replaces the old PLAYBOOK_CARDS (6 external-institution
+   adaptation cards). This copy is a first draft grounded in the site
+   owner's own description of the internal process — review/edit before
+   treating it as final, same as any other copy in this file.
 ─────────────────────────────────────────────────────────────────────────── */
-const PLAYBOOK_CARDS = [
-  { h: 'Governance structure',
-    desc: 'Where does AI ethics review live — clinical informatics, compliance, a standalone office? Trade-offs are real.',
-    icon: 'building', state: 'ready' },
-  { h: 'Staffing &amp; roles',
-    desc: 'A minimum-viable program is 1.5 FTEs. We outline what each role does and how to phase hiring.',
-    icon: 'people', state: 'ready' },
-  { h: 'IT &amp; data integration',
-    desc: 'How to obtain vendor data, model-card artifacts, and post-deployment monitoring telemetry.',
-    icon: 'chip', state: 'soon' },
-  { h: 'Patient panel scale',
-    desc: '4-person vs. 10-person panels: throughput trade-offs and recruitment recommendations.',
-    icon: 'people', state: 'ready' },
-  { h: 'Compensation &amp; budget',
-    desc: 'Stanford-tested compensation rates and a sample one-year program budget you can adapt.',
-    icon: 'coin', state: 'ready' },
-  { h: 'Leadership buy-in',
-    desc: 'Templates for the executive briefing, the board update, and the first-year operating plan.',
-    icon: 'deck', state: 'ready' },
+const PLAYBOOK_SECTIONS = [
+  {
+    id: 'ethics-team',
+    n: '01',
+    h: 'Ethics Team Process',
+    summary: 'How the ethics team turns stakeholder interviews and patient-partner input into a single Ethics &amp; Operations Plan.',
+    subitems: [
+      { h: 'Coordinating the Patient Partner Panel',
+        body: 'The ethics team schedules and staffs each patient-partner focus group, distributes a plain-language tool summary in advance, and assigns a moderator and scribe so patient input is captured consistently across every session.' },
+      { h: 'Running the data-analysis review',
+        body: 'Interview and focus-group transcripts are coded and reviewed together against the FURM framework (fair, useful, and reliable), with disagreement among reviewers surfaced explicitly rather than resolved by a single author.' },
+      { h: 'Drafting the Ethics &amp; Operations Plan',
+        body: 'Findings are synthesized into a written EOP recommending pass, fail, or conditional approval, with explicit guardrails and a review interval, before it is shared with clinical and operational leadership.' },
+    ],
+  },
+  {
+    id: 'program-admin',
+    n: '02',
+    h: 'Program Administration',
+    summary: 'The scheduling, documentation, and tracking work that keeps every evaluation moving on time. Program management, not clinical or ethical judgment.',
+    subitems: [
+      { h: 'Scheduling &amp; calendar coordination',
+        body: 'Booking interview slots with developers, clinicians, and patient partners; holding recurring team meetings; and tracking the timeline for each tool from intake through delivery.' },
+      { h: 'Documentation &amp; recordkeeping',
+        body: 'Filing consent forms and compensation paperwork, archiving interview transcripts, and keeping the intake log current as tools move between stages.' },
+      { h: 'Cross-team coordination',
+        body: 'Acting as the point of contact between the ethics team, IT/data stewards, and the patient panel, chasing down vendor documentation and confirming meeting logistics so reviewers can focus on the assessment itself.' },
+    ],
+  },
+];
+
+/* ⑩b PLAYBOOK_CONSIDERATIONS · guiding questions the team weighs during
+   every evaluation. Rendered as a bulleted callout, not an accordion. */
+const PLAYBOOK_CONSIDERATIONS = [
+  'Whose interests are represented in the room, and whose are missing?',
+  'What would change our recommendation, and have we actually tested for it?',
+  'Is the burden of catching this tool&rsquo;s errors falling on the people best equipped to catch them?',
+  'Does the benefit outweigh the risk for every patient subgroup, not just on average?',
+  'What guardrails and review interval make a conditional approval meaningful rather than a formality?',
 ];
 
 
@@ -647,6 +692,13 @@ const TEAM = [
     profile: 'https://profiles.stanford.edu/danton-char',
   },
   {
+    name:    'Nigam Shah',
+    role:    'Professor of Medicine (Biomedical Informatics)',
+    badge:   'Faculty',
+    photo:   'assets/current_staff/nigam_shah_char.png.webp',
+    profile: 'https://profiles.stanford.edu/nigam-shah',
+  },
+  {
     name:  'N. Lance Downing',
     role:  'Clinical Assistant Professor',
     badge: 'Faculty',
@@ -680,9 +732,9 @@ const TEAM = [
 ─────────────────────────────────────────────────────────────────────────── */
 const ABOUT_CARDS = [
   { h: 'How we got here',
-    p: 'HEAL-AI was founded in 2022 after a Stanford internal audit revealed that several AI tools had been deployed across clinical divisions under inconsistent approval processes — none with formal patient input. We were built to close that gap.' },
+    p: 'HEAL-AI was founded in 2022 after a Stanford internal audit revealed that several AI tools had been deployed across clinical divisions under inconsistent approval processes, none with formal patient input. We were built to close that gap.' },
   { h: 'What we believe',
-    p: 'Ethics review cannot be left to individual departments. A centralized, transparent, patient-inclusive process is not optional — it is the only way clinical AI earns genuine trust. HEAL-AI provides that process, and now shares it openly.' },
+    p: 'Ethics review cannot be left to individual departments. A centralized, transparent, patient-inclusive process is not optional. It is the only way clinical AI earns genuine trust. HEAL-AI provides that process, and now shares it openly.' },
 ];
 
 

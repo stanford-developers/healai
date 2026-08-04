@@ -57,9 +57,7 @@ const SHOW_VIDEOS = false;
      • Top-nav button         (#nav-signup-btn)
      • Mobile menu button     (added in renderNav)
      • Home page Sign-up card (#home-signup-btn)
-     • Playbook page notify   (#playbook-signup-btn)
      • Footer link            (#footer-signup)
-     • Phase-1 Videos notice  (CTA inside the "Coming soon" card)
 
    EDIT HERE  →  replace with the live Google Form URL once provisioned.
 ─────────────────────────────────────────────────────────────────────────── */
@@ -77,7 +75,7 @@ const SIGN_UP_URL = 'https://docs.google.com/forms/d/e/REPLACE-WITH-FORM-ID/view
      2. Add a NAV_ITEM in data.js with {id:'XXX', label:'XXX'}.
      3. Append 'XXX' to PAGE_IDS here.
 ─────────────────────────────────────────────────────────────────────────── */
-const PAGE_IDS = ['home', 'process', 'videos', 'resources', 'patient', 'playbook', 'about'];
+const PAGE_IDS = ['home', 'toolkit', 'videos', 'patient', 'about'];
 
 /* The page rendered on first load. */
 const DEFAULT_PAGE = 'home';
@@ -112,8 +110,39 @@ const FEATURES = {
    here, not inside app.js, to keep the brand feel coherent.
 ─────────────────────────────────────────────────────────────────────────── */
 const TIMINGS = {
-  /* total time the loader splash is on screen — the liquid-fill CSS
+  /* total time the loader splash is on screen, the liquid-fill CSS
      animation itself runs 1.6s, so this leaves a ~600ms beat with the
      logo fully filled before the exit fade starts. */
   loaderHoldMs: 2200,
 };
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ⑦ SUPABASE — backend for admin-uploaded Toolkit resources
+─────────────────────────────────────────────────────────────────────────────
+   Read by both index.html (anonymous, read-only: shows uploaded resources
+   in the public Toolkit tab) and admin.html (authenticated: lets an admin
+   sign in and upload/edit/delete resources). Both pages load the Supabase
+   client from a CDN, then call `createClient(SUPABASE_URL, SUPABASE_ANON_KEY)`.
+
+   The anon key is safe to publish here, it identifies the project, not a
+   privileged user. Every read/write is enforced server-side by Postgres
+   Row Level Security policies (see /supabase/schema.sql), not by this key
+   being secret. NEVER put the "service_role" key in this file or anywhere
+   else in this repo, that key bypasses RLS entirely.
+
+   ONE-TIME SETUP (see /supabase/schema.sql for the full checklist):
+     1. Create a free project at supabase.com.
+     2. Project Settings → API → copy "Project URL" and the "anon" public
+        key, paste them in below.
+     3. Run /supabase/schema.sql in the Supabase SQL Editor.
+     4. Create a public Storage bucket named "resource-files".
+     5. Have the first admin sign up once at /admin, then in the
+        Supabase Table Editor flip that person's `profiles.is_admin` to
+        true by hand. Repeat for any future admin, there's no self-service
+        promotion by design.
+
+   EDIT HERE  →  paste your real Project URL and anon key once created.
+─────────────────────────────────────────────────────────────────────────── */
+const SUPABASE_URL = 'https://REPLACE-WITH-YOUR-PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'REPLACE-WITH-YOUR-ANON-KEY';

@@ -225,7 +225,7 @@ function renderNav() {
   mobile.appendChild(ms);
 
   /* Wire every Sign-up CTA on the site to SIGN_UP_URL */
-  ['nav-signup-btn', 'home-signup-btn', 'playbook-signup-btn', 'footer-signup', 'footer-global-signup']
+  ['nav-signup-btn', 'home-signup-btn', 'footer-signup', 'footer-global-signup']
     .forEach(id => {
       const el = byId(id);
       if (!el) return;
@@ -380,8 +380,15 @@ function initHeroScrollIntro() {
 
 function routeAction(action) {
   if (!action) return;
-  if (action.startsWith('page:')) goPage(action.slice(5));
-  else if (action === 'url')      openSignUp();
+  if (action.startsWith('page:')) {
+    /* "page:toolkit:resources" → goPage('toolkit') then activate its
+       Resources Level-1 tab, so buttons/cards can deep-link into a
+       specific Toolkit section instead of always landing on Process. */
+    const [, name, tkTab] = action.split(':');
+    goPage(name);
+    if (tkTab) activateToolkitTab(tkTab, false);
+  }
+  else if (action === 'url') openSignUp();
 }
 
 /** Positioning statement + 3 pillar cards. */
@@ -446,7 +453,81 @@ function renderGetStarted() {
 
 
 /* ═════════════════════════════════════════════════════════════════════════
-   ⑥ PROCESS PAGE renderer (FURM 4-step grid)
+   ⑤b TOOLKIT PAGE — Level-1 tabs (Process | Playbook | Resources)
+   ─────────────────────────────────────────────────────────────────────────
+   A true WAI-ARIA Tablist, same pattern as the Resources tab's Level-2
+   tabs below — see activateResourceGroupTab()'s a11y comment for the
+   roving-tabindex/aria-selected rationale, not repeated here.
+   ════════════════════════════════════════════════════════════════════════ */
+const TOOLKIT_TABS = [
+  { id: 'process',   label: 'Process' },
+  { id: 'playbook',  label: 'Playbook' },
+  { id: 'resources', label: 'Resources' },
+];
+
+function renderToolkitTabs() {
+  const bar = byId('tk-bar');
+  bar.innerHTML = '';
+  bar.setAttribute('role', 'tablist');
+  bar.setAttribute('aria-label', 'Toolkit sections');
+
+  TOOLKIT_TABS.forEach((t, i) => {
+    const isFirst = i === 0;
+    const tab = document.createElement('button');
+    tab.className = 'tk-tab' + (isFirst ? ' on' : '');
+    tab.id = 'tk-tab-' + t.id;
+    tab.dataset.tabId = t.id;
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', isFirst ? 'true' : 'false');
+    tab.setAttribute('aria-controls', 'tk-pan-' + t.id);
+    tab.tabIndex = isFirst ? 0 : -1;
+    tab.textContent = t.label;
+    tab.addEventListener('click',   () => activateToolkitTab(t.id, true));
+    tab.addEventListener('keydown', e  => handleToolkitTabKeydown(e, i));
+    bar.appendChild(tab);
+  });
+}
+
+function activateToolkitTab(id, focus = false) {
+  $$('.tk-tab').forEach(t => {
+    const on = t.dataset.tabId === id;
+    t.classList.toggle('on', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+    t.tabIndex = on ? 0 : -1;
+    if (on && focus) t.focus();
+  });
+  $$('.tk-panel').forEach(p => p.classList.toggle('on', p.id === 'tk-pan-' + id));
+
+  /* .tk-panel is display:none while inactive, so any accordion body
+     inside it that pre-measured its scrollHeight at init time (see
+     renderToolkitPlaybook()) measured 0 — display:none collapses layout
+     entirely, unlike .page's opacity/visibility approach. Re-measure any
+     already-open accordion body now that its panel is actually laid out. */
+  requestAnimationFrame(() => {
+    $$('.tk-panel.on .pb-acc-item.open .pb-acc-body-inner').forEach(inner => {
+      inner.parentElement.style.maxHeight = inner.scrollHeight + 'px';
+    });
+  });
+}
+
+function handleToolkitTabKeydown(e, idx) {
+  const tabs = $$('.tk-tab');
+  const len  = tabs.length;
+  let target = -1;
+  switch (e.key) {
+    case 'ArrowRight': target = (idx + 1) % len;       break;
+    case 'ArrowLeft':  target = (idx - 1 + len) % len; break;
+    case 'Home':       target = 0;                     break;
+    case 'End':        target = len - 1;               break;
+    default: return;
+  }
+  e.preventDefault();
+  activateToolkitTab(tabs[target].dataset.tabId, true);
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ⑥ TOOLKIT PAGE — Process tab (FURM 4-step grid)
    ════════════════════════════════════════════════════════════════════════ */
 function renderProcessSteps() {
   const wrap = byId('process-steps');
@@ -539,9 +620,13 @@ function renderVideos() {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
     });
 
-    /* Resource chips route to the Resources page */
+    /* Resource chips route to the Toolkit page's Resources tab */
     card.querySelectorAll('.vr-chip').forEach(chip => {
-      chip.addEventListener('click', e => { e.stopPropagation(); goPage('resources'); });
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        goPage('toolkit');
+        activateToolkitTab('resources', false);
+      });
     });
 
     grid.appendChild(card);
@@ -573,11 +658,16 @@ function closeVideo() {
 
 
 /* ═════════════════════════════════════════════════════════════════════════
-   ⑧ RESOURCES PAGE — tabbed library + sample-report grid
+   ⑧ TOOLKIT PAGE — Resources tab: tabbed library + sample-report grid
    ─────────────────────────────────────────────────────────────────────────
-   Renders one <button class="rt-tab"> per RESOURCE_CATEGORIES entry, and
-   one matching <div class="rt-panel"> per entry. Switching is handled by
-   activateResourceTab(id).
+   Renders one <button class="rt-tab"> per RESOURCE_GROUPS entry (Level 2:
+   Templates / Guides / Sample Reports), and one matching <div class="rt-panel">
+   per group. Switching is handled by activateResourceGroupTab(id).
+
+   A group with more than one categoryId (Templates, Guides) renders each
+   RESOURCE_CATEGORIES entry as a labeled, stacked sub-section (Level 3 —
+   not a third tablist, per WAI-ARIA guidance against nested tabs) inside
+   the same panel, via renderResourceCategoryBlock().
 
    "ready" items are rendered as a spotlight card (the first item) plus a
    divided list (the rest) — see resourceCardHTML(). "soon" items render
@@ -590,7 +680,7 @@ function closeVideo() {
    rendered by renderCaseStudiesMedia() (featured lazy-autoplay embed +
    talk cards + embed grid).
    ════════════════════════════════════════════════════════════════════════ */
-function renderResources() {
+function renderToolkitResources() {
   const bar    = byId('rt-bar');
   const panels = byId('rt-panels');
   bar.innerHTML = '';
@@ -612,102 +702,198 @@ function renderResources() {
   bar.setAttribute('role', 'tablist');
   bar.setAttribute('aria-label', 'Resource categories');
 
-  RESOURCE_CATEGORIES.forEach((cat, i) => {
+  RESOURCE_GROUPS.forEach((group, i) => {
     /* ── Tab button ─────────────────────────────────────────────────── */
     const tab = document.createElement('button');
     const isFirst = i === 0;
     tab.className = 'rt-tab' + (isFirst ? ' on' : '');
-    tab.id = 'rt-tab-' + cat.id;
-    tab.dataset.tabId = cat.id;
+    tab.id = 'rt-tab-' + group.id;
+    tab.dataset.tabId = group.id;
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', isFirst ? 'true' : 'false');
-    tab.setAttribute('aria-controls', 'rt-pan-' + cat.id);
+    tab.setAttribute('aria-controls', 'rt-pan-' + group.id);
     tab.tabIndex = isFirst ? 0 : -1;   /* roving tabindex */
     tab.innerHTML = `
-      <span class="rt-tab-icon">${svgIcon(cat.icon)}</span>
-      <span class="rt-tab-text"><span class="n">${String(i + 1).padStart(2, '0')}</span>${cat.label}</span>`;
-    tab.addEventListener('click',   () => activateResourceTab(cat.id, true));
-    tab.addEventListener('keydown', e  => handleTabKeydown(e, i));
+      <span class="rt-tab-icon">${svgIcon(group.icon)}</span>
+      <span class="rt-tab-text"><span class="n">${String(i + 1).padStart(2, '0')}</span>${group.label}</span>`;
+    tab.addEventListener('click',   () => activateResourceGroupTab(group.id, true));
+    tab.addEventListener('keydown', e  => handleResourceGroupTabKeydown(e, i));
     bar.appendChild(tab);
 
     /* ── Tab panel ──────────────────────────────────────────────────── */
     const panel = document.createElement('div');
-    panel.className = 'rt-panel' + (i === 0 ? ' on' : '');
-    panel.id = 'rt-pan-' + cat.id;
+    panel.className = 'rt-panel' + (isFirst ? ' on' : '');
+    panel.id = 'rt-pan-' + group.id;
     panel.setAttribute('role', 'tabpanel');
-    panel.setAttribute('aria-labelledby', 'rt-tab-' + cat.id);
+    panel.setAttribute('aria-labelledby', 'rt-tab-' + group.id);
 
-    /* 1) Intro block */
-    let html = `
-      <div class="rt-intro">
-        <div>
-          <h2>${cat.intro.h}</h2>
-          <p>${cat.intro.p}</p>
-        </div>
-        <aside>
-          <h4>How to use this section</h4>
-          <ul>${cat.intro.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
-        </aside>
-      </div>`;
+    const cats = group.categoryIds.map(id => RESOURCE_CATEGORIES.find(c => c.id === id));
+    panel.innerHTML = cats.map((cat, ci) =>
+      renderResourceCategoryBlock(cat, cats.length > 1, ci)
+    ).join('');
 
-    /* 2) Resource items — either the standard spotlight+list, or (cases
-          tab only) the featured-embed media layout. */
-    if (cat.media) {
-      html += renderCaseStudiesMedia(cat.media);
-    } else {
-      const [first, ...rest] = cat.items;
-      html += '<div class="res-set">' + resourceCardHTML(first, 'spotlight');
-      if (rest.length) {
-        html += '<div class="res-list">' + rest.map(item => resourceCardHTML(item, 'row')).join('') + '</div>';
-      }
-      html += '</div>';
-    }
-
-    /* 3) Sample reports (reports category only) */
-    if (cat.reports) {
-      html += `
-        <div style="margin-top:44px">
-          <p class="eyebrow">Eight redacted sample reports</p>
-          <h3 class="h3" style="margin-bottom:6px;font-size:22px">Real evaluations, redacted for public reference.</h3>
-          <p style="font-size:13.5px;color:var(--ink-mid);max-width:640px;line-height:1.65;margin-bottom:8px">
-            Each report walks through intake, stakeholder findings, expert vetting, and the final recommendation.
-            Tool names and vendor specifics are redacted.
-          </p>
-          <div class="reports-grid">
-            ${cat.reports.map(r => `
-              <div class="report-row" data-code="${r.code}" tabindex="0"
-                   role="button" aria-label="Open sample report: ${stripHTML(r.name)}">
-                <span class="report-pill">${r.code}</span>
-                <div><h5>${r.name}</h5><span>${r.sub}</span></div>
-                ${svgIcon('arrowOut', {sw:2, stroke:'var(--ink-low)'})}
-              </div>`).join('')}
-          </div>
-        </div>`;
-    }
-
-    panel.innerHTML = html;
     panels.appendChild(panel);
-
-    /* Wire up clickable resource cards + talk cards (set by data-href) */
-    panel.querySelectorAll('.res-spotlight.linked, .res-row.linked, .cs-talk-card').forEach(c => {
-      const href = c.dataset.href;
-      const fire = () => window.open(href, '_blank', 'noopener');
-      c.addEventListener('click', fire);
-      c.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
-      });
-    });
-    /* Sample-report row → opens the in-site detail modal, not an external tab */
-    panel.querySelectorAll('.report-row').forEach(row => {
-      const fire = () => openReportDetail(row.dataset.code);
-      row.addEventListener('click', fire);
-      row.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
-      });
-    });
-    /* Case-studies embeds: click-to-play now, or lazy-autoplay on scroll */
-    if (cat.media) initLazyVideoEmbeds(panel);
+    wireResourceCategoryPanel(panel);
   });
+
+  enhanceToolkitResourcesWithUploads();
+}
+
+/* Maps a RESOURCE_GROUPS id to the `category` value stored in Supabase's
+   resources table (see /supabase/schema.sql) — the public names (Templates/
+   Guides/Sample Reports) are plural, the stored category values are
+   singular, so this is the one place that translation happens. */
+const RESOURCE_GROUP_TO_CATEGORY = { templates: 'template', guides: 'guide', reports: 'report' };
+
+/**
+ * Reads admin-uploaded resources from Supabase (public, read-only, no
+ * login required — enforced by the "resources are publicly readable" RLS
+ * policy) and returns them grouped by category, already shaped like a
+ * RESOURCE_CATEGORIES `items[]` entry so resourceCardHTML() can render
+ * them unchanged. Returns {} (silently) if Supabase isn't configured yet
+ * or the request fails — this is enhancement, not required content, so a
+ * misconfigured or offline backend should never break the static page.
+ */
+async function getPublicResources() {
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return {};
+  try {
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await sb.from('resources').select('*').order('created_at', { ascending: false });
+    if (error || !data) return {};
+    const byCategory = { template: [], guide: [], report: [] };
+    data.forEach(r => {
+      if (!byCategory[r.category]) return;
+      byCategory[r.category].push({
+        h: r.title,
+        sub: r.description || '',
+        icon: 'paper',
+        state: 'ready',
+        href: sb.storage.from('resource-files').getPublicUrl(r.file_path).data.publicUrl,
+      });
+    });
+    return byCategory;
+  } catch {
+    return {};
+  }
+}
+
+/** One "Recently added" sub-block, same visual treatment as a regular
+ *  category's resource list (see renderResourceCategoryBlock()). */
+function renderUploadedResourcesBlock(items) {
+  return `
+    <div class="rt-subgroup">
+      <p class="rt-subgroup-eyebrow">Recently added</p>
+      <div class="res-set"><div class="res-list">${items.map(i => resourceCardHTML(i, 'row')).join('')}</div></div>
+    </div>`;
+}
+
+/** Appends a "Recently added" block to any Level-2 panel that has
+ *  admin-uploaded resources for its category. Runs once, after the
+ *  static panels are already built and visible — network-dependent
+ *  content should never delay or block the initial render. Wires the
+ *  new block's cards while still detached from the DOM, so this never
+ *  re-wires (and double-binds click handlers on) the static content
+ *  wireResourceCategoryPanel() already wired inside renderToolkitResources(). */
+async function enhanceToolkitResourcesWithUploads() {
+  const byCategory = await getPublicResources();
+  RESOURCE_GROUPS.forEach(group => {
+    const items = byCategory[RESOURCE_GROUP_TO_CATEGORY[group.id]];
+    if (!items || !items.length) return;
+    const panel = byId('rt-pan-' + group.id);
+    if (!panel) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = renderUploadedResourcesBlock(items);
+    const node = wrap.firstElementChild;
+    wireResourceCategoryPanel(node);
+    panel.appendChild(node);
+  });
+}
+
+/**
+ * Renders one RESOURCE_CATEGORIES entry's body: the intro block, its
+ * items (or Case Studies media), and its sample-reports grid if present.
+ * When `showSubheading` is true (a Level-2 group with more than one
+ * category), a numbered sub-group eyebrow is prepended so the stacked
+ * categories read as distinct sections rather than one merged list.
+ */
+function renderResourceCategoryBlock(cat, showSubheading, idx) {
+  let html = showSubheading
+    ? `<div class="rt-subgroup" id="rt-sub-${cat.id}">
+         <p class="rt-subgroup-eyebrow">${String(idx + 1).padStart(2, '0')} · ${cat.label}</p>`
+    : `<div class="rt-subgroup">`;
+
+  /* 1) Intro block */
+  html += `
+    <div class="rt-intro">
+      <div>
+        <h2>${cat.intro.h}</h2>
+        <p>${cat.intro.p}</p>
+      </div>
+      <aside>
+        <h4>How to use this section</h4>
+        <ul>${cat.intro.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+      </aside>
+    </div>`;
+
+  /* 2) Resource items — either the standard spotlight+list, or (cases
+        tab only) the featured-embed media layout. */
+  if (cat.media) {
+    html += renderCaseStudiesMedia(cat.media);
+  } else {
+    const [first, ...rest] = cat.items;
+    html += '<div class="res-set">' + resourceCardHTML(first, 'spotlight');
+    if (rest.length) {
+      html += '<div class="res-list">' + rest.map(item => resourceCardHTML(item, 'row')).join('') + '</div>';
+    }
+    html += '</div>';
+  }
+
+  /* 3) Sample reports (reports category only) */
+  if (cat.reports) {
+    html += `
+      <div style="margin-top:44px">
+        <p class="eyebrow">Eight redacted sample reports</p>
+        <h3 class="h3" style="margin-bottom:6px;font-size:22px">Real evaluations, redacted for public reference.</h3>
+        <p style="font-size:13.5px;color:var(--ink-mid);max-width:640px;line-height:1.65;margin-bottom:8px">
+          Each report walks through intake, stakeholder findings, expert vetting, and the final recommendation.
+          Tool names and vendor specifics are redacted.
+        </p>
+        <div class="reports-grid">
+          ${cat.reports.map(r => `
+            <div class="report-row" data-code="${r.code}" tabindex="0"
+                 role="button" aria-label="Open sample report: ${stripHTML(r.name)}">
+              <span class="report-pill">${r.code}</span>
+              <div><h5>${r.name}</h5><span>${r.sub}</span></div>
+              ${svgIcon('arrowOut', {sw:2, stroke:'var(--ink-low)'})}
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  return html + '</div>';   /* close .rt-subgroup */
+}
+
+/** Wires up a Level-2 panel's clickable cards after renderResourceCategoryBlock() HTML lands in the DOM. */
+function wireResourceCategoryPanel(panel) {
+  /* Wire up clickable resource cards + talk cards (set by data-href) */
+  panel.querySelectorAll('.res-spotlight.linked, .res-row.linked, .cs-talk-card').forEach(c => {
+    const href = c.dataset.href;
+    const fire = () => window.open(href, '_blank', 'noopener');
+    c.addEventListener('click', fire);
+    c.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
+    });
+  });
+  /* Sample-report row → opens the in-site detail modal, not an external tab */
+  panel.querySelectorAll('.report-row').forEach(row => {
+    const fire = () => openReportDetail(row.dataset.code);
+    row.addEventListener('click', fire);
+    row.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
+    });
+  });
+  /* Case-studies embeds: click-to-play now, or lazy-autoplay on scroll */
+  if (panel.querySelector('.cs-embed')) initLazyVideoEmbeds(panel);
 }
 
 /**
@@ -861,7 +1047,7 @@ function closeReportModal() {
  *                            (used by arrow-key handler; click leaves
  *                             focus where the user clicked).
  */
-function activateResourceTab(id, focus = false) {
+function activateResourceGroupTab(id, focus = false) {
   $$('.rt-tab').forEach(t => {
     const on = t.dataset.tabId === id;
     t.classList.toggle('on', on);
@@ -879,7 +1065,7 @@ function activateResourceTab(id, focus = false) {
  *   Home / End             → jump to first / last tab
  *   Enter / Space          → fall through to the native button click
  */
-function handleTabKeydown(e, idx) {
+function handleResourceGroupTabKeydown(e, idx) {
   const tabs = $$('.rt-tab');
   const len  = tabs.length;
   let target = -1;
@@ -891,7 +1077,7 @@ function handleTabKeydown(e, idx) {
     default: return;
   }
   e.preventDefault();
-  activateResourceTab(tabs[target].dataset.tabId, true);
+  activateResourceGroupTab(tabs[target].dataset.tabId, true);
 }
 
 /** Tiny HTML-stripper for aria-label values that quote item titles. */
@@ -948,7 +1134,7 @@ function renderPatientPanel() {
 
     const head = item.querySelector('.pp-acc-head');
     const body = item.querySelector('.pp-acc-body');
-    head.addEventListener('click', () => togglePatientAcc(item, head, body));
+    head.addEventListener('click', () => toggleAccordionItem(item, head, body));
 
     acc.appendChild(item);
 
@@ -961,27 +1147,64 @@ function renderPatientPanel() {
   });
 }
 
-function togglePatientAcc(item, head, body) {
+/**
+ * Generic open/close for any "accordion item" on the site — shared by the
+ * Patient Panel accordion (.pp-acc-*) and the Toolkit Playbook accordion
+ * (.pb-acc-*) below, since both follow the identical header/body/inline-
+ * max-height pattern. Looks for whichever *-body-inner wrapper is present.
+ */
+function toggleAccordionItem(item, head, body) {
   const open = item.classList.toggle('open');
   head.setAttribute('aria-expanded', open ? 'true' : 'false');
-  body.style.maxHeight = open
-    ? body.querySelector('.pp-acc-body-inner').scrollHeight + 'px'
-    : '0';
+  const inner = body.querySelector('.pp-acc-body-inner, .pb-acc-body-inner');
+  body.style.maxHeight = open ? inner.scrollHeight + 'px' : '0';
 }
 
 
 /* ═════════════════════════════════════════════════════════════════════════
-   ⑩ PLAYBOOK PAGE renderer
+   ⑩ TOOLKIT PAGE — Playbook tab renderer
+   ─────────────────────────────────────────────────────────────────────────
+   Renders PLAYBOOK_SECTIONS as an expand/reveal accordion (reusing
+   toggleAccordionItem() above) and PLAYBOOK_CONSIDERATIONS as a plain
+   bulleted callout beneath it.
    ════════════════════════════════════════════════════════════════════════ */
-function renderPlaybook() {
-  byId('playbook-grid').innerHTML = PLAYBOOK_CARDS.map(c => `
-    <div class="pb-card">
-      <div class="icon">${svgIcon(c.icon)}</div>
-      <h4>${c.h}</h4>
-      <p>${c.desc}</p>
-      <span class="badge">${c.state === 'soon' ? 'Coming soon' : 'Available'}</span>
-    </div>
-  `).join('');
+function renderToolkitPlaybook() {
+  const acc = byId('pb-acc');
+  acc.innerHTML = '';
+  PLAYBOOK_SECTIONS.forEach((s, i) => {
+    const isOpen = i === 0;
+    const item = document.createElement('div');
+    item.className = 'pb-acc-item' + (isOpen ? ' open' : '');
+    item.innerHTML = `
+      <button class="pb-acc-head" aria-expanded="${isOpen}">
+        <span class="idx">${s.n}</span>
+        <div class="pb-acc-headtext"><h4>${s.h}</h4><p>${s.summary}</p></div>
+        <span class="chev" aria-hidden="true">${svgIcon('chev', {sw:2})}</span>
+      </button>
+      <div class="pb-acc-body">
+        <div class="pb-acc-body-inner">
+          ${s.subitems.map(si => `
+            <div class="pb-acc-subitem">
+              <h5>${si.h}</h5>
+              <p>${si.body}</p>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
+    const head = item.querySelector('.pb-acc-head');
+    const body = item.querySelector('.pb-acc-body');
+    head.addEventListener('click', () => toggleAccordionItem(item, head, body));
+    acc.appendChild(item);
+
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        body.style.maxHeight = body.querySelector('.pb-acc-body-inner').scrollHeight + 'px';
+      });
+    }
+  });
+
+  byId('pb-considerations-list').innerHTML =
+    PLAYBOOK_CONSIDERATIONS.map(c => `<li>${c}</li>`).join('');
 }
 
 
@@ -1050,7 +1273,7 @@ function renderTeam() {
 function renderPartnerLogos() {
   const mount = byId('about-partners');
   if (!mount) return;
-  const logo = l => `<div class="partner-logo"><img src="${l.file}" alt="${l.name}" loading="lazy"></div>`;
+  const logo = l => `<div class="partner-logo"><img src="${l.file}" alt="${l.name}" loading="eager" decoding="async"></div>`;
   const copy = PARTNER_LOGOS.map(logo).join('');
   mount.innerHTML = `<div class="partner-track">${copy}${copy}</div>`;
 }
@@ -1722,23 +1945,29 @@ function buildSearchIndex() {
 
   NAV_ITEMS.forEach(n => add(n.label, '', n.id));
 
-  RESOURCE_CATEGORIES.forEach(cat => {
-    if (cat.items) {
-      cat.items.forEach(item => add(item.h, item.sub, 'resources', { tabId: cat.id }));
-    }
-    if (cat.reports) {
-      cat.reports.forEach(r => add(r.name, r.sub, 'resources', { tabId: cat.id, reportCode: r.code }));
-    }
-    if (cat.media) {
-      add(cat.media.featured.title, cat.media.featured.desc, 'resources', { tabId: cat.id });
-      cat.media.talks.forEach(t => add(t.h, t.sub, 'resources', { tabId: cat.id }));
-      cat.media.grid.forEach(g => add(g.title, g.desc, 'resources', { tabId: cat.id }));
-    }
+  RESOURCE_GROUPS.forEach(group => {
+    group.categoryIds.forEach(catId => {
+      const cat = RESOURCE_CATEGORIES.find(c => c.id === catId);
+      if (cat.items) {
+        cat.items.forEach(item => add(item.h, item.sub, 'toolkit', { tkTab: 'resources', groupId: group.id }));
+      }
+      if (cat.reports) {
+        cat.reports.forEach(r => add(r.name, r.sub, 'toolkit', { tkTab: 'resources', groupId: group.id, reportCode: r.code }));
+      }
+      if (cat.media) {
+        add(cat.media.featured.title, cat.media.featured.desc, 'toolkit', { tkTab: 'resources', groupId: group.id });
+        cat.media.talks.forEach(t => add(t.h, t.sub, 'toolkit', { tkTab: 'resources', groupId: group.id }));
+        cat.media.grid.forEach(g => add(g.title, g.desc, 'toolkit', { tkTab: 'resources', groupId: group.id }));
+      }
+    });
   });
 
-  FURM_STEPS.forEach(s => add(s.title, s.desc, 'process'));
+  FURM_STEPS.forEach(s => add(s.title, s.desc, 'toolkit', { tkTab: 'process' }));
   GET_STARTED_STEPS.forEach(s => add(s.title, s.desc, 'home'));
-  PLAYBOOK_CARDS.forEach(c => add(c.h, c.desc, 'playbook'));
+  PLAYBOOK_SECTIONS.forEach(sec => {
+    add(sec.h, sec.summary, 'toolkit', { tkTab: 'playbook' });
+    sec.subitems.forEach(si => add(si.h, si.body, 'toolkit', { tkTab: 'playbook' }));
+  });
   TEAM.forEach(t => add(t.name, t.role, 'about'));
   ABOUT_CARDS.forEach(c => add(c.h, c.p, 'about'));
   PP_STANFORD_LIST.forEach(i => add(i.h, i.body, 'patient'));
@@ -1781,7 +2010,8 @@ function initSiteSearch() {
 
   const go = m => {
     goPage(m.pageId);
-    if (m.pageId === 'resources' && m.tabId) activateResourceTab(m.tabId, false);
+    if (m.tkTab) activateToolkitTab(m.tkTab, false);
+    if (m.tkTab === 'resources' && m.groupId) activateResourceGroupTab(m.groupId, false);
     if (m.reportCode) openReportDetail(m.reportCode);
     input.value = '';
     close();
@@ -1838,11 +2068,12 @@ function init() {
   renderHomeAbout();
   renderStats();
   renderGetStarted();
+  renderToolkitTabs();
   renderProcessSteps();
   renderVideos();
-  renderResources();
+  renderToolkitResources();
   renderPatientPanel();
-  renderPlaybook();
+  renderToolkitPlaybook();
   renderAboutCards();
   renderTeam();
   renderPartnerLogos();

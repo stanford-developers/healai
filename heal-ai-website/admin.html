@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+  ════════════════════════════════════════════════════════════════════════════
+  HEAL-AI · admin.html
+  ────────────────────────────────────────────────────────────────────────────
+  PURPOSE
+    Standalone admin page for uploading Toolkit resources (templates,
+    guides, sample reports) without editing code. Deliberately NOT part of
+    the public single-page app in index.html, and not linked from the main
+    nav — reached only by direct URL (or the small footer link on the
+    public site, if you choose to add one).
+
+  HOW THIS WORKS
+    Auth, the resources table, and file storage are all provided by
+    Supabase (see js/config.js for the project URL/key, and
+    /supabase/schema.sql for the one-time database setup). There is no
+    custom backend here, every action below calls Supabase directly from
+    the browser; Postgres Row Level Security enforces who can do what
+    (see schema.sql for the exact policies).
+
+  THE THREE VIEWS (all logic in js/admin.js)
+    #auth-view      shown when logged out — login / sign up form
+    #pending-view   shown when logged in but not yet approved as an admin
+    #dashboard-view shown when logged in AND approved — upload + manage
+  ════════════════════════════════════════════════════════════════════════════
+  -->
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>HEAL-AI · Admin</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body class="admin-body">
+
+  <header class="admin-header">
+    <img class="logo-mark" src="assets/heal-ai-logo-cardinal.svg" alt="HEAL-AI" />
+    <span class="admin-header-label">Admin</span>
+  </header>
+
+  <main class="admin-main">
+
+    <!-- ═══ LOGGED OUT ═══════════════════════════════════════════════════ -->
+    <section id="auth-view" class="admin-card">
+      <div class="admin-tabs" role="tablist" aria-label="Log in or sign up">
+        <button class="admin-tab on" id="auth-tab-login"  role="tab" aria-selected="true"  data-mode="login">Log in</button>
+        <button class="admin-tab"    id="auth-tab-signup" role="tab" aria-selected="false" data-mode="signup">Sign up</button>
+      </div>
+
+      <form id="auth-form" novalidate>
+        <label class="admin-field">
+          <span>Email</span>
+          <input type="email" id="auth-email" autocomplete="username" required>
+        </label>
+        <label class="admin-field">
+          <span>Password</span>
+          <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
+        </label>
+        <button type="submit" class="btn-prime" id="auth-submit">Log in</button>
+      </form>
+
+      <p class="admin-status" id="auth-status" role="status" aria-live="polite"></p>
+      <p class="admin-hint" id="auth-hint">New here? Switch to Sign up, then ask the site owner to approve your account.</p>
+    </section>
+
+    <!-- ═══ LOGGED IN, NOT YET APPROVED ══════════════════════════════════ -->
+    <section id="pending-view" class="admin-card" hidden>
+      <p class="eyebrow">Account created</p>
+      <h2>Waiting on admin approval</h2>
+      <p>Your account (<strong id="pending-email"></strong>) is signed in, but hasn't been approved to upload resources yet. Ask the HEAL-AI site owner to flip your account to admin, then reload this page.</p>
+      <button class="btn-second" id="pending-logout">Log out</button>
+    </section>
+
+    <!-- ═══ LOGGED IN, APPROVED ══════════════════════════════════════════ -->
+    <section id="dashboard-view" class="admin-card admin-card-wide" hidden>
+      <div class="admin-dash-head">
+        <div>
+          <p class="eyebrow">Signed in as <strong id="dash-email"></strong></p>
+          <h2>Upload a resource</h2>
+        </div>
+        <button class="btn-second" id="dash-logout">Log out</button>
+      </div>
+
+      <form id="upload-form" class="admin-upload-form">
+        <label class="admin-field">
+          <span>File</span>
+          <input type="file" id="upload-file" required>
+        </label>
+        <label class="admin-field">
+          <span>Title</span>
+          <input type="text" id="upload-title" required maxlength="120" placeholder="e.g. Interview guide template">
+        </label>
+        <label class="admin-field">
+          <span>Description</span>
+          <textarea id="upload-description" rows="2" maxlength="240" placeholder="One or two sentences shown under the title"></textarea>
+        </label>
+        <label class="admin-field">
+          <span>Category</span>
+          <select id="upload-category" required>
+            <option value="template">Template</option>
+            <option value="guide">Guide</option>
+            <option value="report">Sample report</option>
+          </select>
+        </label>
+        <button type="submit" class="btn-prime" id="upload-submit">Upload</button>
+      </form>
+      <p class="admin-status" id="upload-status" role="status" aria-live="polite"></p>
+
+      <h3 class="admin-list-h">Uploaded resources</h3>
+      <div id="resource-list" class="admin-resource-list">
+        <p class="admin-empty">Loading…</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+  <script src="js/admin.js" defer></script>
+</body>
+</html>

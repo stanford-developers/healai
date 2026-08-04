@@ -855,12 +855,13 @@ nav.topnav {
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   §8 · PROCESS PAGE
+   §8 · TOOLKIT PAGE (Process + Playbook + Resources, merged)
    ───────────────────────────────────────────────────────────────────────
    • Sub-page header (used by every non-home page)
-   • FURM card (triangle glyph + text)
-   • 4-step process grid (dotrow visualizes step number)
-   • Coming-soon card pattern (dashed cardinal border)
+   • Level-1 tab strip (.tk-bar/.tk-tab/.tk-panel) — Process | Playbook |
+     Resources. Text-tab style, matching the site's institutional
+     direction rather than a rounded-pill SaaS tab.
+   • 4-step process grid (dotrow visualizes step number) — Process panel.
    ─────────────────────────────────────────────────────────────────────── */
 .page-header {
   /* clamp() gutters mirror .section for consistent rhythm + zoom safety */
@@ -886,55 +887,31 @@ nav.topnav {
 .page-h1 em { font-style: italic; color: var(--cardinal); }
 .page-sub   { font-size: 17px; color: var(--ink-mid); max-width: 680px; line-height: 1.65; }
 
-/* FURM card */
-.furm-card {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 48px; align-items: center;
-  padding: 56px;
-  background: var(--bg-soft);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  margin-bottom: 72px;
+/* Level-1 tab strip. Only 3 short labels, so this stays a plain static
+   row (no horizontal scroll) at every viewport width. */
+.tk-bar {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  max-width: 1320px; margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 80px);
+  border-bottom: 1px solid var(--line);
 }
-.furm-glyph {
-  width: 100%; aspect-ratio: 1.2 / 1;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  display: flex; align-items: center; justify-content: center;
-  position: relative;
+.tk-tab {
+  padding: 18px 6px; margin-right: 28px;
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-mid);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--t-fast), border-color var(--t-fast);
+  white-space: nowrap;
 }
-.furm-glyph svg { width: 80%; height: 80%; }
-.furm-glyph .label {
-  position: absolute;
-  font-family: var(--mono); font-size: 10px;
-  letter-spacing: .16em; font-weight: 600;
-  text-transform: uppercase;
-  color: var(--cardinal);
-}
-.furm-glyph .label.top   { top: 20px; left: 50%; transform: translateX(-50%); }
-.furm-glyph .label.left  { bottom: 36px; left: 24px; }
-.furm-glyph .label.right { bottom: 36px; right: 24px; }
+.tk-tab:hover { color: var(--ink); }
+.tk-tab.on { color: var(--cardinal); font-weight: 600; border-bottom-color: var(--cardinal); }
 
-.furm-text h3 {
-  font-family: var(--serif);
-  font-size: 32px; font-weight: 500;
-  line-height: 1.15;
-  color: var(--ink);
-  margin-bottom: 14px;
-}
-.furm-text h3 em { color: var(--cardinal); font-style: italic; }
-.furm-text p { font-size: 15px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 16px; }
-.furm-meta {
-  font-family: var(--mono); font-size: 10px;
-  letter-spacing: .16em; text-transform: uppercase;
-  color: var(--ink-low);
-  margin-top: 18px;
-}
-
-.process-h2,
-.playbook-h2 { margin-bottom: 40px; max-width: 760px; }
+.tk-panel { display: none; padding: 56px clamp(24px, 5vw, 80px) 96px; max-width: 1320px; margin: 0 auto; }
+.tk-panel.on { display: block; animation: fadeUp .35s var(--ease); }
+.tk-h2 { margin-bottom: 40px; max-width: 760px; }
+.tk-panel-lede { font-size: 15px; color: var(--ink-mid); line-height: 1.7; max-width: 680px; margin-bottom: 40px; }
 
 /* 4-step grid */
 .process-steps {
@@ -966,44 +943,6 @@ nav.topnav {
   background: var(--line-strong);
 }
 .proc-step .dotrow .d.on { background: var(--cardinal); }
-
-/* "Coming soon" card pattern */
-.coming-soon-card {
-  display: flex; align-items: center; gap: 32px;
-  padding: 48px;
-  background: var(--bg-soft);
-  border: 2px dashed var(--cardinal-light);
-  border-radius: var(--radius-lg);
-}
-.coming-soon-card .icon {
-  width: 64px; height: 64px;
-  border-radius: var(--radius-lg);
-  background: var(--cardinal); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.coming-soon-card .icon svg {
-  width: 30px; height: 30px;
-  stroke: currentColor; stroke-width: 1.8; fill: none;
-}
-.coming-soon-card h4 {
-  font-family: var(--serif);
-  font-size: 22px; font-weight: 500;
-  color: var(--ink);
-  margin-bottom: 8px;
-}
-.coming-soon-card .badge {
-  display: inline-block;
-  font-family: var(--mono); font-size: 10px;
-  letter-spacing: .14em; font-weight: 600;
-  color: var(--cardinal);
-  background: var(--cardinal-tint);
-  padding: 3px 10px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-.coming-soon-card p { font-size: 14px; color: var(--ink-mid); line-height: 1.7; max-width: 640px; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1230,35 +1169,21 @@ nav.topnav {
    Tab bar uses role="tablist"/role="tab"/role="tabpanel". Active state
    is communicated both visually (.on) AND via aria-selected (set in JS).
    ─────────────────────────────────────────────────────────────────────── */
-/* Resources page only: .page-header's bottom padding (56px + border) was
-   stacking with .section's top padding (96px) for ~150px of dead air
-   before the tab strip even appeared. Tighten just this page's rhythm
-   rather than touching .page-header/.section globally. */
-#page-resources .page-header  { padding-bottom: 28px; }
-#page-resources > .section    { padding-top: 40px; }
-
 /*
-   RESOURCES TAB STRIP
-   Icon-card tabs, one row of 6 equal-width boxes on desktop. The active
-   tab gets a filled cardinal card + a downward-pointing triangle (::after,
-   CSS clip-path) so it visually "points at" the panel content below it.
-   On mobile we drop to a horizontally-swipeable row of fixed-width cards
-   — `grid-auto-flow: column` + `overflow-x: auto` (see §15) — since 6
-   equal-fraction columns would get too cramped on a phone.
+   RESOURCES TAB STRIP (Level 2, inside the Toolkit page's Resources panel)
+   Icon-card tabs, one row of 3 equal-width boxes. The active tab gets a
+   filled cardinal card + a downward-pointing triangle (::after, CSS
+   clip-path) so it visually "points at" the panel content below it.
+   A plain static grid at every width — auto-fit wraps to fewer columns
+   on narrow screens instead of scrolling, which reads cleaner with only
+   3 groups than the old 6-category horizontal-scroll carousel did.
 */
 .rt-bar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin-bottom: 44px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-  /* Hide the scrollbar without disabling scroll */
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* IE / old Edge */
 }
-.rt-bar::-webkit-scrollbar { display: none; }  /* Chrome / Safari / new Edge */
 
 .rt-tab {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1271,7 +1196,6 @@ nav.topnav {
   background: var(--bg);
   border: 1px solid var(--line);
   position: relative;
-  scroll-snap-align: start;
   /* Uniform ease-in-out micro-interaction across all interactive states */
   transition: all .25s ease-in-out;
 }
@@ -1309,6 +1233,18 @@ nav.topnav {
    `align-items: start` keeps the side card snug to the top instead of
    stretching to match the heading-paragraph block.
 */
+/* Level-3: when a Level-2 group (Templates, Guides) has more than one
+   RESOURCE_CATEGORIES entry, each renders as one of these stacked,
+   labeled sub-sections rather than a third click-layer of tabs. */
+.rt-subgroup { margin-bottom: 56px; }
+.rt-subgroup:last-child { margin-bottom: 0; }
+.rt-subgroup-eyebrow {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink-low); font-weight: 600;
+  margin-bottom: 20px;
+}
+
 .rt-intro {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1661,113 +1597,61 @@ nav.topnav {
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   §12 · PLAYBOOK
+   §12 · TOOLKIT PAGE — Playbook tab
+   ───────────────────────────────────────────────────────────────────────
+   Accordion modeled structurally on .pp-acc above, but on .about-bullet's
+   flatter, hairline-only visual language (no card background, no colored
+   icon badge) — institutional documentation, not a feature-card grid.
    ─────────────────────────────────────────────────────────────────────── */
-.playbook-hero {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 48px;
-  align-items: center;
-  padding: 0 0 56px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 56px;
+.pb-acc { display: flex; flex-direction: column; border-top: 1px solid var(--line); margin-bottom: 48px; }
+.pb-acc-item { border-bottom: 1px solid var(--line); }
+.pb-acc-head {
+  width: 100%; display: flex; align-items: flex-start; gap: 18px;
+  padding: 26px 4px; text-align: left;
+  transition: background var(--t-fast);
 }
-.playbook-hero h2 {
-  font-family: var(--serif);
-  font-size: clamp(28px, 3.2vw, 40px);
-  font-weight: 500; line-height: 1.15;
-  color: var(--ink);
-  margin-bottom: 18px;
+.pb-acc-head:hover { background: var(--bg-soft); }
+.pb-acc-head .idx {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: .1em; color: var(--cardinal);
+  width: 28px; flex-shrink: 0; padding-top: 4px;
 }
-.playbook-hero h2 em { color: var(--cardinal); font-style: italic; }
-.playbook-hero p { font-size: 15px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 24px; }
-.playbook-glyph {
-  aspect-ratio: 1 / 1;
-  background: var(--bg-soft);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  position: relative;
-}
-.playbook-glyph svg { width: 75%; height: 75%; }
+.pb-acc-headtext { flex: 1; }
+.pb-acc-headtext h4 { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+.pb-acc-headtext p  { font-size: 14px; color: var(--ink-mid); line-height: 1.6; max-width: 620px; }
+.pb-acc-head .chev { color: var(--ink-mid); flex-shrink: 0; margin-top: 8px; transition: transform var(--t-fast); }
+.pb-acc-head .chev svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }
+.pb-acc-item.open .pb-acc-head .chev { transform: rotate(180deg); }
+.pb-acc-body { max-height: 0; overflow: hidden; transition: max-height var(--t-med) var(--ease); }
+.pb-acc-body-inner { padding: 0 4px 32px 46px; display: flex; flex-direction: column; }
+.pb-acc-subitem { padding: 16px 0; border-top: 1px solid var(--line); }
+.pb-acc-subitem:first-child { border-top: none; padding-top: 0; }
+.pb-acc-subitem h5 { font-size: 14.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.pb-acc-subitem p  { font-size: 13.5px; color: var(--ink-mid); line-height: 1.65; }
 
-.playbook-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-}
-.pb-card {
-  padding: 32px 28px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  /* Uniform ease-in-out micro-interaction */
-  transition: all .25s ease-in-out;
-}
-.pb-card:hover {
-  border-color: var(--cardinal);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0,0,0,.05);
-}
-.pb-card .icon {
-  width: 42px; height: 42px;
+/* Considerations callout — reuses .rt-intro aside's left-border-on-tint
+   treatment already established elsewhere on this same page. */
+.tk-callout {
+  padding: 28px 32px;
+  background: var(--bg-soft);
+  border-left: 3px solid var(--cardinal);
   border-radius: var(--radius);
-  background: var(--cardinal-tint); color: var(--cardinal);
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 18px;
+  max-width: 760px;
 }
-.pb-card .icon svg {
-  width: 22px; height: 22px;
-  stroke: currentColor; stroke-width: 1.8;
-  fill: none; stroke-linecap: round; stroke-linejoin: round;
+.tk-callout h4 {
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--cardinal); font-weight: 600;
+  margin-bottom: 16px;
 }
-.pb-card h4 {
-  font-family: var(--serif);
-  font-size: 20px; font-weight: 500;
-  color: var(--ink); line-height: 1.25;
-  margin-bottom: 10px;
-}
-.pb-card p { font-size: 13.5px; color: var(--ink-mid); line-height: 1.65; margin-bottom: 14px; }
-.pb-card .badge {
-  display: inline-block;
-  font-family: var(--mono); font-size: 10px;
-  letter-spacing: .12em; font-weight: 600;
-  color: var(--cardinal);
-  background: var(--cardinal-tint);
-  padding: 3px 9px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
+.tk-callout ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.tk-callout li { font-size: 14px; color: var(--ink-mid); line-height: 1.6; display: flex; gap: 10px; }
+.tk-callout li::before { content: '→'; color: var(--cardinal); font-weight: 600; flex-shrink: 0; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
    §13 · ABOUT
    ─────────────────────────────────────────────────────────────────────── */
-.stanford-bar {
-  display: flex; align-items: center; gap: 16px;
-  padding: 20px 26px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--cardinal), var(--cardinal-dark));
-  box-shadow: 0 10px 24px rgba(140, 21, 21, .18);
-  margin-bottom: 44px;
-}
-.s-mark {
-  width: 42px; height: auto;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  padding: 6px;
-}
-.s-mark img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
-.s-text h3 { font-size: 14px; font-weight: 600; color: #fff; }
-.s-text p  { font-size: 12px; color: rgba(255, 255, 255, .78); margin-top: 3px; }
-
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 44px; }
 .white-card {
   padding: 28px;
@@ -1795,6 +1679,10 @@ nav.topnav {
    a small breathing gap driven by .team-h2 margin. */
 .section-team { padding-top: 0; }
 #page-about .section:has(+ .section-team) { padding-bottom: 24px; }
+.section-team .eyebrow,
+.section-partners .eyebrow {
+  font-size: 13px;
+}
 .team-h2 {
   margin-top: 6px;
   margin-bottom: 32px;
@@ -1954,9 +1842,11 @@ nav.topnav {
 .partner-track {
   display: flex;
   align-items: center;
-  gap: 72px;
+  gap: 88px;
   width: max-content;
-  animation: partner-scroll 32s linear infinite;
+  animation: partner-scroll 36s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 /* Site-wide Pause Media toggle (initPauseMediaControl in app.js) — the
    universal prefers-reduced-motion override in §16 already zeroes out
@@ -1970,10 +1860,10 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 .partner-logo {
   flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  height: 56px;
+  height: 84px;
 }
 .partner-logo img {
-  max-height: 100%; max-width: 160px; width: auto;
+  max-height: 100%; max-width: 220px; width: auto;
   object-fit: contain;
   filter: grayscale(1);
   opacity: .5;
@@ -1981,8 +1871,8 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 }
 .partner-logo:hover img { filter: grayscale(0); opacity: 1; }
 @media (max-width: 640px) {
-  .partner-track { gap: 48px; }
-  .partner-logo  { height: 40px; }
+  .partner-track { gap: 56px; }
+  .partner-logo  { height: 60px; }
 }
 
 
@@ -2194,7 +2084,6 @@ footer {
   .flow-arrow        { display: none; }
   .process-steps     { grid-template-columns: repeat(2, 1fr); }
   .proc-step         { border-right: 1px solid var(--line); }
-  .playbook-grid     { grid-template-columns: 1fr; }
   .signup-card       { grid-template-columns: 1fr; padding: 44px 32px; }
   .signup-side       { align-items: flex-start; }
   /* Note: .reports-grid, .cs-grid, and .team-grid are NOT overridden here
@@ -2225,9 +2114,10 @@ footer {
   .stat:last-child   { border-bottom: none; }
 
   .about-block,
-  .furm-card,
-  .rt-intro,
-  .playbook-hero     { grid-template-columns: 1fr; gap: 32px; }
+  .rt-intro          { grid-template-columns: 1fr; gap: 32px; }
+
+  .tk-tab            { padding: 14px 4px; margin-right: 18px; font-size: 11px; }
+  .pb-acc-body-inner { padding-left: 4px; }
 
   .videos-grid       { grid-template-columns: 1fr; }
 
@@ -2241,11 +2131,6 @@ footer {
   /* Hero ornament selectors removed (badge + meta were deleted in cleanup) */
   .scroll-cue        { right: 24px; }
 
-  /* Resources tab strip: 6 equal grid columns get too cramped on a phone —
-     switch to a horizontally-swipeable row of fixed-width cards instead. */
-  .rt-bar            { display: flex; }
-  .rt-tab            { flex: 0 0 128px; }
-
   .foot-grid         { grid-template-columns: 1fr 1fr; gap: 32px; }
   footer             { padding: 48px 24px 28px; }
   #footer-global     { padding: 0; }
@@ -2254,8 +2139,6 @@ footer {
   .fg-search         { width: 100%; }
   .fg-nav            { gap: 32px; padding: 0 24px 32px; padding-top: 28px; }
   .fg-bottom         { padding: 20px 24px; }
-
-  .coming-soon-card  { flex-direction: column; text-align: center; padding: 36px 24px; }
 
   .pp-stats          { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .pp-stat           { padding: 12px; }
@@ -2295,7 +2178,6 @@ footer {
 }
 /* On dark/cardinal surfaces, invert the halo so the ring remains visible */
 .signup-card :focus-visible,
-.stanford-bar :focus-visible,
 footer :focus-visible {
   outline-color: #fff;
   box-shadow: 0 0 0 4px rgba(140, 21, 21, .55);
