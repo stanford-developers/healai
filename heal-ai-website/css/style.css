@@ -1395,81 +1395,36 @@ nav.topnav {
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   CASE STUDIES & TALKS TAB — featured lazy-autoplay embed + talk cards
+   CASE STUDIES & TALKS TAB — static "coming soon" placeholder cards
 ─────────────────────────────────────────────────────────────────────────────
-   .cs-embed starts as a poster (YouTube thumbnail as background-image) and
-   only gets a live <iframe> once IntersectionObserver sees it scroll into
-   view (initLazyVideoEmbeds() in app.js) — both to avoid loading N iframes
-   eagerly and to deliver the "plays as you scroll to it" feel on request.
-   .cs-talk-card is deliberately NOT an embed: Google Drive's preview player
-   doesn't support autoplay, so these stay click-through cards that open the
-   recording in a new tab instead of pretending to autoplay.
+   No video player here (yet) — these are deliberately non-interactive,
+   using the same dashed-cardinal "coming soon" treatment as .res-row.soon
+   elsewhere on the Toolkit page. The 2 real talk recordings that used to
+   anchor this tab now live in the News tab's Seminar Videos feed.
 ───────────────────────────────────────────────────────────────────────── */
-.cs-featured-row {
-  display: grid;
-  grid-template-columns: 1fr 1.7fr;
-  gap: 20px;
-  margin-bottom: 28px;
-}
-.cs-talks { display: flex; flex-direction: column; gap: 14px; }
-.cs-talk-card {
-  display: flex; align-items: center; gap: 14px;
-  padding: 18px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all .25s ease-in-out;
-}
-.cs-talk-card:hover { border-color: var(--cardinal); transform: translateY(-2px); box-shadow: var(--shadow-2); }
-.cs-talk-play {
-  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-  background: var(--cardinal); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-}
-.cs-talk-play svg { width: 13px; height: 13px; fill: currentColor; }
-.cs-talk-card h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 3px; line-height: 1.3; }
-.cs-talk-card p  { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; }
-
-.cs-embed {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background-color: #111;
-  background-size: cover;
-  background-position: center;
-  cursor: pointer;
-}
-.cs-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-.cs-embed-meta {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  padding: 16px 18px;
-  background: linear-gradient(to top, rgba(0,0,0,.78), transparent);
-  color: #fff;
-  transition: opacity .3s ease;
-}
-.cs-embed.playing .cs-embed-meta { opacity: 0; pointer-events: none; }
-.cs-embed-meta h4 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
-.cs-embed-meta p  { font-size: 12px; opacity: .85; line-height: 1.4; }
-.cs-embed-play {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 54px; height: 54px; border-radius: 50%;
-  background: rgba(255,255,255,.94); color: var(--cardinal);
-  display: flex; align-items: center; justify-content: center;
-  transition: transform .2s ease, opacity .3s ease;
-}
-.cs-embed:hover .cs-embed-play { transform: translate(-50%, -50%) scale(1.08); }
-.cs-embed.playing .cs-embed-play { opacity: 0; pointer-events: none; }
-.cs-embed-play svg { width: 19px; height: 19px; fill: currentColor; margin-left: 2px; }
-.cs-featured-row .cs-embed .cs-embed-play { width: 68px; height: 68px; }
-.cs-featured-row .cs-embed .cs-embed-play svg { width: 24px; height: 24px; }
-
 .cs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 18px;
 }
+.cs-placeholder {
+  display: flex; align-items: flex-end; gap: 14px;
+  aspect-ratio: 16 / 9;
+  padding: 18px;
+  border: 1.5px dashed var(--cardinal-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-soft);
+}
+.cs-placeholder.big { grid-column: 1 / -1; aspect-ratio: 21 / 9; }
+.cs-placeholder-icon {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: var(--bg); color: var(--ink-dim);
+  display: flex; align-items: center; justify-content: center;
+}
+.cs-placeholder-icon svg { width: 16px; height: 16px; fill: currentColor; }
+.cs-placeholder-meta h4 { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.cs-placeholder-meta p  { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; margin-bottom: 8px; }
+.cs-placeholder-meta .res-tag.soon { margin-top: 0; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2205,7 +2160,6 @@ footer {
   /* Note: .reports-grid, .cs-grid, and .team-grid are NOT overridden here
      because they use `auto-fit minmax(...)` and self-collapse — adding a
      manual override here would fight that and reintroduce jagged wraps. */
-  .cs-featured-row   { grid-template-columns: 1fr; }
 }
 
 /* ─── BREAKPOINT · ≤900px (Phone / mobile activation) ─────────────────── */

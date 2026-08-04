@@ -875,8 +875,8 @@ function renderResourceCategoryBlock(cat, showSubheading, idx) {
 
 /** Wires up a Level-2 panel's clickable cards after renderResourceCategoryBlock() HTML lands in the DOM. */
 function wireResourceCategoryPanel(panel) {
-  /* Wire up clickable resource cards + talk cards (set by data-href) */
-  panel.querySelectorAll('.res-spotlight.linked, .res-row.linked, .cs-talk-card').forEach(c => {
+  /* Wire up clickable resource cards (set by data-href) */
+  panel.querySelectorAll('.res-spotlight.linked, .res-row.linked').forEach(c => {
     const href = c.dataset.href;
     const fire = () => window.open(href, '_blank', 'noopener');
     c.addEventListener('click', fire);
@@ -892,8 +892,6 @@ function wireResourceCategoryPanel(panel) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
     });
   });
-  /* Case-studies embeds: click-to-play now, or lazy-autoplay on scroll */
-  if (panel.querySelector('.cs-embed')) initLazyVideoEmbeds(panel);
 }
 
 /**
@@ -925,82 +923,32 @@ function resourceCardHTML(item, variant) {
 }
 
 /**
- * "Case Studies & Talks" tab body: a featured video + 2 talk cards up top,
- * then a grid of the remaining case-study clips. See CASE STUDIES CSS
- * comment for why talks are plain links but embeds are lazy-autoplay.
+ * "Case Studies & Talks" tab body: a big featured placeholder + a grid of
+ * 3 smaller ones, all static "coming soon" cards — no video player. The 2
+ * real talk recordings that used to anchor this tab now live in the News
+ * tab's Seminar Videos feed (see SEMINAR_VIDEOS in data.js).
  */
 function renderCaseStudiesMedia(media) {
   return `
-    <div class="cs-featured-row">
-      <div class="cs-talks">
-        ${media.talks.map(t => `
-          <div class="cs-talk-card" data-href="${t.href}" tabindex="0"
-               role="link" aria-label="${stripHTML(t.h)} (opens in new tab)">
-            <div class="cs-talk-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
-            <div><h4>${t.h}</h4><p>${t.sub}</p></div>
-          </div>`).join('')}
-      </div>
-      ${csEmbedHTML(media.featured)}
-    </div>
     <div class="cs-grid">
-      ${media.grid.map(g => csEmbedHTML(g)).join('')}
+      ${csPlaceholderHTML(media.featured, true)}
+      ${media.grid.map(g => csPlaceholderHTML(g, false)).join('')}
     </div>`;
 }
 
-/** One lazy-autoplay video embed cell — starts as a YouTube-thumbnail
- *  poster and swaps in a live iframe via initLazyVideoEmbeds() below. */
-function csEmbedHTML(v) {
-  const thumb = `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg`;
+/** Static "coming soon" case-study card — no video, no click. Stands in
+ *  for the real case-study cut until it's ready to publish; see the
+ *  comment above the `cases` category's `media` in data.js. */
+function csPlaceholderHTML(v, big) {
   return `
-    <div class="cs-embed" data-yt-id="${v.youtubeId}" style="background-image:url('${thumb}')"
-         role="button" tabindex="0" aria-label="Play: ${stripHTML(v.title)}">
-      <div class="cs-embed-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
-      <div class="cs-embed-meta"><h4>${v.title}</h4><p>${v.desc}</p></div>
+    <div class="cs-placeholder${big ? ' big' : ''}">
+      <div class="cs-placeholder-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+      <div class="cs-placeholder-meta">
+        <h4>${v.title}</h4>
+        <p>${v.desc}</p>
+        <span class="res-tag soon">• Coming soon</span>
+      </div>
     </div>`;
-}
-
-/**
- * Wires up every `.cs-embed` inside `root`: clicking/pressing Enter plays
- * it immediately; scrolling one into view (50% visible) auto-plays it too,
- * muted, via YouTube's iframe autoplay param (the one platform of the two
- * used on this tab that actually supports autoplay — see the CSS comment
- * above .cs-embed for why Drive-hosted talks don't get this treatment).
- * Each embed only loads its iframe once (`dataset.playing` guards re-entry).
- */
-function initLazyVideoEmbeds(root) {
-  /* enablejsapi=1 lets Pause Media (initPauseMediaControl) send a real
-     pause/play command to this iframe via postMessage once it's loaded. */
-  const playEmbed = el => {
-    if (el.dataset.playing) return;
-    el.dataset.playing = '1';
-    const id = el.dataset.ytId;
-    const iframe = document.createElement('iframe');
-    iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&rel=0&enablejsapi=1`;
-    iframe.title = el.getAttribute('aria-label') || 'Video';
-    iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
-    iframe.setAttribute('allowfullscreen', '');
-    el.appendChild(iframe);
-    el.classList.add('playing');
-  };
-
-  const embeds = root.querySelectorAll('.cs-embed');
-  /* Click/keyboard is a deliberate user action — always plays, even if
-     Pause Media is currently on (same as prefers-reduced-motion never
-     blocking a user-initiated play, only ambient autoplay). */
-  embeds.forEach(el => {
-    el.addEventListener('click', () => playEmbed(el));
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playEmbed(el); }
-    });
-  });
-
-  if (!('IntersectionObserver' in window)) return;   /* click-to-play still works */
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && !isMotionPaused()) playEmbed(entry.target);
-    });
-  }, { threshold: 0.5 });
-  embeds.forEach(el => observer.observe(el));
 }
 
 /**
@@ -1281,19 +1229,30 @@ function renderPartnerLogos() {
 
 /* ═════════════════════════════════════════════════════════════════════════
    ⑫.6 NEWS — landing spotlight + 3 chronological feeds, each with its own
-   full searchable directory page
+   full searchable directory page, merged with admin-published Supabase
+   content (see /supabase/news_schema.sql and admin.html's News tab)
    ─────────────────────────────────────────────────────────────────────────
-   • renderNews()            → landing page: spotlight + top-5-per-feed
-   • initNewsDirectories()   → wires the 3 full-listing pages' search inputs
-   • bindNewsNav()           → "View complete directory" / "Back to News"
+   • getPublicNewsItems()  → fetches admin-published rows, keyed by type
+   • initNewsFeature()     → merges each feed's data.js array with its
+                             Supabase rows, sorts, and renders the landing
+                             page AND all 3 directory pages from that
+   • bindNewsNav()         → "View complete directory" / "Back to News"
 
    Every feed (SEMINAR_VIDEOS / NEWS_ARTICLES / SCHOLARLY_PUBLICATIONS,
-   data.js) is a flat array of plain objects sorted here by `date`
-   (ISO 'YYYY-MM-DD') — nothing is pre-sorted in data.js, so editors can
-   append new entries at the end without reordering anything by hand.
+   data.js — plus whatever's been published in the admin dashboard) sorts
+   here by `priority` first (higher shows first; admin-settable, mainly
+   useful once a feed has more than 5 items and the landing page's top-5
+   cut needs to be curated rather than always strictly newest-first), then
+   by `date` for anything without a priority set.
    ═════════════════════════════════════════════════════════════════════════ */
 function newsSorted(items) {
-  return [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+  return [...items].sort((a, b) => {
+    const ap = a.priority ?? null, bp = b.priority ?? null;
+    if (ap !== null && bp !== null && ap !== bp) return bp - ap;
+    if (ap !== null && bp === null) return -1;
+    if (bp !== null && ap === null) return 1;
+    return new Date(b.date) - new Date(a.date);
+  });
 }
 
 function newsFormatDate(iso) {
@@ -1339,10 +1298,14 @@ function newsPublicationItem(p) {
     </article>`;
 }
 
-function renderNewsSpotlight() {
+/** `seminarList` is already merged + sorted (newsSorted) — the featured
+ *  flag (only ever set on a static data.js entry) still wins if present,
+ *  otherwise the spotlight is just whatever sorted to the top, so a
+ *  high-priority admin-published talk can become the spotlight too. */
+function renderNewsSpotlight(seminarList) {
   const mount = byId('news-spotlight');
   if (!mount) return;
-  const featured = SEMINAR_VIDEOS.find(v => v.featured) || newsSorted(SEMINAR_VIDEOS)[0];
+  const featured = seminarList.find(v => v.featured) || seminarList[0];
   if (!featured) { mount.innerHTML = ''; return; }
   mount.innerHTML = `
     <span class="news-spotlight-tag">Featured</span>
@@ -1361,25 +1324,17 @@ function renderNewsList(mountId, items, template, limit) {
     : '<p class="news-empty">No entries yet — check back soon.</p>';
 }
 
-/** Landing page: spotlight + top 5 of each feed. */
-function renderNews() {
-  renderNewsSpotlight();
-  renderNewsList('news-videos-list',       newsSorted(SEMINAR_VIDEOS),        newsVideoItem,       5);
-  renderNewsList('news-articles-list',     newsSorted(NEWS_ARTICLES),         newsArticleItem,     5);
-  renderNewsList('news-publications-list', newsSorted(SCHOLARLY_PUBLICATIONS), newsPublicationItem, 5);
-}
-
-/** One full directory page: renders the complete sorted feed, live-filtered by its search input. */
+/** One full directory page: renders the given (already-sorted) feed,
+ *  live-filtered by its search input. */
 function renderNewsDirectory(mountId, searchId, items, template) {
   const mount = byId(mountId);
   const input = byId(searchId);
   if (!mount || !input) return;
-  const sorted = newsSorted(items);
   const apply = () => {
     const q = input.value.trim().toLowerCase();
     const filtered = q
-      ? sorted.filter(it => Object.values(it).join(' ').toLowerCase().includes(q))
-      : sorted;
+      ? items.filter(it => Object.values(it).join(' ').toLowerCase().includes(q))
+      : items;
     mount.innerHTML = filtered.length
       ? filtered.map(template).join('')
       : '<p class="news-empty">No matches. Try a different term.</p>';
@@ -1388,10 +1343,60 @@ function renderNewsDirectory(mountId, searchId, items, template) {
   apply();
 }
 
-function initNewsDirectories() {
-  renderNewsDirectory('news-videos-full',       'news-videos-search',       SEMINAR_VIDEOS,        newsVideoItem);
-  renderNewsDirectory('news-articles-full',     'news-articles-search',     NEWS_ARTICLES,         newsArticleItem);
-  renderNewsDirectory('news-publications-full', 'news-publications-search', SCHOLARLY_PUBLICATIONS, newsPublicationItem);
+/**
+ * Reads admin-published News items from Supabase (public, read-only, no
+ * login required — enforced by the "news_items are publicly readable" RLS
+ * policy in /supabase/news_schema.sql), keyed by `type`. Each row's `meta`
+ * (speaker/venue, source, or authors/journal — whichever apply to its
+ * type) is spread directly onto the returned object so it's a drop-in
+ * match for a SEMINAR_VIDEOS/NEWS_ARTICLES/SCHOLARLY_PUBLICATIONS entry's
+ * shape and renders with the same template functions. Returns all-empty
+ * arrays (silently) if Supabase isn't configured yet or the request
+ * fails — this is enhancement, not required content, same rationale as
+ * getPublicResources() above.
+ */
+async function getPublicNewsItems() {
+  const empty = { seminar_video: [], news_article: [], scholarly_publication: [] };
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return empty;
+  try {
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await sb.from('news_items').select('*');
+    if (error || !data) return empty;
+    const byType = { seminar_video: [], news_article: [], scholarly_publication: [] };
+    data.forEach(r => {
+      if (!byType[r.type]) return;
+      byType[r.type].push({
+        date: r.date, title: r.title, desc: r.description || '', link: r.link || '#',
+        priority: r.priority, ...(r.meta || {}),
+      });
+    });
+    return byType;
+  } catch {
+    return empty;
+  }
+}
+
+/** Fetches admin-published items once, merges each feed with its static
+ *  data.js array, sorts (priority first, then date — see newsSorted()),
+ *  and renders BOTH the News landing page (spotlight + top 5 per feed)
+ *  and all 3 full, search-filtered directory pages from those same
+ *  merged+sorted arrays. Network-dependent, so this runs after the static
+ *  page is already up — same "enhancement, not blocking" rule as the
+ *  Toolkit resources uploads. */
+async function initNewsFeature() {
+  const uploaded = await getPublicNewsItems();
+  const seminar  = newsSorted([...SEMINAR_VIDEOS, ...uploaded.seminar_video]);
+  const articles = newsSorted([...NEWS_ARTICLES, ...uploaded.news_article]);
+  const pubs     = newsSorted([...SCHOLARLY_PUBLICATIONS, ...uploaded.scholarly_publication]);
+
+  renderNewsSpotlight(seminar);
+  renderNewsList('news-videos-list',       seminar,  newsVideoItem,       5);
+  renderNewsList('news-articles-list',     articles, newsArticleItem,     5);
+  renderNewsList('news-publications-list', pubs,     newsPublicationItem, 5);
+
+  renderNewsDirectory('news-videos-full',       'news-videos-search',       seminar,  newsVideoItem);
+  renderNewsDirectory('news-articles-full',     'news-articles-search',     articles, newsArticleItem);
+  renderNewsDirectory('news-publications-full', 'news-publications-search', pubs,     newsPublicationItem);
 }
 
 /** "View complete directory" and "&larr; Back to News" both just carry a data-page target. */
@@ -2035,15 +2040,14 @@ function initPauseMediaControl() {
 
 /**
  * Extends Pause Media beyond the hero canvas to actual video: sends the
- * YouTube iframe postMessage API's pause/play command to every currently
- * loaded embed — the training-video modal and any already-playing Case
- * Studies embeds. Requires enablejsapi=1 on each iframe's src (set where
- * they're created: openVideo() and initLazyVideoEmbeds()). No-ops safely
- * if nothing is loaded yet — there's nothing to pause.
+ * YouTube iframe postMessage API's pause/play command to the training-video
+ * modal's iframe if one is currently loaded. Requires enablejsapi=1 on the
+ * iframe's src (set where it's created: openVideo()). No-ops safely if
+ * nothing is loaded yet — there's nothing to pause.
  */
 function setEmbeddedMediaState(paused) {
   const msg = JSON.stringify({ event: 'command', func: paused ? 'pauseVideo' : 'playVideo', args: [] });
-  $$('.vm-frame iframe, .cs-embed iframe').forEach(f => {
+  $$('.vm-frame iframe').forEach(f => {
     if (f.src) f.contentWindow.postMessage(msg, '*');
   });
 }
@@ -2079,7 +2083,6 @@ function buildSearchIndex() {
       }
       if (cat.media) {
         add(cat.media.featured.title, cat.media.featured.desc, 'toolkit', { tkTab: 'resources', groupId: group.id });
-        cat.media.talks.forEach(t => add(t.h, t.sub, 'toolkit', { tkTab: 'resources', groupId: group.id }));
         cat.media.grid.forEach(g => add(g.title, g.desc, 'toolkit', { tkTab: 'resources', groupId: group.id }));
       }
     });
@@ -2200,8 +2203,7 @@ function init() {
   renderAboutCards();
   renderTeam();
   renderPartnerLogos();
-  renderNews();
-  initNewsDirectories();
+  initNewsFeature();
 
   /* Document-level wiring */
   bindGlobalEvents();

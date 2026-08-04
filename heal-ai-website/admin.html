@@ -7,23 +7,25 @@
   ────────────────────────────────────────────────────────────────────────────
   PURPOSE
     Standalone admin page for uploading Toolkit resources (templates,
-    guides, sample reports) without editing code. Deliberately NOT part of
-    the public single-page app in index.html, and not linked from the main
-    nav — reached only by direct URL (or the small footer link on the
-    public site, if you choose to add one).
+    guides, sample reports) and publishing News-tab items (seminar videos,
+    news articles, scholarly publications) without editing code.
+    Deliberately NOT part of the public single-page app in index.html, and
+    not linked from the main nav — reached only by direct URL (or the
+    small footer link on the public site, if you choose to add one).
 
   HOW THIS WORKS
-    Auth, the resources table, and file storage are all provided by
-    Supabase (see js/config.js for the project URL/key, and
-    /supabase/schema.sql for the one-time database setup). There is no
-    custom backend here, every action below calls Supabase directly from
-    the browser; Postgres Row Level Security enforces who can do what
-    (see schema.sql for the exact policies).
+    Auth and both tables are provided by Supabase (see js/config.js for the
+    project URL/key, /supabase/schema.sql for the one-time database setup,
+    and /supabase/news_schema.sql for the News tables). There is no custom
+    backend here, every action below calls Supabase directly from the
+    browser; Postgres Row Level Security enforces who can do what (see
+    those two files for the exact policies).
 
   THE THREE VIEWS (all logic in js/admin.js)
     #auth-view      shown when logged out — login / sign up form
     #pending-view   shown when logged in but not yet approved as an admin
-    #dashboard-view shown when logged in AND approved — upload + manage
+    #dashboard-view shown when logged in AND approved — 2 tabs: Toolkit
+                    resources (upload + manage) and News (publish + manage)
   ════════════════════════════════════════════════════════════════════════════
   -->
 
@@ -85,39 +87,112 @@
       <div class="admin-dash-head">
         <div>
           <p class="eyebrow">Signed in as <strong id="dash-email"></strong></p>
-          <h2>Upload a resource</h2>
+          <h2 id="dash-h2">Upload a resource</h2>
         </div>
         <button class="btn-second" id="dash-logout">Log out</button>
       </div>
 
-      <form id="upload-form" class="admin-upload-form">
-        <label class="admin-field">
-          <span>File</span>
-          <input type="file" id="upload-file" required>
-        </label>
-        <label class="admin-field">
-          <span>Title</span>
-          <input type="text" id="upload-title" required maxlength="120" placeholder="e.g. Interview guide template">
-        </label>
-        <label class="admin-field">
-          <span>Description</span>
-          <textarea id="upload-description" rows="2" maxlength="240" placeholder="One or two sentences shown under the title"></textarea>
-        </label>
-        <label class="admin-field">
-          <span>Category</span>
-          <select id="upload-category" required>
-            <option value="template">Template</option>
-            <option value="guide">Guide</option>
-            <option value="report">Sample report</option>
-          </select>
-        </label>
-        <button type="submit" class="btn-prime" id="upload-submit">Upload</button>
-      </form>
-      <p class="admin-status" id="upload-status" role="status" aria-live="polite"></p>
+      <div class="admin-tabs" role="tablist" aria-label="Dashboard section">
+        <button class="admin-tab on" id="dash-tab-resources" role="tab" aria-selected="true"  data-panel="resources">Toolkit resources</button>
+        <button class="admin-tab"    id="dash-tab-news"      role="tab" aria-selected="false" data-panel="news">News</button>
+      </div>
 
-      <h3 class="admin-list-h">Uploaded resources</h3>
-      <div id="resource-list" class="admin-resource-list">
-        <p class="admin-empty">Loading…</p>
+      <!-- ── Toolkit resources panel ─────────────────────────────────────── -->
+      <div id="dash-panel-resources">
+        <form id="upload-form" class="admin-upload-form">
+          <label class="admin-field">
+            <span>File</span>
+            <input type="file" id="upload-file" required>
+          </label>
+          <label class="admin-field">
+            <span>Title</span>
+            <input type="text" id="upload-title" required maxlength="120" placeholder="e.g. Interview guide template">
+          </label>
+          <label class="admin-field">
+            <span>Description</span>
+            <textarea id="upload-description" rows="2" maxlength="240" placeholder="One or two sentences shown under the title"></textarea>
+          </label>
+          <label class="admin-field">
+            <span>Category</span>
+            <select id="upload-category" required>
+              <option value="template">Template</option>
+              <option value="guide">Guide</option>
+              <option value="report">Sample report</option>
+            </select>
+          </label>
+          <button type="submit" class="btn-prime" id="upload-submit">Upload</button>
+        </form>
+        <p class="admin-status" id="upload-status" role="status" aria-live="polite"></p>
+
+        <h3 class="admin-list-h">Uploaded resources</h3>
+        <div id="resource-list" class="admin-resource-list">
+          <p class="admin-empty">Loading…</p>
+        </div>
+      </div>
+
+      <!-- ── News panel — Seminar Videos / News Articles / Scholarly
+           Publications, all one table (news_items), distinguished by
+           `type`. See /supabase/news_schema.sql. ─────────────────────── -->
+      <div id="dash-panel-news" hidden>
+        <form id="news-form" class="admin-upload-form">
+          <label class="admin-field">
+            <span>Type</span>
+            <select id="news-type" required>
+              <option value="seminar_video">Seminar video</option>
+              <option value="news_article">News article</option>
+              <option value="scholarly_publication">Scholarly publication</option>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span>Title</span>
+            <input type="text" id="news-title" required maxlength="160" placeholder="e.g. Grand Rounds: Ethical Review of Clinical AI at Scale">
+          </label>
+          <label class="admin-field">
+            <span>Description</span>
+            <textarea id="news-description" rows="2" maxlength="280" placeholder="One or two sentences shown under the title"></textarea>
+          </label>
+          <label class="admin-field">
+            <span>Date</span>
+            <input type="date" id="news-date" required>
+          </label>
+          <label class="admin-field">
+            <span>Link</span>
+            <input type="url" id="news-link" placeholder="https://…">
+          </label>
+
+          <label class="admin-field" id="news-field-speaker">
+            <span>Speaker</span>
+            <input type="text" id="news-speaker" maxlength="120">
+          </label>
+          <label class="admin-field" id="news-field-venue">
+            <span>Venue</span>
+            <input type="text" id="news-venue" maxlength="120">
+          </label>
+          <label class="admin-field" id="news-field-source" hidden>
+            <span>Publication</span>
+            <input type="text" id="news-source" maxlength="120">
+          </label>
+          <label class="admin-field" id="news-field-authors" hidden>
+            <span>Authors</span>
+            <input type="text" id="news-authors" maxlength="200">
+          </label>
+          <label class="admin-field" id="news-field-journal" hidden>
+            <span>Journal / venue</span>
+            <input type="text" id="news-journal" maxlength="160">
+          </label>
+
+          <label class="admin-field">
+            <span>Priority (optional — when a feed has more than 5 items, higher priority shows first on the News landing page; leave blank to just sort by date)</span>
+            <input type="number" id="news-priority" step="1" placeholder="Leave blank to sort by date">
+          </label>
+          <button type="submit" class="btn-prime" id="news-submit">Publish</button>
+        </form>
+        <p class="admin-status" id="news-status" role="status" aria-live="polite"></p>
+
+        <h3 class="admin-list-h">Published news items</h3>
+        <div id="news-item-list" class="admin-resource-list">
+          <p class="admin-empty">Loading…</p>
+        </div>
       </div>
     </section>
 

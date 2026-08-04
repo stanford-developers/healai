@@ -3,13 +3,16 @@
  HEAL-AI · js/admin.js
 ─────────────────────────────────────────────────────────────────────────────
  PURPOSE
-   Everything admin.html needs: auth (login/signup/logout/session), and the
-   upload/list/delete flow for Toolkit resources. All of it talks directly
-   to Supabase from the browser, there is no server code in this repo, so
-   every permission check below is enforced twice: once here (for a decent
-   user experience) and once server-side by Postgres Row Level Security
-   (see /supabase/schema.sql), which is the check that actually matters for
-   security. Never trust the client-side one alone.
+   Everything admin.html needs: auth (login/signup/logout/session), the
+   upload/list/delete flow for Toolkit resources, and the publish/list/
+   reprioritize/delete flow for News-tab items (seminar videos, news
+   articles, scholarly publications). All of it talks directly to Supabase
+   from the browser, there is no server code in this repo, so every
+   permission check below is enforced twice: once here (for a decent user
+   experience) and once server-side by Postgres Row Level Security (see
+   /supabase/schema.sql and /supabase/news_schema.sql), which is the check
+   that actually matters for security. Never trust the client-side one
+   alone.
 
  GLOBAL SCOPE
    Loaded after config.js and the Supabase CDN script, so SUPABASE_URL,
@@ -29,6 +32,17 @@ function showView(name) {
   byId('auth-view').hidden = name !== 'auth';
   byId('pending-view').hidden = name !== 'pending';
   byId('dashboard-view').hidden = name !== 'dashboard';
+}
+
+/* ── Dashboard sub-tabs: Toolkit resources vs. News ── */
+function setDashTab(name) {
+  byId('dash-tab-resources').classList.toggle('on', name === 'resources');
+  byId('dash-tab-resources').setAttribute('aria-selected', name === 'resources');
+  byId('dash-tab-news').classList.toggle('on', name === 'news');
+  byId('dash-tab-news').setAttribute('aria-selected', name === 'news');
+  byId('dash-panel-resources').hidden = name !== 'resources';
+  byId('dash-panel-news').hidden = name !== 'news';
+  byId('dash-h2').textContent = name === 'news' ? 'Publish a news item' : 'Upload a resource';
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -92,6 +106,7 @@ async function syncViewToSession(session) {
     byId('dash-email').textContent = session.user.email;
     showView('dashboard');
     loadResources();
+    loadNewsItems();
   } else {
     byId('pending-email').textContent = session.user.email;
     showView('pending');
@@ -194,6 +209,139 @@ async function handleDelete(id, path) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   NEWS — publish/list/reprioritize/delete for the News tab's 3 feeds
+   (seminar_video / news_article / scholarly_publication), all stored in
+   one `news_items` table (see /supabase/news_schema.sql) and
+   distinguished by `type`. Type-specific fields (speaker/venue, source,
+   authors/journal) live in the `meta` jsonb column.
+   ────────────────────────────────────────────────────────────────────── */
+
+/** Shows/hides the type-specific fields in the news form to match the
+ *  selected type — same idea as setAuthMode() toggling login vs. signup. */
+function syncNewsFieldsToType() {
+  const type = byId('news-type').value;
+  byId('news-field-speaker').hidden = type !== 'seminar_video';
+  byId('news-field-venue').hidden   = type !== 'seminar_video';
+  byId('news-field-source').hidden  = type !== 'news_article';
+  byId('news-field-authors').hidden = type !== 'scholarly_publication';
+  byId('news-field-journal').hidden = type !== 'scholarly_publication';
+}
+
+/** Reads only the meta fields relevant to `type` — an unselected type's
+ *  fields are left blank in the form and shouldn't be saved as empty
+ *  strings on a row they don't apply to. */
+function collectNewsMeta(type) {
+  if (type === 'seminar_video') {
+    return { speaker: byId('news-speaker').value.trim(), venue: byId('news-venue').value.trim() };
+  }
+  if (type === 'news_article') {
+    return { source: byId('news-source').value.trim() };
+  }
+  return { authors: byId('news-authors').value.trim(), journal: byId('news-journal').value.trim() };
+}
+
+async function handleNewsSubmit(e) {
+  e.preventDefault();
+  const type = byId('news-type').value;
+  const title = byId('news-title').value.trim();
+  const description = byId('news-description').value.trim();
+  const date = byId('news-date').value;
+  const link = byId('news-link').value.trim();
+  const priorityRaw = byId('news-priority').value.trim();
+  const status = byId('news-status');
+  const submit = byId('news-submit');
+
+  submit.disabled = true;
+  status.textContent = 'Publishing…';
+
+  const { data: { session } } = await sb.auth.getSession();
+  const { error } = await sb.from('news_items').insert({
+    type, title, description, date,
+    link: link || null,
+    priority: priorityRaw === '' ? null : Number(priorityRaw),
+    meta: collectNewsMeta(type),
+    uploaded_by: session.user.id,
+  });
+
+  submit.disabled = false;
+
+  if (error) {
+    status.textContent = 'Publish failed: ' + error.message;
+    return;
+  }
+
+  status.textContent = 'Published.';
+  byId('news-form').reset();
+  syncNewsFieldsToType();
+  loadNewsItems();
+}
+
+const NEWS_TYPE_LABEL = { seminar_video: 'Seminar video', news_article: 'News article', scholarly_publication: 'Scholarly publication' };
+
+/** One line of type-specific meta, shown under the title — mirrors how
+ *  the public News tab shows "speaker · venue" / "source" / "authors · journal". */
+function newsMetaLine(r) {
+  const m = r.meta || {};
+  if (r.type === 'seminar_video') return [m.speaker, m.venue].filter(Boolean).join(' · ');
+  if (r.type === 'news_article') return m.source || '';
+  return [m.authors, m.journal].filter(Boolean).join(' · ');
+}
+
+async function loadNewsItems() {
+  const list = byId('news-item-list');
+  const { data, error } = await sb
+    .from('news_items')
+    .select('*')
+    .order('date', { ascending: false });
+
+  if (error) {
+    list.innerHTML = `<p class="admin-empty">Couldn't load news items: ${error.message}</p>`;
+    return;
+  }
+  if (!data.length) {
+    list.innerHTML = '<p class="admin-empty">Nothing published yet.</p>';
+    return;
+  }
+
+  list.innerHTML = data.map(r => `
+    <div class="admin-resource-row" data-id="${r.id}">
+      <div>
+        <span class="admin-resource-category">${NEWS_TYPE_LABEL[r.type] || r.type}</span>
+        <h4>${r.title}</h4>
+        <p>${r.description || ''}</p>
+        <span class="admin-resource-meta">${newsMetaLine(r)} · ${r.date}</span>
+      </div>
+      <div class="admin-news-row-actions">
+        <label class="admin-priority-field">
+          <span>Priority</span>
+          <input type="number" step="1" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? ''}" placeholder="date">
+        </label>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}">Delete</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.admin-priority-input').forEach(input => {
+    input.addEventListener('change', () => handlePriorityChange(input.dataset.id, input.value));
+  });
+  list.querySelectorAll('.admin-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleNewsDelete(btn.dataset.id));
+  });
+}
+
+async function handlePriorityChange(id, value) {
+  const priority = value.trim() === '' ? null : Number(value);
+  await sb.from('news_items').update({ priority }).eq('id', id);
+  loadNewsItems();
+}
+
+async function handleNewsDelete(id) {
+  if (!confirm('Delete this news item?')) return;
+  await sb.from('news_items').delete().eq('id', id);
+  loadNewsItems();
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    INIT
    ────────────────────────────────────────────────────────────────────── */
 function initAdmin() {
@@ -210,6 +358,10 @@ function initAdmin() {
   byId('pending-logout').addEventListener('click', handleLogout);
   byId('dash-logout').addEventListener('click', handleLogout);
   byId('upload-form').addEventListener('submit', handleUploadSubmit);
+  byId('dash-tab-resources').addEventListener('click', () => setDashTab('resources'));
+  byId('dash-tab-news').addEventListener('click', () => setDashTab('news'));
+  byId('news-type').addEventListener('change', syncNewsFieldsToType);
+  byId('news-form').addEventListener('submit', handleNewsSubmit);
 
   sb.auth.onAuthStateChange((_event, session) => syncViewToSession(session));
   sb.auth.getSession().then(({ data: { session } }) => syncViewToSession(session));

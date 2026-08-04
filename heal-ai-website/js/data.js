@@ -381,16 +381,15 @@ const RESOURCE_CATEGORIES = [
        both.
 
        SHAPE — this tab uses `media` instead of a flat `items[]` because it
-       has three distinct visual treatments (see renderCaseStudiesMedia in
-       app.js):
-         • media.featured → one big lazy-autoplay embed (YouTube supports a
-           reliable muted-autoplay-on-scroll via its iframe API).
-         • media.talks    → the 2 conference-talk recordings. These are
-           Google Drive files, and Drive's preview embed does NOT support
-           autoplay (platform limitation, not a bug) — so these render as
-           polished click-to-play cards that open in a new tab instead.
-         • media.grid     → the remaining case-study clips, same
-           lazy-autoplay treatment as the featured slot, smaller.
+       has two visual treatments (see renderCaseStudiesMedia in app.js):
+         • media.featured → one big placeholder card.
+         • media.grid     → the remaining case-study placeholders, same
+           treatment, smaller.
+       Both currently render as static "coming soon" cards, not video
+       players — see the PLACEHOLDER comment right above `media` below.
+       The 2 conference-talk recordings that used to live here as
+       `media.talks` moved to the News tab's Seminar Videos feed
+       (SEMINAR_VIDEOS) since those are real, already-published recordings.
      ─────────────────────────────────────────────────────────────────── */
   {
     id: 'cases',
@@ -398,33 +397,27 @@ const RESOURCE_CATEGORIES = [
     label: 'Case Studies &amp; Talks',
     intro: {
       h: 'See the framework applied.',
-      p: "Recorded case studies and conference talks where HEAL-AI's directors walk through real value collisions, workflow barriers, and the assessment process itself.",
-      bullets: ['Start with the case studies', 'Watch the CHAI Summit talk', 'Watch the HAI workshop talk'],
+      p: "Recorded case studies where HEAL-AI's directors walk through real value collisions, workflow barriers, and the assessment process itself.",
+      bullets: ['Start with the case studies'],
     },
+    /* Coming soon — renderCaseStudiesMedia() (app.js) shows these as static,
+       non-clickable cards (no video player) until the real case-study cuts
+       are ready to publish. The 2 real talk recordings that used to live
+       here (Char/Mello's CHAI Summit talk + the Stanford HAI workshop talk)
+       moved to the News tab's Seminar Videos feed — see SEMINAR_VIDEOS
+       below. */
     media: {
       featured: {
         title: "Unmasking AI's ethical fault lines",
         desc: "Case study 1: Stanford Medicine's battle with value collisions in mortality prediction tools.",
-        youtubeId: 'JXWICqLS0GM',
       },
-      talks: [
-        { h: "Stanford's Ethical Assessment Process: What and Why",
-          sub: "Drs. Char and Mello's overview, presented at CHAI's Leadership Summit, June 2025.",
-          href: 'https://drive.google.com/file/d/1rNubDnBNKaHNSnrBgoc2l4hLzn4YZ9LX/preview' },
-        { h: 'Stanford HAI Health Policy Workshop talk',
-          sub: "Presentation at the Stanford Institute for Human-Centered AI's Health Policy Workshop, June 2025.",
-          href: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview' },
-      ],
       grid: [
         { title: 'Beyond accuracy: autonomous AI in trial',
-          desc: "Case study 2: Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks.",
-          youtubeId: 'ZGiQLuPNq-c' },
+          desc: "Case study 2: Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks." },
         { title: 'Workflow issues as deployment barriers',
-          desc: 'Case study 3: why workflow issues are often critical barriers to AI implementation.',
-          youtubeId: '96TKfJRnA-c' },
+          desc: 'Case study 3: why workflow issues are often critical barriers to AI implementation.' },
         { title: 'Lessons learned from the frontlines',
-          desc: 'Case study 4: recurring system-level issues to address before deploying AI in healthcare.',
-          youtubeId: 'WCS9lchlAa8' },
+          desc: 'Case study 4: recurring system-level issues to address before deploying AI in healthcare.' },
       ],
     },
   },
@@ -801,18 +794,22 @@ const SEMINAR_VIDEOS = [
     venue: 'PLACEHOLDER — venue',
     desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
     link: '#' },
-  { date: '2025-06-21',
-    title: 'PLACEHOLDER — seminar title',
-    speaker: 'PLACEHOLDER — speaker name',
-    venue: 'PLACEHOLDER — venue',
-    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
-    link: '#' },
-  { date: '2025-03-30',
-    title: 'PLACEHOLDER — seminar title',
-    speaker: 'PLACEHOLDER — speaker name',
-    venue: 'PLACEHOLDER — venue',
-    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
-    link: '#' },
+  /* Moved here from the Toolkit → Resources → Case Studies & Talks section
+     (were `media.talks` there). Exact day-of-month wasn't recorded at the
+     source, only "June 2025" — the dates below are nominal placeholders
+     within that month; fix if you have the real dates. */
+  { date: '2025-06-12',
+    title: "Stanford's Ethical Assessment Process: What and Why",
+    speaker: 'Danton Char & Michelle Mello',
+    venue: "CHAI Leadership Summit",
+    desc: "Drs. Char and Mello's overview of HEAL-AI's ethical assessment process, presented at CHAI's Leadership Summit.",
+    link: 'https://drive.google.com/file/d/1rNubDnBNKaHNSnrBgoc2l4hLzn4YZ9LX/preview' },
+  { date: '2025-06-05',
+    title: 'Stanford HAI Health Policy Workshop talk',
+    speaker: 'Danton Char & Michelle Mello',
+    venue: "Stanford HAI Health Policy Workshop",
+    desc: "Presentation at the Stanford Institute for Human-Centered AI's Health Policy Workshop.",
+    link: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview' },
 ];
 
 const NEWS_ARTICLES = [
