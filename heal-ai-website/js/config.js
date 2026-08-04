@@ -144,5 +144,5 @@ const TIMINGS = {
 
    EDIT HERE  →  paste your real Project URL and anon key once created.
 ─────────────────────────────────────────────────────────────────────────── */
-const SUPABASE_URL = 'https://REPLACE-WITH-YOUR-PROJECT.supabase.co';
-const SUPABASE_ANON_KEY = 'REPLACE-WITH-YOUR-ANON-KEY';
+const SUPABASE_URL = 'https://plqcpxurgusluqapksru.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBscWNweHVyZ3VzbHVxYXBrc3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTIxMjgsImV4cCI6MjEwMTQyODEyOH0.To9LyU9vl0kAxzWpJSvLkn63TWF5HsQd7WJHLEg13MY';
