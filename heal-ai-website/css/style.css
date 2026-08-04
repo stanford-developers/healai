@@ -1877,6 +1877,122 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
+   §13.5 · NEWS
+   ───────────────────────────────────────────────────────────────────────
+   Landing page = spotlight card + 3 chronological feeds (.news-block),
+   each capped at 5 items with a "View complete directory" link. The
+   directory pages reuse the same .news-item row for their full,
+   search-filtered listings — see renderNewsDirectory() in app.js.
+   ─────────────────────────────────────────────────────────────────────── */
+.news-spotlight {
+  padding: 40px 44px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--cardinal);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+}
+.news-spotlight-tag {
+  display: inline-block;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--cardinal); font-weight: 600;
+  margin-bottom: 14px;
+}
+.news-spotlight-title {
+  font-family: var(--serif);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 500; line-height: 1.22;
+  color: var(--ink);
+  max-width: 820px;
+  margin-bottom: 10px;
+}
+.news-spotlight-meta { font-size: 13.5px; color: var(--ink-mid); font-weight: 500; margin-bottom: 14px; }
+.news-spotlight-desc { font-size: 15px; color: var(--ink-mid); line-height: 1.65; max-width: 720px; margin-bottom: 24px; }
+
+/* Divider between the 3 feed blocks — first one flush against the spotlight's section. */
+.news-block + .news-block { border-top: 1px solid var(--line); padding-top: 56px; }
+.news-block-head {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.news-block-head .eyebrow { margin-bottom: 0; }
+.news-viewall {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600;
+  color: var(--cardinal);
+  background: none; border: none; cursor: pointer;
+  padding: 6px 2px;
+}
+.news-viewall span { display: inline-block; transition: transform var(--t-fast); }
+.news-viewall:hover span { transform: translateX(3px); }
+
+.news-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--ink-mid);
+  background: none; border: none; cursor: pointer;
+  margin-bottom: 22px;
+  transition: color var(--t-fast);
+}
+.news-back:hover { color: var(--cardinal); }
+
+.news-list { display: flex; flex-direction: column; gap: 26px; margin-top: 26px; }
+.news-item { display: flex; gap: 26px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+.news-item:last-child { border-bottom: none; padding-bottom: 0; }
+.news-item-date {
+  flex-shrink: 0; width: 96px;
+  font-family: var(--mono); font-size: 12px; color: var(--ink-low);
+  padding-top: 4px;
+}
+.news-item-body { flex: 1; min-width: 0; }
+.news-item-tag {
+  display: inline-block;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--cardinal); font-weight: 600;
+  background: var(--cardinal-tint);
+  padding: 3px 8px; border-radius: 4px;
+  margin-bottom: 8px;
+}
+.news-item-title { font-family: var(--serif); font-size: 18px; font-weight: 500; line-height: 1.32; margin-bottom: 5px; }
+.news-item-title a {
+  color: var(--ink);
+  display: inline-flex; align-items: baseline; gap: 6px;
+  transition: color var(--t-fast);
+}
+.news-item-title a:hover { color: var(--cardinal); }
+.news-item-arrow { font-size: 13px; opacity: .55; }
+.news-item-sub  { font-size: 13px; font-weight: 500; color: var(--ink-mid); margin-bottom: 6px; }
+.news-item-desc { font-size: 13.5px; color: var(--ink-mid); line-height: 1.6; max-width: 680px; }
+.news-empty { font-size: 14px; color: var(--ink-mid); padding: 8px 0 24px; }
+
+/* Directory-page search — visually matches the footer's site search (.fg-search). */
+.news-dir-search { position: relative; max-width: 420px; margin-bottom: 8px; }
+.news-dir-search-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; color: var(--ink-low); pointer-events: none;
+}
+.news-dir-search input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  font-size: 14px; color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  transition: border-color var(--t-fast);
+}
+.news-dir-search input:focus { border-color: var(--cardinal); outline: none; }
+
+@media (max-width: 640px) {
+  .news-spotlight { padding: 28px 24px; }
+  .news-block + .news-block { padding-top: 40px; }
+  .news-item { flex-direction: column; gap: 6px; }
+  .news-item-date { width: auto; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
    §14 · FOOTER
    ─────────────────────────────────────────────────────────────────────── */
 footer {

@@ -75,7 +75,10 @@ const SIGN_UP_URL = 'https://docs.google.com/forms/d/e/REPLACE-WITH-FORM-ID/view
      2. Add a NAV_ITEM in data.js with {id:'XXX', label:'XXX'}.
      3. Append 'XXX' to PAGE_IDS here.
 ─────────────────────────────────────────────────────────────────────────── */
-const PAGE_IDS = ['home', 'toolkit', 'videos', 'patient', 'about'];
+const PAGE_IDS = [
+  'home', 'toolkit', 'videos', 'patient', 'about',
+  'news', 'news-videos', 'news-articles', 'news-publications',
+];
 
 /* The page rendered on first load. */
 const DEFAULT_PAGE = 'home';

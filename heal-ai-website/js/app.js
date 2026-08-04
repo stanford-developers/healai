@@ -1279,6 +1279,129 @@ function renderPartnerLogos() {
 }
 
 
+/* ═════════════════════════════════════════════════════════════════════════
+   ⑫.6 NEWS — landing spotlight + 3 chronological feeds, each with its own
+   full searchable directory page
+   ─────────────────────────────────────────────────────────────────────────
+   • renderNews()            → landing page: spotlight + top-5-per-feed
+   • initNewsDirectories()   → wires the 3 full-listing pages' search inputs
+   • bindNewsNav()           → "View complete directory" / "Back to News"
+
+   Every feed (SEMINAR_VIDEOS / NEWS_ARTICLES / SCHOLARLY_PUBLICATIONS,
+   data.js) is a flat array of plain objects sorted here by `date`
+   (ISO 'YYYY-MM-DD') — nothing is pre-sorted in data.js, so editors can
+   append new entries at the end without reordering anything by hand.
+   ═════════════════════════════════════════════════════════════════════════ */
+function newsSorted(items) {
+  return [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+function newsFormatDate(iso) {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function newsVideoItem(v) {
+  return `
+    <article class="news-item">
+      <div class="news-item-date">${newsFormatDate(v.date)}</div>
+      <div class="news-item-body">
+        <span class="news-item-tag">Seminar</span>
+        <h3 class="news-item-title"><a href="${v.link}" target="_blank" rel="noopener">${v.title}<span class="news-item-arrow" aria-hidden="true">↗</span></a></h3>
+        <p class="news-item-sub">${v.speaker} · ${v.venue}</p>
+        <p class="news-item-desc">${v.desc}</p>
+      </div>
+    </article>`;
+}
+
+function newsArticleItem(a) {
+  return `
+    <article class="news-item">
+      <div class="news-item-date">${newsFormatDate(a.date)}</div>
+      <div class="news-item-body">
+        <span class="news-item-tag">Press</span>
+        <h3 class="news-item-title"><a href="${a.link}" target="_blank" rel="noopener">${a.title}<span class="news-item-arrow" aria-hidden="true">↗</span></a></h3>
+        <p class="news-item-sub">${a.source}</p>
+        <p class="news-item-desc">${a.desc}</p>
+      </div>
+    </article>`;
+}
+
+function newsPublicationItem(p) {
+  return `
+    <article class="news-item">
+      <div class="news-item-date">${newsFormatDate(p.date)}</div>
+      <div class="news-item-body">
+        <span class="news-item-tag">Publication</span>
+        <h3 class="news-item-title"><a href="${p.link}" target="_blank" rel="noopener">${p.title}<span class="news-item-arrow" aria-hidden="true">↗</span></a></h3>
+        <p class="news-item-sub">${p.authors} · ${p.journal}</p>
+        <p class="news-item-desc">${p.desc}</p>
+      </div>
+    </article>`;
+}
+
+function renderNewsSpotlight() {
+  const mount = byId('news-spotlight');
+  if (!mount) return;
+  const featured = SEMINAR_VIDEOS.find(v => v.featured) || newsSorted(SEMINAR_VIDEOS)[0];
+  if (!featured) { mount.innerHTML = ''; return; }
+  mount.innerHTML = `
+    <span class="news-spotlight-tag">Featured</span>
+    <h2 class="news-spotlight-title">${featured.title}</h2>
+    <p class="news-spotlight-meta">${featured.speaker} · ${featured.venue} · ${newsFormatDate(featured.date)}</p>
+    <p class="news-spotlight-desc">${featured.desc}</p>
+    <a class="btn-cta" href="${featured.link}" target="_blank" rel="noopener">Watch the talk <span aria-hidden="true">→</span></a>`;
+}
+
+function renderNewsList(mountId, items, template, limit) {
+  const mount = byId(mountId);
+  if (!mount) return;
+  const list = limit ? items.slice(0, limit) : items;
+  mount.innerHTML = list.length
+    ? list.map(template).join('')
+    : '<p class="news-empty">No entries yet — check back soon.</p>';
+}
+
+/** Landing page: spotlight + top 5 of each feed. */
+function renderNews() {
+  renderNewsSpotlight();
+  renderNewsList('news-videos-list',       newsSorted(SEMINAR_VIDEOS),        newsVideoItem,       5);
+  renderNewsList('news-articles-list',     newsSorted(NEWS_ARTICLES),         newsArticleItem,     5);
+  renderNewsList('news-publications-list', newsSorted(SCHOLARLY_PUBLICATIONS), newsPublicationItem, 5);
+}
+
+/** One full directory page: renders the complete sorted feed, live-filtered by its search input. */
+function renderNewsDirectory(mountId, searchId, items, template) {
+  const mount = byId(mountId);
+  const input = byId(searchId);
+  if (!mount || !input) return;
+  const sorted = newsSorted(items);
+  const apply = () => {
+    const q = input.value.trim().toLowerCase();
+    const filtered = q
+      ? sorted.filter(it => Object.values(it).join(' ').toLowerCase().includes(q))
+      : sorted;
+    mount.innerHTML = filtered.length
+      ? filtered.map(template).join('')
+      : '<p class="news-empty">No matches. Try a different term.</p>';
+  };
+  input.addEventListener('input', apply);
+  apply();
+}
+
+function initNewsDirectories() {
+  renderNewsDirectory('news-videos-full',       'news-videos-search',       SEMINAR_VIDEOS,        newsVideoItem);
+  renderNewsDirectory('news-articles-full',     'news-articles-search',     NEWS_ARTICLES,         newsArticleItem);
+  renderNewsDirectory('news-publications-full', 'news-publications-search', SCHOLARLY_PUBLICATIONS, newsPublicationItem);
+}
+
+/** "View complete directory" and "&larr; Back to News" both just carry a data-page target. */
+function bindNewsNav() {
+  $$('.news-viewall, .news-back').forEach(el =>
+    el.addEventListener('click', () => goPage(el.dataset.page))
+  );
+}
+
+
 
 
 /* ═════════════════════════════════════════════════════════════════════════
@@ -2077,9 +2200,12 @@ function init() {
   renderAboutCards();
   renderTeam();
   renderPartnerLogos();
+  renderNews();
+  initNewsDirectories();
 
   /* Document-level wiring */
   bindGlobalEvents();
+  bindNewsNav();
   initPauseMediaControl();
   initSiteSearch();
 

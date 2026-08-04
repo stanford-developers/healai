@@ -34,6 +34,7 @@
    ⑫ ABOUT_CARDS ............ "How we got here" / "What we believe"
    ⑬ PAPERS ................. hover content for the hero canvas research nodes
    ⑭ ICONS .................. inline-SVG icon library
+   ⑮ SEMINAR_VIDEOS / NEWS_ARTICLES / SCHOLARLY_PUBLICATIONS ... News tab feeds
 
  ACCESSIBILITY (a11y) REMINDER
    • String values may contain <strong>, <em>, or HTML entities. They're
@@ -58,6 +59,7 @@ const NAV_ITEMS = [
   { id: 'videos',  label: 'Videos',    videoOnly: true },
   { id: 'patient', label: 'Patient Panel' },
   { id: 'about',   label: 'About' },
+  { id: 'news',    label: 'News' },
 ];
 
 
@@ -754,6 +756,95 @@ const PARTNER_LOGOS = [
   { name: 'Lana Vento Charitable Trust',      file: 'assets/partners/lana_vento.png' },
   { name: 'Impact Labs',                      file: 'assets/partners/impactlabs.png' },
 ];
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ⑮ NEWS · News tab — spotlight + 3 chronological feeds
+─────────────────────────────────────────────────────────────────────────────
+   Three independent, date-sorted arrays. renderNews() (app.js) shows the
+   5 most recent from each on the News tab with a "View complete directory"
+   link to a full, searchable listing page for that feed.
+
+   `date` must be an ISO string ('YYYY-MM-DD') — everything sorts and
+   formats off of it. Setting `featured: true` on a SEMINAR_VIDEOS entry
+   makes it the big spotlight card at the top of the News tab; if none is
+   flagged, the spotlight falls back to the single most recent video.
+
+   PLACEHOLDER CONTENT NOTICE
+     Only the Michelle Mello Grand Rounds entry below is real. Every entry
+     whose title/desc starts with "PLACEHOLDER" is scaffolding to prove out
+     the layout — replace with the real title, date, byline, and link
+     before this ships publicly. Do not leave placeholder entries live.
+─────────────────────────────────────────────────────────────────────────── */
+const SEMINAR_VIDEOS = [
+  { date: '2026-05-14',
+    title: 'Grand Rounds: Ethical Review of Clinical AI at Scale',
+    speaker: 'Michelle Mello',
+    venue: 'Stanford Medicine Grand Rounds',
+    desc: "Michelle Mello presents HEAL-AI's ethics review process and what two years of evaluations have surfaced about deploying AI tools responsibly across a health system.",
+    link: '#', featured: true },
+  { date: '2026-02-03',
+    title: 'PLACEHOLDER — seminar title',
+    speaker: 'PLACEHOLDER — speaker name',
+    venue: 'PLACEHOLDER — venue',
+    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
+    link: '#' },
+  { date: '2025-11-19',
+    title: 'PLACEHOLDER — seminar title',
+    speaker: 'PLACEHOLDER — speaker name',
+    venue: 'PLACEHOLDER — venue',
+    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
+    link: '#' },
+  { date: '2025-09-08',
+    title: 'PLACEHOLDER — seminar title',
+    speaker: 'PLACEHOLDER — speaker name',
+    venue: 'PLACEHOLDER — venue',
+    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
+    link: '#' },
+  { date: '2025-06-21',
+    title: 'PLACEHOLDER — seminar title',
+    speaker: 'PLACEHOLDER — speaker name',
+    venue: 'PLACEHOLDER — venue',
+    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
+    link: '#' },
+  { date: '2025-03-30',
+    title: 'PLACEHOLDER — seminar title',
+    speaker: 'PLACEHOLDER — speaker name',
+    venue: 'PLACEHOLDER — venue',
+    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
+    link: '#' },
+];
+
+const NEWS_ARTICLES = [
+  { date: '2026-04-22', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
+    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
+  { date: '2026-01-15', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
+    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
+  { date: '2025-10-30', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
+    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
+  { date: '2025-08-11', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
+    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
+  { date: '2025-05-27', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
+    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
+  { date: '2025-02-14', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
+    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
+];
+
+const SCHOLARLY_PUBLICATIONS = [
+  { date: '2026-03-09', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
+    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
+  { date: '2025-12-18', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
+    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
+  { date: '2025-09-25', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
+    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
+  { date: '2025-07-02', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
+    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
+  { date: '2025-04-16', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
+    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
+  { date: '2025-01-08', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
+    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
+];
+
 
 /* ─────────────────────────────────────────────────────────────────────────
    ⑭ ICONS · inline SVG icon library
