@@ -62,6 +62,26 @@ const $   = (sel) => document.querySelector(sel);
 const $$  = (sel) => Array.from(document.querySelectorAll(sel));
 const byId = (id) => document.getElementById(id);
 
+/**
+ * Shared ordering rule for every admin-editable list that merges static
+ * (data.js) content with Supabase rows (News items, Sample Reports, Team):
+ * an explicit numeric `priority` (higher = earlier) always wins; among
+ * items that don't have one, `fallback` decides (e.g. newest-first by
+ * date, or just "leave them where they were" via a same-order stable
+ * sort). Array.prototype.sort is stable in every modern engine, so
+ * returning 0 from `fallback` preserves insertion order rather than
+ * shuffling unprioritized items.
+ */
+function prioritySort(items, fallback = () => 0) {
+  return [...items].sort((a, b) => {
+    const ap = a.priority ?? null, bp = b.priority ?? null;
+    if (ap !== null && bp !== null && ap !== bp) return bp - ap;
+    if (ap !== null && bp === null) return -1;
+    if (bp !== null && ap === null) return 1;
+    return fallback(a, b);
+  });
+}
+
 /** Site-wide "Pause Media" toggle (footer-global) — live check, unlike the
  *  prefers-reduced-motion matchMedia captured once at hero-canvas init. */
 function isMotionPaused() { return document.body.classList.contains('motion-paused'); }
@@ -738,22 +758,20 @@ function renderToolkitResources() {
   });
 
   enhanceToolkitResourcesWithUploads();
+  enhanceReportsWithUploads();
 }
-
-/* Maps a RESOURCE_GROUPS id to the `category` value stored in Supabase's
-   resources table (see /supabase/schema.sql) — the public names (Templates/
-   Guides/Sample Reports) are plural, the stored category values are
-   singular, so this is the one place that translation happens. */
-const RESOURCE_GROUP_TO_CATEGORY = { templates: 'template', guides: 'guide', reports: 'report' };
 
 /**
  * Reads admin-uploaded resources from Supabase (public, read-only, no
  * login required — enforced by the "resources are publicly readable" RLS
- * policy) and returns them grouped by category, already shaped like a
- * RESOURCE_CATEGORIES `items[]` entry so resourceCardHTML() can render
- * them unchanged. Returns {} (silently) if Supabase isn't configured yet
- * or the request fails — this is enhancement, not required content, so a
- * misconfigured or offline backend should never break the static page.
+ * policy) and returns them grouped by `category` — which is now one of
+ * the actual RESOURCE_CATEGORIES ids ('interviews' | 'panel' | 'understand'
+ * | 'adapt', see /supabase/reports_team_schema.sql), not a coarse
+ * per-tab bucket — already shaped like a RESOURCE_CATEGORIES `items[]`
+ * entry so resourceCardHTML() can render them unchanged. Returns {}
+ * (silently) if Supabase isn't configured yet or the request fails — this
+ * is enhancement, not required content, so a misconfigured or offline
+ * backend should never break the static page.
  */
 async function getPublicResources() {
   if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return {};
@@ -761,10 +779,9 @@ async function getPublicResources() {
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data, error } = await sb.from('resources').select('*').order('created_at', { ascending: false });
     if (error || !data) return {};
-    const byCategory = { template: [], guide: [], report: [] };
+    const byCategory = {};
     data.forEach(r => {
-      if (!byCategory[r.category]) return;
-      byCategory[r.category].push({
+      (byCategory[r.category] ??= []).push({
         h: r.title,
         sub: r.description || '',
         icon: 'paper',
@@ -778,35 +795,21 @@ async function getPublicResources() {
   }
 }
 
-/** One "Recently added" sub-block, same visual treatment as a regular
- *  category's resource list (see renderResourceCategoryBlock()). */
-function renderUploadedResourcesBlock(items) {
-  return `
-    <div class="rt-subgroup">
-      <p class="rt-subgroup-eyebrow">Recently added</p>
-      <div class="res-set"><div class="res-list">${items.map(i => resourceCardHTML(i, 'row')).join('')}</div></div>
-    </div>`;
-}
-
-/** Appends a "Recently added" block to any Level-2 panel that has
- *  admin-uploaded resources for its category. Runs once, after the
- *  static panels are already built and visible — network-dependent
- *  content should never delay or block the initial render. Wires the
- *  new block's cards while still detached from the DOM, so this never
- *  re-wires (and double-binds click handlers on) the static content
- *  wireResourceCategoryPanel() already wired inside renderToolkitResources(). */
+/** Re-renders one category's item list (spotlight + divided list), merging
+ *  in any admin-uploaded items for it — same resourceCardHTML() treatment
+ *  as the static ones, so an upload reads as a normal list entry rather
+ *  than a separate "recently added" strip. Runs once, after the static
+ *  panels are already built and visible — network-dependent content
+ *  should never delay or block the initial render. */
 async function enhanceToolkitResourcesWithUploads() {
   const byCategory = await getPublicResources();
-  RESOURCE_GROUPS.forEach(group => {
-    const items = byCategory[RESOURCE_GROUP_TO_CATEGORY[group.id]];
-    if (!items || !items.length) return;
-    const panel = byId('rt-pan-' + group.id);
-    if (!panel) return;
-    const wrap = document.createElement('div');
-    wrap.innerHTML = renderUploadedResourcesBlock(items);
-    const node = wrap.firstElementChild;
-    wireResourceCategoryPanel(node);
-    panel.appendChild(node);
+  RESOURCE_CATEGORIES.forEach(cat => {
+    const uploaded = byCategory[cat.id];
+    if (!uploaded || !uploaded.length) return;
+    const mount = byId('rt-items-' + cat.id);
+    if (!mount) return;
+    mount.innerHTML = resourceItemsHTML([...cat.items, ...uploaded]);
+    wireResourceCategoryPanel(mount);
   });
 }
 
@@ -839,40 +842,58 @@ function renderResourceCategoryBlock(cat, showSubheading, idx) {
       </aside>` : ''}
     </div>`;
 
-  /* 2) Resource items — spotlight + divided list. Skipped entirely when a
-        category has no items yet (e.g. while pending real content). */
-  if (cat.items.length) {
-    const [first, ...rest] = cat.items;
-    html += '<div class="res-set">' + resourceCardHTML(first, 'spotlight');
-    if (rest.length) {
-      html += '<div class="res-list">' + rest.map(item => resourceCardHTML(item, 'row')).join('') + '</div>';
-    }
-    html += '</div>';
-  }
+  /* 2) Resource items — spotlight + divided list. The mount always exists
+        (even with zero items) so enhanceToolkitResourcesWithUploads() has
+        somewhere to render into once an admin uploads something for a
+        category that started out empty (e.g. "adapt"). */
+  html += `<div id="rt-items-${cat.id}">${resourceItemsHTML(cat.items)}</div>`;
 
-  /* 3) Sample reports (reports category only) */
+  /* 3) Sample reports (reports category only) — ALL_REPORTS is the merged
+        static + admin-published list (see enhanceReportsWithUploads()),
+        already seeded synchronously from the static ones so this renders
+        correctly before that fetch resolves. */
   if (cat.reports) {
     html += `
       <div style="margin-top:44px">
-        <p class="eyebrow">Eight redacted sample reports</p>
+        <p class="eyebrow">Redacted sample reports</p>
         <h3 class="h3" style="margin-bottom:6px;font-size:22px">Real evaluations, redacted for public reference.</h3>
         <p style="font-size:13.5px;color:var(--ink-mid);max-width:640px;line-height:1.65;margin-bottom:8px">
           Each report walks through intake, stakeholder findings, expert vetting, and the final recommendation.
           Tool names and vendor specifics are redacted.
         </p>
-        <div class="reports-grid">
-          ${cat.reports.map(r => `
-            <div class="report-row" data-code="${r.code}" tabindex="0"
-                 role="button" aria-label="Open sample report: ${stripHTML(r.name)}">
-              <span class="report-pill">${r.code}</span>
-              <div><h5>${r.name}</h5><span>${r.sub}</span></div>
-              ${svgIcon('arrowOut', {sw:2, stroke:'var(--ink-low)'})}
-            </div>`).join('')}
-        </div>
+        <div class="reports-grid" id="rt-reports-grid">${reportsGridHTML(ALL_REPORTS)}</div>
       </div>`;
   }
 
   return html + '</div>';   /* close .rt-subgroup */
+}
+
+/** Spotlight + divided list for one category's items — pulled out of
+ *  renderResourceCategoryBlock() so enhanceToolkitResourcesWithUploads()
+ *  can re-render just this piece with merged items. Empty items[] (e.g.
+ *  "adapt", pending real content, or a category nothing has been
+ *  uploaded to yet) renders nothing rather than an empty spotlight card. */
+function resourceItemsHTML(items) {
+  if (!items.length) return '';
+  const [first, ...rest] = items;
+  let html = '<div class="res-set">' + resourceCardHTML(first, 'spotlight');
+  if (rest.length) {
+    html += '<div class="res-list">' + rest.map(item => resourceCardHTML(item, 'row')).join('') + '</div>';
+  }
+  return html + '</div>';
+}
+
+/** One sample-report tile grid — pulled out of renderResourceCategoryBlock()
+ *  so enhanceReportsWithUploads() can re-render it once merged with
+ *  admin-published reports. */
+function reportsGridHTML(list) {
+  return list.map(r => `
+    <div class="report-row" data-code="${r.code}" tabindex="0"
+         role="button" aria-label="Open sample report: ${stripHTML(r.name)}">
+      <span class="report-pill">${r.code}</span>
+      <div><h5>${r.name}</h5><span>${r.sub}</span></div>
+      ${svgIcon('arrowOut', {sw:2, stroke:'var(--ink-low)'})}
+    </div>`).join('');
 }
 
 /** Wires up a Level-2 panel's clickable cards after renderResourceCategoryBlock() HTML lands in the DOM. */
@@ -925,23 +946,82 @@ function resourceCardHTML(item, variant) {
 }
 
 /**
- * Opens the in-site "hidden pane" for a sample report — real content
- * migrated from that report's page on heal-ai.stanford.edu (REPORT_DETAILS
- * in data.js) instead of redirecting the visitor off-site. The external
- * .docx link is preserved as the modal's "Download Full Report" action.
+ * ALL_REPORTS is the merged static + admin-published sample-report list
+ * (see enhanceReportsWithUploads()). Seeded synchronously from the 8
+ * static reports (RESOURCE_CATEGORIES 'reports' entry + REPORT_DETAILS in
+ * data.js) so the grid and openReportDetail() both work correctly before
+ * the Supabase fetch resolves — same "paint fast, then upgrade" rule as
+ * every other admin-editable list on the site.
+ */
+let ALL_REPORTS = staticReportsShaped();
+
+/** Reshapes the static reports[]/REPORT_DETAILS pair in data.js into
+ *  ALL_REPORTS' flat shape, with sequential codes ('01', '02', …). */
+function staticReportsShaped() {
+  const reportsCat = RESOURCE_CATEGORIES.find(c => c.reports);
+  return reportsCat.reports.map((r, i) => ({
+    code: String(i + 1).padStart(2, '0'),
+    name: r.name, sub: r.sub, priority: null,
+    ...REPORT_DETAILS[r.code],   // overview, summary, issues, downloadHref
+  }));
+}
+
+/**
+ * Reads admin-published reports from Supabase (public, read-only, no
+ * login required — enforced by the "reports are publicly readable" RLS
+ * policy in /supabase/reports_team_schema.sql) and reshapes each row to
+ * ALL_REPORTS' shape. Returns [] (silently) if Supabase isn't configured
+ * yet or the request fails — this is enhancement, not required content.
+ */
+async function getPublicReports() {
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return [];
+  try {
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await sb.from('reports').select('*');
+    if (error || !data) return [];
+    return data.map(r => ({
+      name: r.name, sub: r.sub, priority: r.priority,
+      overview: r.overview, summary: r.summary, issues: r.issues || [],
+      downloadHref: r.file_path ? sb.storage.from('report-files').getPublicUrl(r.file_path).data.publicUrl : '#',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Merges admin-published reports into ALL_REPORTS (priority first, then
+ *  static reports keep their original order and uploads sort newest
+ *  first among themselves — see prioritySort()), re-numbers every tile's
+ *  code to match its new position, and re-renders the grid in place. */
+async function enhanceReportsWithUploads() {
+  const uploaded = await getPublicReports();
+  if (!uploaded.length) return;
+  ALL_REPORTS = prioritySort([...staticReportsShaped(), ...uploaded])
+    .map((r, i) => ({ ...r, code: String(i + 1).padStart(2, '0') }));
+
+  const mount = byId('rt-reports-grid');
+  if (!mount) return;
+  mount.innerHTML = reportsGridHTML(ALL_REPORTS);
+  wireResourceCategoryPanel(mount);
+}
+
+/**
+ * Opens the in-site "hidden pane" for a sample report. Static reports'
+ * content is migrated from that report's page on heal-ai.stanford.edu
+ * (REPORT_DETAILS in data.js); admin-published ones come straight from
+ * the `reports` table. Either way, the "Download Full Report" action
+ * points at whatever `downloadHref` ALL_REPORTS resolved for that row.
  */
 function openReportDetail(code) {
-  const reportsCat = RESOURCE_CATEGORIES.find(c => c.reports);
-  const meta   = reportsCat && reportsCat.reports.find(r => r.code === code);
-  const detail = REPORT_DETAILS[code];
-  if (!meta || !detail) return;
+  const meta = ALL_REPORTS.find(r => r.code === code);
+  if (!meta) return;
 
   byId('rm-pill').textContent     = code;
   byId('rm-title').textContent    = stripHTML(meta.name);
-  byId('rm-overview').textContent = detail.overview;
-  byId('rm-summary').textContent  = detail.summary;
-  byId('rm-issues').innerHTML     = detail.issues.map(i => `<li>${i}</li>`).join('');
-  byId('rm-download').href        = detail.downloadHref;
+  byId('rm-overview').textContent = meta.overview;
+  byId('rm-summary').textContent  = meta.summary;
+  byId('rm-issues').innerHTML     = meta.issues.map(i => `<li>${i}</li>`).join('');
+  byId('rm-download').href        = meta.downloadHref;
 
   const modal = byId('report-modal');
   modal.classList.add('open');
@@ -1159,8 +1239,10 @@ function renderAboutCards() {
    Staff) — the closest analog to YC's "Company, Batch" sub-line without
    inventing data. Falls back to a serif-initials tile if `photo` is empty.
 */
-function renderTeam() {
-  byId('about-team').innerHTML = TEAM.map(m => {
+/** Renders the given team list (static TEAM, or TEAM merged with
+ *  admin-published members — see initTeamFeature()) into #about-team. */
+function renderTeam(list) {
+  byId('about-team').innerHTML = list.map(m => {
     const initials = (m.init || m.name.split(' ').map(s => s[0]).join('')).slice(0, 2);
     const media = m.photo
       ? `<img src="${m.photo}" alt="Portrait of ${m.name}" loading="lazy">`
@@ -1181,6 +1263,38 @@ function renderTeam() {
         </div>
       </article>`;
   }).join('');
+}
+
+/**
+ * Reads admin-published team members from Supabase (public, read-only,
+ * no login required — enforced by the "team_members are publicly
+ * readable" RLS policy in /supabase/reports_team_schema.sql) and reshapes
+ * each row to match a TEAM entry's shape. Returns [] (silently) if
+ * Supabase isn't configured yet or the request fails.
+ */
+async function getPublicTeamMembers() {
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return [];
+  try {
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await sb.from('team_members').select('*');
+    if (error || !data) return [];
+    return data.map(m => ({
+      name: m.name, role: m.role, badge: m.badge, priority: m.priority,
+      profile: m.profile_url || '',
+      photo: m.photo_path ? sb.storage.from('team-photos').getPublicUrl(m.photo_path).data.publicUrl : '',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Paints the static TEAM immediately, then swaps in the TEAM + admin-
+ *  published merge once that fetch resolves — same "paint fast, then
+ *  upgrade" rule as News and Sample Reports. */
+async function initTeamFeature() {
+  renderTeam(TEAM);
+  const uploaded = await getPublicTeamMembers();
+  if (uploaded.length) renderTeam(prioritySort([...TEAM, ...uploaded]));
 }
 
 /**
@@ -1219,13 +1333,7 @@ function renderPartnerLogos() {
    by `date` for anything without a priority set.
    ═════════════════════════════════════════════════════════════════════════ */
 function newsSorted(items) {
-  return [...items].sort((a, b) => {
-    const ap = a.priority ?? null, bp = b.priority ?? null;
-    if (ap !== null && bp !== null && ap !== bp) return bp - ap;
-    if (ap !== null && bp === null) return -1;
-    if (bp !== null && ap === null) return 1;
-    return new Date(b.date) - new Date(a.date);
-  });
+  return prioritySort(items, (a, b) => new Date(b.date) - new Date(a.date));
 }
 
 function newsFormatDate(iso) {
@@ -2170,7 +2278,7 @@ function init() {
   renderPatientPanel();
   renderToolkitPlaybook();
   renderAboutCards();
-  renderTeam();
+  initTeamFeature();
   renderPartnerLogos();
   initNewsFeature();
 

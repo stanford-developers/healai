@@ -6,26 +6,29 @@
   HEAL-AI · admin.html
   ────────────────────────────────────────────────────────────────────────────
   PURPOSE
-    Standalone admin page for uploading Toolkit resources (templates,
-    guides, sample reports) and publishing News-tab items (seminar videos,
-    news articles, scholarly publications) without editing code.
-    Deliberately NOT part of the public single-page app in index.html, and
-    not linked from the main nav — reached only by direct URL (or the
-    small footer link on the public site, if you choose to add one).
+    Standalone admin page for editing every admin-manageable content list
+    on the site without touching code: Toolkit resources (templates,
+    guides), Sample Reports, Team members, and News-tab items (seminar
+    videos, news articles, scholarly publications). Deliberately NOT part
+    of the public single-page app in index.html, and not linked from the
+    main nav — reached only by direct URL (or the small footer link on
+    the public site, if you choose to add one).
 
   HOW THIS WORKS
-    Auth and both tables are provided by Supabase (see js/config.js for the
-    project URL/key, /supabase/schema.sql for the one-time database setup,
-    and /supabase/news_schema.sql for the News tables). There is no custom
-    backend here, every action below calls Supabase directly from the
-    browser; Postgres Row Level Security enforces who can do what (see
-    those two files for the exact policies).
+    Auth and every table are provided by Supabase (see js/config.js for
+    the project URL/key, /supabase/schema.sql for the one-time database
+    setup, /supabase/news_schema.sql for the News tables, and
+    /supabase/reports_team_schema.sql for Sample Reports + Team). There is
+    no custom backend here, every action below calls Supabase directly
+    from the browser; Postgres Row Level Security enforces who can do
+    what (see those files for the exact policies).
 
   THE THREE VIEWS (all logic in js/admin.js)
     #auth-view      shown when logged out — login / sign up form
     #pending-view   shown when logged in but not yet approved as an admin
-    #dashboard-view shown when logged in AND approved — 2 tabs: Toolkit
-                    resources (upload + manage) and News (publish + manage)
+    #dashboard-view shown when logged in AND approved — 4 tabs: Toolkit
+                    resources, Sample Reports, Team, and News, each with
+                    its own upload/publish form and manage list
   ════════════════════════════════════════════════════════════════════════════
   -->
 
@@ -94,10 +97,16 @@
 
       <div class="admin-tabs" role="tablist" aria-label="Dashboard section">
         <button class="admin-tab on" id="dash-tab-resources" role="tab" aria-selected="true"  data-panel="resources">Toolkit resources</button>
+        <button class="admin-tab"    id="dash-tab-reports"   role="tab" aria-selected="false" data-panel="reports">Sample Reports</button>
+        <button class="admin-tab"    id="dash-tab-team"      role="tab" aria-selected="false" data-panel="team">Team</button>
         <button class="admin-tab"    id="dash-tab-news"      role="tab" aria-selected="false" data-panel="news">News</button>
       </div>
 
-      <!-- ── Toolkit resources panel ─────────────────────────────────────── -->
+      <!-- ── Toolkit resources panel — category is one of the 4 actual
+           Resource categories (not a top-level tab) so an upload blends
+           into that specific section's list instead of a separate
+           "recently added" strip. See RESOURCE_CATEGORIES in js/data.js
+           for the canonical id/label pairs. ─────────────────────────── -->
       <div id="dash-panel-resources">
         <form id="upload-form" class="admin-upload-form">
           <label class="admin-field">
@@ -115,9 +124,10 @@
           <label class="admin-field">
             <span>Category</span>
             <select id="upload-category" required>
-              <option value="template">Template</option>
-              <option value="guide">Guide</option>
-              <option value="report">Sample report</option>
+              <option value="interviews">Running Stakeholder Interviews</option>
+              <option value="panel">Running a Patient Partner Group</option>
+              <option value="understand">Understanding the Process</option>
+              <option value="adapt">Adapting for Your Institution</option>
             </select>
           </label>
           <button type="submit" class="btn-prime" id="upload-submit">Upload</button>
@@ -126,6 +136,87 @@
 
         <h3 class="admin-list-h">Uploaded resources</h3>
         <div id="resource-list" class="admin-resource-list">
+          <p class="admin-empty">Loading…</p>
+        </div>
+      </div>
+
+      <!-- ── Sample Reports panel — same rich shape as the 8 static
+           reports (overview/summary/key issues/download), so a published
+           report becomes a real numbered tile with the same detail-modal
+           treatment, not a plain card. See /supabase/reports_team_schema.sql. -->
+      <div id="dash-panel-reports" hidden>
+        <form id="report-form" class="admin-upload-form">
+          <label class="admin-field">
+            <span>Tool nickname</span>
+            <input type="text" id="report-name" required maxlength="80" placeholder="e.g. HeartRead">
+          </label>
+          <label class="admin-field">
+            <span>Tile subtitle</span>
+            <input type="text" id="report-sub" required maxlength="160" placeholder="One line shown on the tile">
+          </label>
+          <label class="admin-field">
+            <span>Tool overview</span>
+            <textarea id="report-overview" rows="3" required placeholder="What the tool is and does"></textarea>
+          </label>
+          <label class="admin-field">
+            <span>Report summary</span>
+            <textarea id="report-summary" rows="3" required placeholder="The assessment's overall findings and recommendation"></textarea>
+          </label>
+          <label class="admin-field">
+            <span>Key issues identified</span>
+            <textarea id="report-issues" rows="3" required placeholder="One issue per line"></textarea>
+          </label>
+          <label class="admin-field">
+            <span>Full report file (optional)</span>
+            <input type="file" id="report-file">
+          </label>
+          <label class="admin-field">
+            <span>Priority (optional — higher shows earlier in the grid; leave blank for newest-first)</span>
+            <input type="number" id="report-priority" step="1" placeholder="Leave blank to sort by upload order">
+          </label>
+          <button type="submit" class="btn-prime" id="report-submit">Publish</button>
+        </form>
+        <p class="admin-status" id="report-status" role="status" aria-live="polite"></p>
+
+        <h3 class="admin-list-h">Published reports</h3>
+        <div id="report-list" class="admin-resource-list">
+          <p class="admin-empty">Loading…</p>
+        </div>
+      </div>
+
+      <!-- ── Team panel — see /supabase/reports_team_schema.sql. ───────── -->
+      <div id="dash-panel-team" hidden>
+        <form id="team-form" class="admin-upload-form">
+          <label class="admin-field">
+            <span>Name</span>
+            <input type="text" id="team-name" required maxlength="120">
+          </label>
+          <label class="admin-field">
+            <span>Role</span>
+            <input type="text" id="team-role" required maxlength="160" placeholder="Their Stanford title">
+          </label>
+          <label class="admin-field">
+            <span>Badge</span>
+            <input type="text" id="team-badge" required maxlength="40" placeholder="e.g. Director, Faculty, Staff">
+          </label>
+          <label class="admin-field">
+            <span>Photo (optional — falls back to an initials avatar)</span>
+            <input type="file" id="team-photo" accept="image/*">
+          </label>
+          <label class="admin-field">
+            <span>Profile link (optional)</span>
+            <input type="url" id="team-profile" placeholder="https://…">
+          </label>
+          <label class="admin-field">
+            <span>Priority (optional — higher shows earlier in the grid; leave blank for newest-first)</span>
+            <input type="number" id="team-priority" step="1" placeholder="Leave blank to sort by upload order">
+          </label>
+          <button type="submit" class="btn-prime" id="team-submit">Publish</button>
+        </form>
+        <p class="admin-status" id="team-status" role="status" aria-live="polite"></p>
+
+        <h3 class="admin-list-h">Published team members</h3>
+        <div id="team-list" class="admin-resource-list">
           <p class="admin-empty">Loading…</p>
         </div>
       </div>

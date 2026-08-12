@@ -3,16 +3,17 @@
  HEAL-AI · js/admin.js
 ─────────────────────────────────────────────────────────────────────────────
  PURPOSE
-   Everything admin.html needs: auth (login/signup/logout/session), the
-   upload/list/delete flow for Toolkit resources, and the publish/list/
-   reprioritize/delete flow for News-tab items (seminar videos, news
-   articles, scholarly publications). All of it talks directly to Supabase
-   from the browser, there is no server code in this repo, so every
-   permission check below is enforced twice: once here (for a decent user
+   Everything admin.html needs: auth (login/signup/logout/session), and
+   the upload/publish/list/reprioritize/delete flow for every admin-
+   editable content list on the site — Toolkit resources, Sample Reports,
+   Team members, and News-tab items (seminar videos, news articles,
+   scholarly publications). All of it talks directly to Supabase from the
+   browser, there is no server code in this repo, so every permission
+   check below is enforced twice: once here (for a decent user
    experience) and once server-side by Postgres Row Level Security (see
-   /supabase/schema.sql and /supabase/news_schema.sql), which is the check
-   that actually matters for security. Never trust the client-side one
-   alone.
+   /supabase/schema.sql, /supabase/news_schema.sql, and
+   /supabase/reports_team_schema.sql), which is the check that actually
+   matters for security. Never trust the client-side one alone.
 
  GLOBAL SCOPE
    Loaded after config.js and the Supabase CDN script, so SUPABASE_URL,
@@ -34,15 +35,17 @@ function showView(name) {
   byId('dashboard-view').hidden = name !== 'dashboard';
 }
 
-/* ── Dashboard sub-tabs: Toolkit resources vs. News ── */
+/* ── Dashboard sub-tabs: Toolkit resources / Sample Reports / Team / News ── */
+const DASH_TABS = ['resources', 'reports', 'team', 'news'];
+const DASH_H2   = { resources: 'Upload a resource', reports: 'Publish a report', team: 'Publish a team member', news: 'Publish a news item' };
+
 function setDashTab(name) {
-  byId('dash-tab-resources').classList.toggle('on', name === 'resources');
-  byId('dash-tab-resources').setAttribute('aria-selected', name === 'resources');
-  byId('dash-tab-news').classList.toggle('on', name === 'news');
-  byId('dash-tab-news').setAttribute('aria-selected', name === 'news');
-  byId('dash-panel-resources').hidden = name !== 'resources';
-  byId('dash-panel-news').hidden = name !== 'news';
-  byId('dash-h2').textContent = name === 'news' ? 'Publish a news item' : 'Upload a resource';
+  DASH_TABS.forEach(tab => {
+    byId('dash-tab-' + tab).classList.toggle('on', tab === name);
+    byId('dash-tab-' + tab).setAttribute('aria-selected', tab === name);
+    byId('dash-panel-' + tab).hidden = tab !== name;
+  });
+  byId('dash-h2').textContent = DASH_H2[name];
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -106,6 +109,8 @@ async function syncViewToSession(session) {
     byId('dash-email').textContent = session.user.email;
     showView('dashboard');
     loadResources();
+    loadReports();
+    loadTeamMembers();
     loadNewsItems();
   } else {
     byId('pending-email').textContent = session.user.email;
@@ -322,23 +327,231 @@ async function loadNewsItems() {
   `).join('');
 
   list.querySelectorAll('.admin-priority-input').forEach(input => {
-    input.addEventListener('change', () => handlePriorityChange(input.dataset.id, input.value));
+    input.addEventListener('change', () => handlePriorityChange('news_items', input.dataset.id, input.value, loadNewsItems));
   });
   list.querySelectorAll('.admin-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => handleNewsDelete(btn.dataset.id));
   });
 }
 
-async function handlePriorityChange(id, value) {
+/** Shared by News/Reports/Team's priority inputs — all 3 tables have the
+ *  same nullable integer `priority` column and the same "higher shows
+ *  earlier, blank falls back to newest/oldest-first" semantics. */
+async function handlePriorityChange(table, id, value, reload) {
   const priority = value.trim() === '' ? null : Number(value);
-  await sb.from('news_items').update({ priority }).eq('id', id);
-  loadNewsItems();
+  await sb.from(table).update({ priority }).eq('id', id);
+  reload();
 }
 
 async function handleNewsDelete(id) {
   if (!confirm('Delete this news item?')) return;
   await sb.from('news_items').delete().eq('id', id);
   loadNewsItems();
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SAMPLE REPORTS — publish/list/reprioritize/delete for the rich sample-
+   report tiles (see /supabase/reports_team_schema.sql). Same shape as the
+   8 static ones in data.js: overview, summary, key issues, an optional
+   uploaded file for "Download Full Report".
+   ────────────────────────────────────────────────────────────────────── */
+async function handleReportSubmit(e) {
+  e.preventDefault();
+  const name = byId('report-name').value.trim();
+  const sub = byId('report-sub').value.trim();
+  const overview = byId('report-overview').value.trim();
+  const summary = byId('report-summary').value.trim();
+  const issues = byId('report-issues').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const priorityRaw = byId('report-priority').value.trim();
+  const file = byId('report-file').files[0];
+  const status = byId('report-status');
+  const submit = byId('report-submit');
+
+  submit.disabled = true;
+  status.textContent = 'Publishing…';
+
+  const { data: { session } } = await sb.auth.getSession();
+  let file_path = null, file_name = null;
+
+  if (file) {
+    const path = `${crypto.randomUUID()}-${file.name}`;
+    const { error: uploadError } = await sb.storage.from('report-files').upload(path, file);
+    if (uploadError) {
+      submit.disabled = false;
+      status.textContent = 'File upload failed: ' + uploadError.message;
+      return;
+    }
+    file_path = path;
+    file_name = file.name;
+  }
+
+  const { error } = await sb.from('reports').insert({
+    name, sub, overview, summary, issues,
+    file_path, file_name,
+    priority: priorityRaw === '' ? null : Number(priorityRaw),
+    uploaded_by: session.user.id,
+  });
+
+  submit.disabled = false;
+
+  if (error) {
+    status.textContent = 'Publish failed: ' + error.message;
+    return;
+  }
+
+  status.textContent = 'Published.';
+  byId('report-form').reset();
+  loadReports();
+}
+
+async function loadReports() {
+  const list = byId('report-list');
+  const { data, error } = await sb
+    .from('reports')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    list.innerHTML = `<p class="admin-empty">Couldn't load reports: ${error.message}</p>`;
+    return;
+  }
+  if (!data.length) {
+    list.innerHTML = '<p class="admin-empty">Nothing published yet.</p>';
+    return;
+  }
+
+  list.innerHTML = data.map(r => `
+    <div class="admin-resource-row" data-id="${r.id}">
+      <div>
+        <h4>${r.name}</h4>
+        <p>${r.sub}</p>
+        <span class="admin-resource-meta">${r.file_name || 'No file attached'}</span>
+      </div>
+      <div class="admin-news-row-actions">
+        <label class="admin-priority-field">
+          <span>Priority</span>
+          <input type="number" step="1" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? ''}" placeholder="upload order">
+        </label>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}" data-path="${r.file_path || ''}">Delete</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.admin-priority-input').forEach(input => {
+    input.addEventListener('change', () => handlePriorityChange('reports', input.dataset.id, input.value, loadReports));
+  });
+  list.querySelectorAll('.admin-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleReportDelete(btn.dataset.id, btn.dataset.path));
+  });
+}
+
+async function handleReportDelete(id, path) {
+  if (!confirm('Delete this report?')) return;
+  if (path) await sb.storage.from('report-files').remove([path]);
+  await sb.from('reports').delete().eq('id', id);
+  loadReports();
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TEAM — publish/list/reprioritize/delete for team members (see
+   /supabase/reports_team_schema.sql). Photo upload is optional — the
+   public site falls back to an initials avatar, same as a static TEAM
+   entry with no `photo` set.
+   ────────────────────────────────────────────────────────────────────── */
+async function handleTeamSubmit(e) {
+  e.preventDefault();
+  const name = byId('team-name').value.trim();
+  const role = byId('team-role').value.trim();
+  const badge = byId('team-badge').value.trim();
+  const profile_url = byId('team-profile').value.trim();
+  const priorityRaw = byId('team-priority').value.trim();
+  const photo = byId('team-photo').files[0];
+  const status = byId('team-status');
+  const submit = byId('team-submit');
+
+  submit.disabled = true;
+  status.textContent = 'Publishing…';
+
+  const { data: { session } } = await sb.auth.getSession();
+  let photo_path = null;
+
+  if (photo) {
+    const path = `${crypto.randomUUID()}-${photo.name}`;
+    const { error: uploadError } = await sb.storage.from('team-photos').upload(path, photo);
+    if (uploadError) {
+      submit.disabled = false;
+      status.textContent = 'Photo upload failed: ' + uploadError.message;
+      return;
+    }
+    photo_path = path;
+  }
+
+  const { error } = await sb.from('team_members').insert({
+    name, role, badge, photo_path,
+    profile_url: profile_url || null,
+    priority: priorityRaw === '' ? null : Number(priorityRaw),
+    uploaded_by: session.user.id,
+  });
+
+  submit.disabled = false;
+
+  if (error) {
+    status.textContent = 'Publish failed: ' + error.message;
+    return;
+  }
+
+  status.textContent = 'Published.';
+  byId('team-form').reset();
+  loadTeamMembers();
+}
+
+async function loadTeamMembers() {
+  const list = byId('team-list');
+  const { data, error } = await sb
+    .from('team_members')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    list.innerHTML = `<p class="admin-empty">Couldn't load team members: ${error.message}</p>`;
+    return;
+  }
+  if (!data.length) {
+    list.innerHTML = '<p class="admin-empty">Nothing published yet.</p>';
+    return;
+  }
+
+  list.innerHTML = data.map(m => `
+    <div class="admin-resource-row" data-id="${m.id}">
+      <div>
+        <span class="admin-resource-category">${m.badge}</span>
+        <h4>${m.name}</h4>
+        <p>${m.role}</p>
+        <span class="admin-resource-meta">${m.photo_path ? 'Photo uploaded' : 'No photo — initials avatar'}</span>
+      </div>
+      <div class="admin-news-row-actions">
+        <label class="admin-priority-field">
+          <span>Priority</span>
+          <input type="number" step="1" class="admin-priority-input" data-id="${m.id}" value="${m.priority ?? ''}" placeholder="upload order">
+        </label>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${m.id}" data-path="${m.photo_path || ''}">Delete</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.admin-priority-input').forEach(input => {
+    input.addEventListener('change', () => handlePriorityChange('team_members', input.dataset.id, input.value, loadTeamMembers));
+  });
+  list.querySelectorAll('.admin-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleTeamDelete(btn.dataset.id, btn.dataset.path));
+  });
+}
+
+async function handleTeamDelete(id, path) {
+  if (!confirm('Delete this team member?')) return;
+  if (path) await sb.storage.from('team-photos').remove([path]);
+  await sb.from('team_members').delete().eq('id', id);
+  loadTeamMembers();
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -358,10 +571,11 @@ function initAdmin() {
   byId('pending-logout').addEventListener('click', handleLogout);
   byId('dash-logout').addEventListener('click', handleLogout);
   byId('upload-form').addEventListener('submit', handleUploadSubmit);
-  byId('dash-tab-resources').addEventListener('click', () => setDashTab('resources'));
-  byId('dash-tab-news').addEventListener('click', () => setDashTab('news'));
+  DASH_TABS.forEach(tab => byId('dash-tab-' + tab).addEventListener('click', () => setDashTab(tab)));
   byId('news-type').addEventListener('change', syncNewsFieldsToType);
   byId('news-form').addEventListener('submit', handleNewsSubmit);
+  byId('report-form').addEventListener('submit', handleReportSubmit);
+  byId('team-form').addEventListener('submit', handleTeamSubmit);
 
   sb.auth.onAuthStateChange((_event, session) => syncViewToSession(session));
   sb.auth.getSession().then(({ data: { session } }) => syncViewToSession(session));
