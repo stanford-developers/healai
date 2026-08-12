@@ -1239,17 +1239,17 @@ function renderAboutCards() {
    Staff) — the closest analog to YC's "Company, Batch" sub-line without
    inventing data. Falls back to a serif-initials tile if `photo` is empty.
 */
-/** Renders the given team list (static TEAM, or TEAM merged with
- *  admin-published members — see initTeamFeature()) into #about-team. */
+/** Renders the given team list (team_members rows, shaped by
+ *  getPublicTeamMembers() — see initTeamFeature()) into #about-team. */
 function renderTeam(list) {
   byId('about-team').innerHTML = list.map(m => {
     const initials = (m.init || m.name.split(' ').map(s => s[0]).join('')).slice(0, 2);
     const media = m.photo
       ? `<img src="${m.photo}" alt="Portrait of ${m.name}" loading="lazy">`
       : `<div class="tc-fallback" aria-hidden="true">${initials}</div>`;
-    /* Name renders as an external <a> when a `profile` URL is set on the
-       TEAM entry; falls back to a plain <span> otherwise. Only the name
-       is the click target — the surrounding card is decorative. */
+    /* Name renders as an external <a> when a `profile` field is set;
+       falls back to a plain <span> otherwise. Only the name is the
+       click target — the surrounding card is decorative. */
     const nameEl = m.profile
       ? `<a class="tc-name tc-name-link" href="${m.profile}" target="_blank" rel="noopener noreferrer">${m.name}<span class="tc-name-arrow" aria-hidden="true">↗</span></a>`
       : `<span class="tc-name">${m.name}</span>`;
@@ -1266,11 +1266,12 @@ function renderTeam(list) {
 }
 
 /**
- * Reads admin-published team members from Supabase (public, read-only,
- * no login required — enforced by the "team_members are publicly
- * readable" RLS policy in /supabase/reports_team_schema.sql) and reshapes
- * each row to match a TEAM entry's shape. Returns [] (silently) if
- * Supabase isn't configured yet or the request fails.
+ * Reads every team member from Supabase (public, read-only, no login
+ * required — enforced by the "team_members are publicly readable" RLS
+ * policy in /supabase/reports_team_schema.sql) and reshapes each row to
+ * the flat shape renderTeam() expects. Returns [] (silently) if Supabase
+ * isn't configured yet or the request fails — the team grid will simply
+ * render empty in that case; there's no static fallback anymore.
  */
 async function getPublicTeamMembers() {
   if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return [];
@@ -1293,18 +1294,14 @@ async function getPublicTeamMembers() {
 }
 
 /**
- * Paints the static TEAM immediately (fast first paint, and the fallback
- * if Supabase is unreachable), then replaces it with whatever
- * team_members actually has once that fetch resolves. Unlike News/Sample
- * Reports, this REPLACES rather than merges — team_members is meant to
- * be the single source of truth for the whole roster (see
- * /supabase/team_migration.sql, which migrated the original 7 in as real
- * rows); TEAM in data.js is kept around purely as an outage fallback.
+ * team_members (Supabase) is the sole source of truth for the team grid
+ * — see /supabase/team_migration.sql, which migrated the original 7
+ * people in as real rows and left no static fallback in data.js by
+ * request, so there's nothing to paint until this fetch resolves.
  */
 async function initTeamFeature() {
-  renderTeam(TEAM);
   const uploaded = await getPublicTeamMembers();
-  if (uploaded.length) renderTeam(prioritySort(uploaded));
+  renderTeam(prioritySort(uploaded));
 }
 
 /**
@@ -2181,7 +2178,6 @@ function buildSearchIndex() {
     add(sec.h, sec.summary, 'toolkit', { tkTab: 'playbook' });
     sec.subitems.forEach(si => add(si.h, si.body, 'toolkit', { tkTab: 'playbook' }));
   });
-  TEAM.forEach(t => add(t.name, t.role, 'about'));
   ABOUT_CARDS.forEach(c => add(c.h, c.p, 'about'));
   PP_STANFORD_LIST.forEach(i => add(i.h, i.body, 'patient'));
   PP_EXTERNAL.forEach(i => add(i.h, i.body, 'patient'));

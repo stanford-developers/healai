@@ -30,7 +30,7 @@
    ⑧b RESOURCE_GROUPS ....... Templates/Guides/Sample Reports Level-2 tabs
    ⑨ PP_STATS / PP_STANFORD / PP_EXTERNAL  ... patient partner panel content
    ⑩ PLAYBOOK_SECTIONS ...... 2-part internal process accordion + considerations
-   ⑪ TEAM ................... about-page team grid — outage fallback only; real roster is in Supabase (see the comment there)
+   ⑪ (removed — team roster now lives entirely in Supabase's team_members table)
    ⑫ ABOUT_CARDS ............ "How we got here" / "What we believe"
    ⑬ PAPERS ................. hover content for the hero canvas research nodes
    ⑭ ICONS .................. inline-SVG icon library
@@ -590,77 +590,13 @@ const PLAYBOOK_CONSIDERATIONS = [
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ⑪ TEAM · About-page team grid — OUTAGE FALLBACK ONLY, not the live source
-─────────────────────────────────────────────────────────────────────────────
-   The real team roster now lives in Supabase's team_members table and is
-   managed from the admin dashboard (/admin.html) — see
-   /supabase/team_migration.sql, which moved these same 7 people in as
-   real rows. initTeamFeature() (app.js) paints this array first for a
-   fast/offline-safe first render, then REPLACES it with whatever
-   team_members actually returns. So: editing this array no longer
-   changes the live site under normal conditions — it only changes what
-   visitors briefly see before the fetch resolves, and what they keep
-   seeing if Supabase is unreachable. To change a real team member, use
-   the admin dashboard instead.
-
-   FIELD REFERENCE (unchanged from before, for whoever touches this next)
-     name    Displayed under the avatar.
-     role    Sub-line under the name (their Stanford title).
-     badge   Small pill at the bottom of the card (Director / Faculty /
-             Postdoc / Staff — used for quick grouping at a glance).
-     photo   Path (relative to index.html) to the profile picture.
-             Leave `photo` empty and set `init` instead to fall back to
-             the cardinal-with-initials avatar (see renderTeam in app.js).
+   ⑪ TEAM — removed. The team roster lives entirely in Supabase's
+   team_members table now, managed from the admin dashboard
+   (/admin.html) — see /supabase/team_migration.sql, which moved the
+   original 7 people in as real rows before this array was deleted.
+   initTeamFeature() (app.js) renders team_members directly; there is no
+   longer a static fallback if Supabase is unreachable, by request.
 ─────────────────────────────────────────────────────────────────────────── */
-const TEAM = [
-  {
-    name:    'Michelle Mello',
-    role:    'Professor of Law and of Health Policy',
-    badge:   'Director',
-    photo:   'assets/current_staff/michelle-mello1673734692135.png.webp',
-    profile: 'https://law.stanford.edu/michelle-m-mello/',
-  },
-  {
-    name:    'Danton Samuel Char',
-    role:    'Principal Investigator',
-    badge:   'Director',
-    photo:   'assets/current_staff/danton_samuel_char.png.webp',
-    profile: 'https://profiles.stanford.edu/danton-char',
-  },
-  {
-    name:    'Nigam Shah',
-    role:    'Professor of Medicine (Biomedical Informatics)',
-    badge:   'Faculty',
-    photo:   'assets/current_staff/nigam_shah_char.png.webp',
-    profile: 'https://profiles.stanford.edu/nigam-shah',
-  },
-  {
-    name:  'N. Lance Downing',
-    role:  'Clinical Assistant Professor',
-    badge: 'Faculty',
-    photo: 'assets/current_staff/norman-downing1509518804318.png.webp',
-  },
-  {
-    name:    'Artem A. Trotsyuk',
-    badge:    'Member of Technical Staff',
-    role:   'Postdoctoral Scholar',
-    photo:   'assets/current_staff/artem-trotsyuk1694722251843.png.webp',
-    profile: 'https://profiles.stanford.edu/artem-trotsyuk',
-  },
-  {
-    name:  'Elisabeth Grosvenor',
-    role:  'Life Science Research Professional 1',
-    badge: 'Research',
-    photo: 'assets/current_staff/elisabeth-grosvenor1667954347746.png.webp',
-  },
-  {
-    name:    'Alison Callahan',
-    badge:   'Member of Technical Staff',
-    role:    'Research Engineer',
-    photo:   'assets/current_staff/alison-callahan1770857252230.png.webp',
-    profile: 'https://med.stanford.edu/profiles/alison-callahan',
-  },
-];
 
 
 /* ─────────────────────────────────────────────────────────────────────────

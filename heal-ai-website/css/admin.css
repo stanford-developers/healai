@@ -144,3 +144,8 @@
   background: var(--bg);
 }
 .admin-priority-input:focus { outline: none; border-color: var(--cardinal); }
+
+/* Team row's inline "Replace photo" file input — same label treatment as
+   .admin-priority-field, sized to fit a native file-chooser control. */
+.admin-photo-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-low); max-width: 180px; }
+.admin-photo-field input[type="file"] { font-size: 12px; color: var(--ink-mid); }

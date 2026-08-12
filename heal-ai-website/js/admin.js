@@ -453,10 +453,11 @@ async function handleReportDelete(id, path) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   TEAM — publish/list/reprioritize/delete for team members (see
-   /supabase/reports_team_schema.sql). Photo upload is optional — the
-   public site falls back to an initials avatar, same as a static TEAM
-   entry with no `photo` set.
+   TEAM — publish/list/reprioritize/delete/edit-photo for team members
+   (see /supabase/reports_team_schema.sql and /supabase/team_migration.sql,
+   which moved the original roster in as real rows). Photo upload is
+   optional both at creation and later — a member with no photo set
+   falls back to an initials avatar on the public site.
    ────────────────────────────────────────────────────────────────────── */
 async function handleTeamSubmit(e) {
   e.preventDefault();
@@ -527,12 +528,16 @@ async function loadTeamMembers() {
         <span class="admin-resource-category">${m.badge}</span>
         <h4>${m.name}</h4>
         <p>${m.role}</p>
-        <span class="admin-resource-meta">${m.photo_path ? 'Photo uploaded' : 'No photo — initials avatar'}</span>
+        <span class="admin-resource-meta">${(m.photo_path || m.photo_url) ? 'Has a photo' : 'No photo — initials avatar'}</span>
       </div>
       <div class="admin-news-row-actions">
         <label class="admin-priority-field">
           <span>Priority</span>
           <input type="number" step="1" class="admin-priority-input" data-id="${m.id}" value="${m.priority ?? ''}" placeholder="upload order">
+        </label>
+        <label class="admin-photo-field">
+          <span>${(m.photo_path || m.photo_url) ? 'Replace photo' : 'Add photo'}</span>
+          <input type="file" accept="image/*" class="admin-photo-input" data-id="${m.id}" data-old-path="${m.photo_path || ''}">
         </label>
         <button type="button" class="btn-second admin-delete-btn" data-id="${m.id}" data-path="${m.photo_path || ''}">Delete</button>
       </div>
@@ -542,9 +547,37 @@ async function loadTeamMembers() {
   list.querySelectorAll('.admin-priority-input').forEach(input => {
     input.addEventListener('change', () => handlePriorityChange('team_members', input.dataset.id, input.value, loadTeamMembers));
   });
+  list.querySelectorAll('.admin-photo-input').forEach(input => {
+    input.addEventListener('change', () => handleTeamPhotoChange(input.dataset.id, input.files[0], input.dataset.oldPath));
+  });
   list.querySelectorAll('.admin-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => handleTeamDelete(btn.dataset.id, btn.dataset.path));
   });
+}
+
+/** Uploads a new photo for an existing team member and points that row
+ *  at it — replaces `photo_path` (and clears any legacy `photo_url`, so
+ *  there's never ambiguity about which one is current) rather than
+ *  requiring a delete-and-republish round trip. The old file (if any) is
+ *  removed from Storage after the row update succeeds, so a failed
+ *  upload never orphans the member without a photo. */
+async function handleTeamPhotoChange(id, file, oldPath) {
+  if (!file) return;
+  const path = `${crypto.randomUUID()}-${file.name}`;
+  const { error: uploadError } = await sb.storage.from('team-photos').upload(path, file);
+  if (uploadError) {
+    alert('Photo upload failed: ' + uploadError.message);
+    return;
+  }
+
+  const { error } = await sb.from('team_members').update({ photo_path: path, photo_url: null }).eq('id', id);
+  if (error) {
+    alert('Photo uploaded, but saving it to the profile failed: ' + error.message);
+    return;
+  }
+
+  if (oldPath) await sb.storage.from('team-photos').remove([oldPath]);
+  loadTeamMembers();
 }
 
 async function handleTeamDelete(id, path) {
