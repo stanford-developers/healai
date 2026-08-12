@@ -527,14 +527,14 @@ function handleToolkitTabKeydown(e, idx) {
 
 
 /* ═════════════════════════════════════════════════════════════════════════
-   ⑥ TOOLKIT PAGE — Process tab (FURM 4-step grid)
+   ⑥ TOOLKIT PAGE — Process tab (FURM 5-step grid)
    ════════════════════════════════════════════════════════════════════════ */
 function renderProcessSteps() {
   const wrap = byId('process-steps');
   wrap.innerHTML = '';
   FURM_STEPS.forEach(s => {
-    /* Build a 4-dot visual gauge with the first `gates` dots highlighted */
-    const dots = Array.from({length: 4}, (_, i) =>
+    /* Build a dot gauge (one per step) with the first `gates` dots highlighted */
+    const dots = Array.from({length: FURM_STEPS.length}, (_, i) =>
       `<div class="d${i < s.gates ? ' on' : ''}"></div>`
     ).join('');
 
@@ -576,7 +576,7 @@ function renderVideos() {
       <div class="videos-hidden-notice">
         <div class="badge">Phase 2 · Coming soon</div>
         <h3>Training videos launch with the next release.</h3>
-        <p>A six-part series — FURM, the four-step process, stakeholder interviews,
+        <p>A six-part series — FURM, the five-step process, stakeholder interviews,
         the patient panel, writing the EOP, and adapting the process — is in
         production. Sign up for updates and we'll let you know the moment it goes live.</p>
         <div style="margin-top:24px">
@@ -676,9 +676,10 @@ function closeVideo() {
    standard items (the 8 redacted sample reports) — clicking one opens the
    in-site report-detail modal (openReportDetail()) instead of navigating
    away.
-   The "cases" category has no items[] at all — it uses cat.media instead,
-   rendered by renderCaseStudiesMedia() (featured lazy-autoplay embed +
-   talk cards + embed grid).
+   A category can have an empty items[] (e.g. "adapt", pending real
+   content) — renderResourceCategoryBlock() skips the card grid (and the
+   "How to use this section" aside, if bullets is also empty) rather than
+   rendering an empty spotlight card.
    ════════════════════════════════════════════════════════════════════════ */
 function renderToolkitResources() {
   const bar    = byId('rt-bar');
@@ -822,24 +823,25 @@ function renderResourceCategoryBlock(cat, showSubheading, idx) {
          <p class="rt-subgroup-eyebrow">${String(idx + 1).padStart(2, '0')} · ${cat.label}</p>`
     : `<div class="rt-subgroup">`;
 
-  /* 1) Intro block */
+  /* 1) Intro block — the "How to use this section" aside is skipped
+        entirely when a category has no bullets (e.g. while its items are
+        pending real content). */
   html += `
     <div class="rt-intro">
       <div>
         <h2>${cat.intro.h}</h2>
         <p>${cat.intro.p}</p>
       </div>
+      ${cat.intro.bullets.length ? `
       <aside>
         <h4>How to use this section</h4>
         <ul>${cat.intro.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
-      </aside>
+      </aside>` : ''}
     </div>`;
 
-  /* 2) Resource items — either the standard spotlight+list, or (cases
-        tab only) the featured-embed media layout. */
-  if (cat.media) {
-    html += renderCaseStudiesMedia(cat.media);
-  } else {
+  /* 2) Resource items — spotlight + divided list. Skipped entirely when a
+        category has no items yet (e.g. while pending real content). */
+  if (cat.items.length) {
     const [first, ...rest] = cat.items;
     html += '<div class="res-set">' + resourceCardHTML(first, 'spotlight');
     if (rest.length) {
@@ -919,35 +921,6 @@ function resourceCardHTML(item, variant) {
         <div class="${tagCls}">${tagText}</div>
       </div>
       ${arrow}
-    </div>`;
-}
-
-/**
- * "Case Studies & Talks" tab body: a big featured placeholder + a grid of
- * 3 smaller ones, all static "coming soon" cards — no video player. The 2
- * real talk recordings that used to anchor this tab now live in the News
- * tab's Seminar Videos feed (see SEMINAR_VIDEOS in data.js).
- */
-function renderCaseStudiesMedia(media) {
-  return `
-    <div class="cs-grid">
-      ${csPlaceholderHTML(media.featured, true)}
-      ${media.grid.map(g => csPlaceholderHTML(g, false)).join('')}
-    </div>`;
-}
-
-/** Static "coming soon" case-study card — no video, no click. Stands in
- *  for the real case-study cut until it's ready to publish; see the
- *  comment above the `cases` category's `media` in data.js. */
-function csPlaceholderHTML(v, big) {
-  return `
-    <div class="cs-placeholder${big ? ' big' : ''}">
-      <div class="cs-placeholder-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
-      <div class="cs-placeholder-meta">
-        <h4>${v.title}</h4>
-        <p>${v.desc}</p>
-        <span class="res-tag soon">• Coming soon</span>
-      </div>
     </div>`;
 }
 
@@ -2080,10 +2053,6 @@ function buildSearchIndex() {
       }
       if (cat.reports) {
         cat.reports.forEach(r => add(r.name, r.sub, 'toolkit', { tkTab: 'resources', groupId: group.id, reportCode: r.code }));
-      }
-      if (cat.media) {
-        add(cat.media.featured.title, cat.media.featured.desc, 'toolkit', { tkTab: 'resources', groupId: group.id });
-        cat.media.grid.forEach(g => add(g.title, g.desc, 'toolkit', { tkTab: 'resources', groupId: group.id }));
       }
     });
   });

@@ -15,7 +15,7 @@
    ║   §5  TOP NAVIGATION + MOBILE MENU                                    ║
    ║   §6  HERO (canvas, badges, tooltip, scroll cue)                      ║
    ║   §7  CONTENT BLOCKS — home page (about, stats, flow, signup)         ║
-   ║   §8  PROCESS PAGE (FURM card, 4-step grid, coming-soon)              ║
+   ║   §8  PROCESS PAGE (FURM card, 5-step grid, coming-soon)              ║
    ║   §9  VIDEOS (grid cards + modal player)                              ║
    ║   §10 RESOURCES (tabbed library + sample-report grid)                 ║
    ║   §11 PATIENT PANEL (split layout + accordion)                        ║
@@ -913,10 +913,10 @@ nav.topnav {
 .tk-h2 { margin-bottom: 40px; max-width: 760px; }
 .tk-panel-lede { font-size: 15px; color: var(--ink-mid); line-height: 1.7; max-width: 680px; margin-bottom: 40px; }
 
-/* 4-step grid */
+/* 5-step grid */
 .process-steps {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   margin-bottom: 72px;
 }
 .proc-step {
@@ -1392,39 +1392,6 @@ nav.topnav {
   transition: stroke var(--t-fast);
 }
 .report-row:hover svg { stroke: var(--cardinal); }
-
-
-/* ─────────────────────────────────────────────────────────────────────────
-   CASE STUDIES & TALKS TAB — static "coming soon" placeholder cards
-─────────────────────────────────────────────────────────────────────────────
-   No video player here (yet) — these are deliberately non-interactive,
-   using the same dashed-cardinal "coming soon" treatment as .res-row.soon
-   elsewhere on the Toolkit page. The 2 real talk recordings that used to
-   anchor this tab now live in the News tab's Seminar Videos feed.
-───────────────────────────────────────────────────────────────────────── */
-.cs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px;
-}
-.cs-placeholder {
-  display: flex; align-items: flex-end; gap: 14px;
-  aspect-ratio: 16 / 9;
-  padding: 18px;
-  border: 1.5px dashed var(--cardinal-light);
-  border-radius: var(--radius-lg);
-  background: var(--bg-soft);
-}
-.cs-placeholder.big { grid-column: 1 / -1; aspect-ratio: 21 / 9; }
-.cs-placeholder-icon {
-  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-  background: var(--bg); color: var(--ink-dim);
-  display: flex; align-items: center; justify-content: center;
-}
-.cs-placeholder-icon svg { width: 16px; height: 16px; fill: currentColor; }
-.cs-placeholder-meta h4 { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
-.cs-placeholder-meta p  { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; margin-bottom: 8px; }
-.cs-placeholder-meta .res-tag.soon { margin-top: 0; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2011,7 +1978,7 @@ footer {
 .hidden-footer { display: none; }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FOOTER-GLOBAL · every page but Home, modeled on hai.stanford.edu
+   FOOTER-GLOBAL · every page but Home
 ─────────────────────────────────────────────────────────────────────────────
    Two zones, matching the reference: a light "tools" zone (brand + search +
    Pause Media + our own nav links) and a dark Stanford-system bottom bar
@@ -2157,9 +2124,9 @@ footer {
   .proc-step         { border-right: 1px solid var(--line); }
   .signup-card       { grid-template-columns: 1fr; padding: 44px 32px; }
   .signup-side       { align-items: flex-start; }
-  /* Note: .reports-grid, .cs-grid, and .team-grid are NOT overridden here
-     because they use `auto-fit minmax(...)` and self-collapse — adding a
-     manual override here would fight that and reintroduce jagged wraps. */
+  /* Note: .reports-grid and .team-grid are NOT overridden here because
+     they use `auto-fit minmax(...)` and self-collapse — adding a manual
+     override here would fight that and reintroduce jagged wraps. */
 }
 
 /* ─── BREAKPOINT · ≤900px (Phone / mobile activation) ─────────────────── */

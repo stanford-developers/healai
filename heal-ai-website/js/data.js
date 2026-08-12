@@ -24,7 +24,7 @@
    ③ HOME_ABOUT ............. positioning statement + 3 pillars
    ④ STATS .................. 3 stats under the hero
    ⑤ GET_STARTED_STEPS ...... 5-card flow (Watch → Learn → Download → Adapt → Sign up)
-   ⑥ FURM_STEPS ............. 4-step process methodology
+   ⑥ FURM_STEPS ............. 5-step process methodology
    ⑦ VIDEOS ................. 6-part training series (Phase 2)
    ⑧ RESOURCE_CATEGORIES .... tabbed library, includes the 8 sample reports
    ⑧b RESOURCE_GROUPS ....... Templates/Guides/Sample Reports Level-2 tabs
@@ -73,8 +73,8 @@ const NAV_ITEMS = [
 ─────────────────────────────────────────────────────────────────────────── */
 const HERO_COPY = {
   eyebrow: 'The human layer of AI governance',
-  headline: 'Your AI governance checks the model. <em>We evaluate what happens when people use it.</em>',
-  sub: 'HEAL-AI runs structured ethical reviews of healthcare AI tools before and after they go live, talking directly to the patients, clinicians, and staff closest to them, then bringing what we hear back to the people deciding whether a tool moves forward.',
+  headline: 'Your AI governance checks the model performance. <em>We evaluate what happens when people use it.</em>',
+  sub: 'HEAL-AI runs structured ethical evaluations of healthcare AI tools before and after they are turned on by talking directly to stakeholders to surface value collisions for more informed AI deployment.',
   buttons: [
     { label: 'See the process →', action: 'page:toolkit',           variant: 'prime' },
     { label: 'Browse resources',  action: 'page:toolkit:resources', variant: 'second' },
@@ -120,7 +120,7 @@ const STATS = [
 ─────────────────────────────────────────────────────────────────────────── */
 const GET_STARTED_STEPS = [
   { n: '01', icon: 'video',    title: 'Watch the videos',
-    desc: 'A six-part training series introduces FURM, the four-step process, and patient panel facilitation.',
+    desc: 'A six-part training series introduces FURM, the five-step process, and patient panel facilitation.',
     action: 'page:videos' },
   { n: '02', icon: 'route',    title: 'Learn the process',
     desc: 'Walk through Intake → Stakeholder Interviewing → Expert Vetting → Delivery with worked examples.',
@@ -138,24 +138,27 @@ const GET_STARTED_STEPS = [
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ⑥ FURM_STEPS · the 4-step evaluation methodology
+   ⑥ FURM_STEPS · the 5-step evaluation methodology
 ─────────────────────────────────────────────────────────────────────────────
    `gates` is a small visual indicator (filled dots) showing cumulative
    progress. Keep its length aligned with the step number.
 ─────────────────────────────────────────────────────────────────────────── */
 const FURM_STEPS = [
   { n: '01', title: 'Intake',
-    desc: 'A clinical or operational sponsor submits the AI tool for review. We capture intended use, stakeholders, vendor data, and the deployment timeline.',
+    desc: 'A proposing team submits the AI tool for review. We capture background, intended use, stakeholder information and the deployment timeline.',
     gates: 1 },
-  { n: '02', title: 'Stakeholder Interviewing',
-    desc: 'Structured interviews with developers, clinical users, operational owners, and patient partners. Themes feed every downstream decision.',
+  { n: '02', title: 'Stakeholder Interviews',
+    desc: 'Structured interviews with stakeholders such as developers, clinical users, support staff, and patients.',
     gates: 2 },
-  { n: '03', title: 'Expert Vetting',
-    desc: 'Clinical informaticists, ethicists, equity researchers, and patient partners review the tool against FURM. Disagreement is surfaced, not papered over.',
+  { n: '03', title: 'Analysis',
+    desc: 'Interviews are processed and value collisions are identified.',
     gates: 3 },
-  { n: '04', title: 'Delivery',
-    desc: 'A written Ethics &amp; Operations Plan (EOP) is shared with leadership: pass, fail, or conditional approval with explicit guardrails and review intervals.',
+  { n: '04', title: 'Report Review',
+    desc: 'Experts review the report and identify gaps in our assessments that are important to surface.',
     gates: 4 },
+  { n: '05', title: 'Delivery',
+    desc: 'A written report is shared with leadership and proposing teams.',
+    gates: 5 },
 ];
 
 
@@ -232,20 +235,16 @@ const RESOURCE_CATEGORIES = [
     label: 'Understanding the Process',
     intro: {
       h: 'Start here.',
-      p: 'A complete orientation: what FURM is, why it exists, and what the four steps deliver.',
+      p: 'A complete orientation: what our process is, why it exists, and what the steps deliver.',
       bullets: ['Read the overview deck', 'Watch Videos 01–02', 'Skim the FURM whitepaper'],
     },
     items: [
-      { h: 'Overview deck',         icon: 'deck',  state: 'ready', href: '#',
-        sub: 'High-level introduction to HEAL-AI and the FURM framework.' },
+      { h: 'Overview',              icon: 'deck',  state: 'ready', href: '#',
+        sub: 'High-level introduction to HEAL-AI framework.' },
       { h: 'FURM whitepaper',       icon: 'paper', state: 'ready', href: '#',
-        sub: 'The peer-reviewed methodology paper. PDF, 18 pages.' },
-      { h: 'Glossary',              icon: 'book',  state: 'ready', href: '#',
-        sub: 'Plain-language definitions for FURM, EOP, intake, and more.' },
-      { h: 'Detailed data-collection protocol', icon: 'sheet', state: 'soon',
-        sub: 'Step-by-step protocol for arranging and conducting stakeholder data collection.' }, /* migrated from heal-ai.stanford.edu */
+        sub: 'A general process overview paper.' },
       { h: 'Step-by-step process summary', icon: 'paper', state: 'soon',
-        sub: 'A condensed walkthrough of the entire ethics assessment process, start to finish.' }, /* migrated from heal-ai.stanford.edu */
+        sub: 'A walkthrough of the entire ethics assessment process, start to finish.' }, /* migrated from heal-ai.stanford.edu */
     ],
   },
 
@@ -353,73 +352,15 @@ const RESOURCE_CATEGORIES = [
     label: 'Adapting for Your Institution',
     intro: {
       h: 'Make this process yours.',
-      p: 'Institution-level resources for governance structure, IT integration, and staffing models.',
-      bullets: ['Skim the adaptation worksheet', 'Watch Video 06', 'Read the IRB & legal review notes'],
+      p: 'Resources for structure, integration, and staffing.',
+      bullets: [],
     },
-    items: [
-      { h: 'Adaptation worksheet',         icon: 'sheet', state: 'ready', href: '#',
-        sub: 'A self-assessment to right-size the process for your institution.' },
-      { h: 'Cross-institutional briefing deck', icon: 'deck', state: 'ready', href: '#',
-        sub: 'For securing executive sponsorship at your health system.' },
-      { h: 'IRB &amp; legal review notes', icon: 'paper', state: 'ready', href: '#',
-        sub: 'How Stanford routed this through governance, translatable to other institutions.' },
-      { h: "Project tracking sheet (full process)", icon: 'sheet', state: 'soon',
-        sub: "Project manager's sheet for tracking progress across the entire ethics assessment process." }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Process-improvement metrics', icon: 'sheet', state: 'ready',
-        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/metrics_for_assessing_the_usefulness_of_the_ethical_assessment_process.docx',
-        sub: 'Metrics for assessing the usefulness of the ethical assessment process.' }, /* migrated from heal-ai.stanford.edu */
-    ],
-  },
-
-  /* ─ Tab 6 ─ Case Studies & Talks ─────────────────────────────────────
-       New tab (not in the original boilerplate) added specifically to
-       hold real recorded case studies and talks migrated from
-       heal-ai.stanford.edu/resources. Kept separate from the VIDEOS array
-       above: VIDEOS is the still-unproduced 6-part training curriculum
-       (Phase 2, gated by SHOW_VIDEOS) — these are different, already-
-       published recordings, so folding them into VIDEOS would misrepresent
-       both.
-
-       SHAPE — this tab uses `media` instead of a flat `items[]` because it
-       has two visual treatments (see renderCaseStudiesMedia in app.js):
-         • media.featured → one big placeholder card.
-         • media.grid     → the remaining case-study placeholders, same
-           treatment, smaller.
-       Both currently render as static "coming soon" cards, not video
-       players — see the PLACEHOLDER comment right above `media` below.
-       The 2 conference-talk recordings that used to live here as
-       `media.talks` moved to the News tab's Seminar Videos feed
-       (SEMINAR_VIDEOS) since those are real, already-published recordings.
-     ─────────────────────────────────────────────────────────────────── */
-  {
-    id: 'cases',
-    icon: 'briefcase',
-    label: 'Case Studies &amp; Talks',
-    intro: {
-      h: 'See the framework applied.',
-      p: "Recorded case studies where HEAL-AI's directors walk through real value collisions, workflow barriers, and the assessment process itself.",
-      bullets: ['Start with the case studies'],
-    },
-    /* Coming soon — renderCaseStudiesMedia() (app.js) shows these as static,
-       non-clickable cards (no video player) until the real case-study cuts
-       are ready to publish. The 2 real talk recordings that used to live
-       here (Char/Mello's CHAI Summit talk + the Stanford HAI workshop talk)
-       moved to the News tab's Seminar Videos feed — see SEMINAR_VIDEOS
-       below. */
-    media: {
-      featured: {
-        title: "Unmasking AI's ethical fault lines",
-        desc: "Case study 1: Stanford Medicine's battle with value collisions in mortality prediction tools.",
-      },
-      grid: [
-        { title: 'Beyond accuracy: autonomous AI in trial',
-          desc: "Case study 2: Stanford's frontier trial of autonomous AI confronts equity, bias, and care bottlenecks." },
-        { title: 'Workflow issues as deployment barriers',
-          desc: 'Case study 3: why workflow issues are often critical barriers to AI implementation.' },
-        { title: 'Lessons learned from the frontlines',
-          desc: 'Case study 4: recurring system-level issues to address before deploying AI in healthcare.' },
-      ],
-    },
+    /* Empty on purpose — every item that used to live here (adaptation
+       worksheet, briefing deck, IRB notes, tracking sheet, metrics) has
+       been pulled pending real replacement content. renderResourceCategoryBlock()
+       (app.js) skips the card grid entirely when `items` is empty, so this
+       tab shows just the intro block above until items are added back. */
+    items: [],
   },
 ];
 
@@ -442,7 +383,7 @@ const RESOURCE_GROUPS = [
   { id: 'templates', icon: 'deck',  label: 'Templates',
     categoryIds: ['interviews', 'panel'] },
   { id: 'guides',    icon: 'book',  label: 'Guides',
-    categoryIds: ['understand', 'adapt', 'cases'] },
+    categoryIds: ['understand', 'adapt'] },
   { id: 'reports',   icon: 'paper', label: 'Sample Reports',
     categoryIds: ['reports'] },
 ];
@@ -794,8 +735,8 @@ const SEMINAR_VIDEOS = [
     venue: 'PLACEHOLDER — venue',
     desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
     link: '#' },
-  /* Moved here from the Toolkit → Resources → Case Studies & Talks section
-     (were `media.talks` there). Exact day-of-month wasn't recorded at the
+  /* These 2 were originally in the Toolkit's "Case Studies & Talks"
+     category (since removed). Exact day-of-month wasn't recorded at the
      source, only "June 2025" — the dates below are nominal placeholders
      within that month; fix if you have the real dates. */
   { date: '2025-06-12',
