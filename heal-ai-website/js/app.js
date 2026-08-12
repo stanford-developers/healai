@@ -1276,25 +1276,35 @@ async function getPublicTeamMembers() {
   if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return [];
   try {
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data, error } = await sb.from('team_members').select('*');
+    const { data, error } = await sb.from('team_members').select('*').order('created_at', { ascending: false });
     if (error || !data) return [];
     return data.map(m => ({
       name: m.name, role: m.role, badge: m.badge, priority: m.priority,
       profile: m.profile_url || '',
-      photo: m.photo_path ? sb.storage.from('team-photos').getPublicUrl(m.photo_path).data.publicUrl : '',
+      /* `photo_url` (a plain URL/relative path — used by the original 7,
+         see /supabase/team_migration.sql) wins over `photo_path` (a file
+         actually uploaded to the team-photos Storage bucket via the
+         admin form) when a row somehow has both. */
+      photo: m.photo_url || (m.photo_path ? sb.storage.from('team-photos').getPublicUrl(m.photo_path).data.publicUrl : ''),
     }));
   } catch {
     return [];
   }
 }
 
-/** Paints the static TEAM immediately, then swaps in the TEAM + admin-
- *  published merge once that fetch resolves — same "paint fast, then
- *  upgrade" rule as News and Sample Reports. */
+/**
+ * Paints the static TEAM immediately (fast first paint, and the fallback
+ * if Supabase is unreachable), then replaces it with whatever
+ * team_members actually has once that fetch resolves. Unlike News/Sample
+ * Reports, this REPLACES rather than merges — team_members is meant to
+ * be the single source of truth for the whole roster (see
+ * /supabase/team_migration.sql, which migrated the original 7 in as real
+ * rows); TEAM in data.js is kept around purely as an outage fallback.
+ */
 async function initTeamFeature() {
   renderTeam(TEAM);
   const uploaded = await getPublicTeamMembers();
-  if (uploaded.length) renderTeam(prioritySort([...TEAM, ...uploaded]));
+  if (uploaded.length) renderTeam(prioritySort(uploaded));
 }
 
 /**
