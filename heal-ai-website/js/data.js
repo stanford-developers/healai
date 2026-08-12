@@ -255,7 +255,7 @@ const RESOURCE_CATEGORIES = [
     label: 'Running Stakeholder Interviews',
     intro: {
       h: 'Get usable signal from developers, users, and owners.',
-      p: 'Question banks, scheduling templates, and thematic-analysis scaffolds that turn one-hour interviews into evaluation evidence.',
+      p: 'Question banks, scheduling templates, and thematic-analysis scaffolds to help with interviews and data evaluation.',
       bullets: ['Pull the interview guides', 'Use the thematic template', 'Pair with Video 03'],
     },
     items: [
@@ -553,28 +553,28 @@ const PLAYBOOK_SECTIONS = [
     id: 'ethics-team',
     n: '01',
     h: 'Ethics Team Process',
-    summary: 'How the ethics team turns stakeholder interviews and patient-partner input into a single Ethics &amp; Operations Plan.',
+    summary: 'How the ethics team turns stakeholder interviews and patient-partner input into a single Ethics report.',
     subitems: [
-      { h: 'Coordinating the Patient Partner Panel',
-        body: 'The ethics team schedules and staffs each patient-partner focus group, distributes a plain-language tool summary in advance, and assigns a moderator and scribe so patient input is captured consistently across every session.' },
+      { h: 'Conducting Stakeholder Interviews',
+        body: 'The ethics team schedules and staffs each stakeholder interview, distributing a plain-language tool summary in advance.' },
       { h: 'Running the data-analysis review',
-        body: 'Interview and focus-group transcripts are coded and reviewed together against the FURM framework (fair, useful, and reliable), with disagreement among reviewers surfaced explicitly rather than resolved by a single author.' },
+        body: 'Interview transcripts are coded and reviewed, with value collisions identified for each AI use case.' },
       { h: 'Drafting the Ethics &amp; Operations Plan',
-        body: 'Findings are synthesized into a written EOP recommending pass, fail, or conditional approval, with explicit guardrails and a review interval, before it is shared with clinical and operational leadership.' },
+        body: 'Findings are synthesized into written recommendations, and are subsequently shared with clinical and operational leadership.' },
     ],
   },
   {
     id: 'program-admin',
     n: '02',
     h: 'Program Administration',
-    summary: 'The scheduling, documentation, and tracking work that keeps every evaluation moving on time. Program management, not clinical or ethical judgment.',
+    summary: 'The scheduling, documentation, and tracking work that keeps every evaluation moving on time.',
     subitems: [
       { h: 'Scheduling &amp; calendar coordination',
-        body: 'Booking interview slots with developers, clinicians, and patient partners; holding recurring team meetings; and tracking the timeline for each tool from intake through delivery.' },
+        body: 'Booking interview slots with stakeholders; holding recurring team meetings; and tracking the timeline for each tool from intake through delivery.' },
       { h: 'Documentation &amp; recordkeeping',
         body: 'Filing consent forms and compensation paperwork, archiving interview transcripts, and keeping the intake log current as tools move between stages.' },
       { h: 'Cross-team coordination',
-        body: 'Acting as the point of contact between the ethics team, IT/data stewards, and the patient panel, chasing down vendor documentation and confirming meeting logistics so reviewers can focus on the assessment itself.' },
+        body: 'Acting as the point of contact between the ethics team, data stewards, and the patient panel, and confirming meeting logistics so reviewers can focus on the assessment itself.' },
     ],
   },
 ];
@@ -584,9 +584,7 @@ const PLAYBOOK_SECTIONS = [
 const PLAYBOOK_CONSIDERATIONS = [
   'Whose interests are represented in the room, and whose are missing?',
   'What would change our recommendation, and have we actually tested for it?',
-  'Is the burden of catching this tool&rsquo;s errors falling on the people best equipped to catch them?',
-  'Does the benefit outweigh the risk for every patient subgroup, not just on average?',
-  'What guardrails and review interval make a conditional approval meaningful rather than a formality?',
+  'What guardrails and review interval make turning on the model meaningful?',
 ];
 
 
