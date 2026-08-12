@@ -312,15 +312,13 @@ const RESOURCE_CATEGORIES = [
     icon: 'paper',
     label: 'Writing &amp; Delivering Your Report',
     intro: {
-      h: 'The Ethics &amp; Operations Plan, end-to-end.',
-      p: 'A blank EOP template plus eight redacted sample reports from real evaluations at Stanford Health Care.',
-      bullets: ['Use the EOP template', 'Reference the sample reports', 'Pair with Video 05'],
+      h: 'The Report, end-to-end.',
+      p: 'A template plus sample reports from evaluations at Stanford Health Care.',
+      bullets: ['Use the template', 'Reference the sample reports', 'Pair with Video 05'],
     },
     items: [
-      { h: 'EOP template',          icon: 'paper', state: 'ready', href: '#',
-        sub: 'Blank Ethics &amp; Operations Plan, in Word and Markdown.' },
-      { h: 'Cover-letter template', icon: 'mail',  state: 'ready', href: '#',
-        sub: 'For sharing the EOP with clinical and operational leadership.' },
+      { h: 'EOP template', icon: 'paper', state: 'ready', href: '#',
+        sub: 'Blank Report Template' },
     ],
     /* The 8 SAMPLE REPORTS — required by spec. Names, order, and hrefs
        migrated from heal-ai.stanford.edu/resources (Ethics Assessment
@@ -355,12 +353,14 @@ const RESOURCE_CATEGORIES = [
       p: 'Resources for structure, integration, and staffing.',
       bullets: [],
     },
-    /* Empty on purpose — every item that used to live here (adaptation
-       worksheet, briefing deck, IRB notes, tracking sheet, metrics) has
-       been pulled pending real replacement content. renderResourceCategoryBlock()
-       (app.js) skips the card grid entirely when `items` is empty, so this
-       tab shows just the intro block above until items are added back. */
-    items: [],
+    /* The other 4 items that used to live here (briefing deck, IRB notes,
+       tracking sheet, metrics) have been pulled pending real replacement
+       content — this is the one survivor, renamed from "Adaptation
+       worksheet". */
+    items: [
+      { h: 'Suggestions on how to scale this process', icon: 'sheet', state: 'ready', href: '#',
+        sub: 'A self-assessment to right-size the process for your institution.' },
+    ],
   },
 ];
 
@@ -515,26 +515,26 @@ const PP_STANFORD_LIST = [
   { n: '1', h: 'Recruitment from existing patient networks',
     body: "We partner with Stanford Health Care's patient advisory council and community health programs." },
   { n: '2', h: 'Fundamentals training',
-    body: 'Eight-hour curriculum covering clinical AI basics, FURM, ethics review, and facilitation norms.' },
+    body: 'Training curriculum covering clinical AI basics, FURM, ethics review, and facilitation norms.' },
   { n: '3', h: 'Tool-by-tool focus groups',
-    body: 'Moderated 90-minute sessions per tool, with structured guides and follow-up written input.' },
+    body: 'Moderated sessions per tool and follow-up written input.' },
   { n: '4', h: 'Compensation &amp; sustaining engagement',
-    body: 'Patients are compensated for their time; we hold quarterly community-of-practice meetings.' },
+    body: 'Patients are compensated for their time; we send them monthly newsletter updates.' },
 ];
 
 const PP_EXTERNAL = [
   { h: 'Recruitment',
-    body: 'Start with the patient advisory groups you already have. Compensated, time-bounded engagement is easier to staff than open-ended advisory roles. Aim for racial, linguistic, and clinical diversity from day one, not after the first cohort.' },
+    body: 'Start with the patient advisory groups you already have. Aim for a broad range of perspectives for your first cohort.' },
   { h: 'Training',
-    body: 'An 8-hour fundamentals curriculum is the sweet spot. Cover: how AI is used in care, FURM basics, ethics-review vocabulary, and facilitation norms (turn-taking, dissent, paraphrasing). Open-source slides ship with the Playbook.' },
+    body: 'Kick off your first meeting with a crash course on the fundamentals. Cover: how AI is used in care, FURM basics, ethics-review vocabulary, and details on the process.' },
   { h: 'Facilitation',
-    body: '90-minute focus groups, one tool at a time, with a trained moderator and a scribe. Always provide a one-pager on the tool in plain language 5 days in advance. Always close with written follow-up so quiet voices reach the record.' },
+    body: 'Focus groups, one tool at a time, with a moderator and a scribe. Always provide a one-pager on the tool in plain language in advance.' },
   { h: 'Compensation',
-    body: 'Compensate at a rate that signals respect, not the institutional minimum. Stanford pays per-meeting and per-deliverable. Build the compensation line into your evaluation program budget from the start; do not run it through volunteer overhead.' },
+    body: 'Compensate at a rate that signals respect for their time and input. Build the compensation line into your evaluation program budget early on.' },
   { h: 'Scaling down',
-    body: "Smaller institutions can run a 4-person panel and a single annual cohort. The trade-off is throughput, not legitimacy: small panels work as long as recruitment is genuinely diverse and the facilitator is trained. Don't dilute the standard." },
+    body: 'Smaller institutions can run a smaller panel. The trade-off is throughput: small panels work if recruitment is genuinely diverse.' },
   { h: 'Sustaining the program',
-    body: 'Hold quarterly community-of-practice meetings even when no tools are under review. Sustained engagement is what makes the third year of a panel valuable: partners build vocabulary, trust, and institutional memory you cannot buy.' },
+    body: 'Sustained engagement is what makes the panel valuable: partners build vocabulary, trust, and institutional memory by feeling connected to the process.' },
 ];
 
 
@@ -667,10 +667,8 @@ const TEAM = [
    ⑫ ABOUT_CARDS · two large cards on the About page
 ─────────────────────────────────────────────────────────────────────────── */
 const ABOUT_CARDS = [
-  { h: 'How we got here',
-    p: 'HEAL-AI was founded in 2022 after a Stanford internal audit revealed that several AI tools had been deployed across clinical divisions under inconsistent approval processes, none with formal patient input. We were built to close that gap.' },
   { h: 'What we believe',
-    p: 'Ethics review cannot be left to individual departments. A centralized, transparent, patient-inclusive process is not optional. It is the only way clinical AI earns genuine trust. HEAL-AI provides that process, and now shares it openly.' },
+    p: 'A transparent, patient-inclusive ethics review is an important part of the AI governance process. It is the only way clinical AI can be deployed ensuring the patient voices are heard. HEAL-AI provides that process, identifying the collision in values and sharing these findings with all key stakeholders.' },
 ];
 
 

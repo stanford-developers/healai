@@ -1574,7 +1574,10 @@ nav.topnav {
 /* ═══════════════════════════════════════════════════════════════════════
    §13 · ABOUT
    ─────────────────────────────────────────────────────────────────────── */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 44px; }
+/* auto-fit rather than a fixed 1fr 1fr — ABOUT_CARDS (data.js) can be down
+   to a single card, and this keeps that card full-width instead of
+   leaving a dead second column, same pattern as .team-grid/.reports-grid. */
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; margin-bottom: 44px; }
 .white-card {
   padding: 28px;
   background: var(--bg);
