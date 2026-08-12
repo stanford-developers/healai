@@ -1604,6 +1604,11 @@ nav.topnav {
    a small breathing gap driven by .team-h2 margin. */
 .section-team { padding-top: 0; }
 #page-about .section:has(+ .section-team) { padding-bottom: 24px; }
+/* That first section now holds just the single "What we believe" card
+   (since "How we got here" was removed) — the default 96px top padding,
+   stacked on .page-header's own 56px bottom padding, left an oversized
+   gap under the H1 for how little content follows it. */
+#page-about .section:first-of-type { padding-top: 48px; }
 .section-team .eyebrow,
 .section-partners .eyebrow {
   font-size: 13px;
