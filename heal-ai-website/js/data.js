@@ -585,6 +585,7 @@ const PLAYBOOK_CONSIDERATIONS = [
   'Whose interests are represented in the room, and whose are missing?',
   'What would change our recommendation, and have we actually tested for it?',
   'What guardrails and review interval make turning on the model meaningful?',
+  'Question banks, scheduling templates, and thematic-analysis scaffolds to help with interviews and data evaluation.',
 ];
 
 
