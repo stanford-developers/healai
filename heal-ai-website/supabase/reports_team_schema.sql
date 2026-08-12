@@ -176,5 +176,11 @@ begin
   end if;
 end $$;
 
+-- `not valid` on purpose: if you happen to have old 'template'/'guide' rows
+-- from before this migration, this skips validating them against the new
+-- list instead of failing the whole migration. Those old rows just won't
+-- match any current Resource category (so they stay invisible on the
+-- public site) until you delete them from the admin dashboard or update
+-- their category by hand — nothing is silently deleted for you here.
 alter table public.resources add constraint resources_category_check
-  check (category in ('interviews', 'panel', 'understand', 'adapt'));
+  check (category in ('interviews', 'panel', 'understand', 'adapt')) not valid;
