@@ -2240,3 +2240,90 @@ footer :focus-visible {
 }
 
 
+/* ═══════════════════════════════════════════════════════════════════════
+   §17 · PRINT
+   ───────────────────────────────────────────────────────────────────────
+   WHY this exists: every "page" is `position: fixed; inset: 0` (see .page
+   above) so the JS router can instantly swap between tabs — great on
+   screen, but browsers' print/PDF engines generally only paginate content
+   that's in normal document flow. Combined with the hero's full-viewport
+   canvas background and a scroll-spacer element whose HEIGHT IS SET
+   INLINE BY JS (initHeroScrollIntro() in app.js, to `calc(100vh + 560px)`
+   — hundreds of pixels taller than any content), printing without this
+   section produces exactly the blank-page symptom this fixes.
+
+   APPROACH: print exactly what's currently on screen (the active .page,
+   whichever Toolkit/Resources tab is open, etc.) — not a dump of every
+   tab's content — but force it into normal flow so the browser can
+   actually paginate it, and strip UI that means nothing on paper (nav,
+   canvases, buttons, modals, search).
+   ─────────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Chrome that only makes sense on a screen with a mouse/scroll */
+  #loader,
+  nav.topnav,
+  .mobile-menu,
+  .scroll-cue,
+  .hero-intro,
+  #human-canvas,
+  #hero-canvas,
+  #video-modal,
+  #report-modal,
+  .fg-search,
+  .fg-pause,
+  .foot-pause,
+  .btn-cta,
+  .btn-prime,
+  .btn-second {
+    display: none !important;
+  }
+
+  html, body { overflow: visible !important; height: auto !important; }
+
+  /* Only the active page prints, in normal flow instead of a fixed
+     full-viewport overlay — this alone fixes most of the blank-page
+     symptom, since .page's default position:fixed is what the print
+     engine was failing to paginate. */
+  .page:not(.active) { display: none !important; }
+  .page {
+    position: static !important;
+    inset: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Hero: skip the scroll-linked intro entirely and print the settled
+     compact hero directly — --hero-in:1 forces .hero-content (normally
+     opacity:0 until scrolled) fully visible. .hero-scroll-track's height
+     is set INLINE by JS to comfortably more than 100vh purely so
+     position:sticky has room to animate on screen; that's meaningless
+     once .hero itself is static, and left alone would print several
+     blank pages before the real content. */
+  .hero-scroll-track { height: auto !important; }
+  .hero {
+    position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
+    --hero-progress: 1;
+    --hero-out: 1;
+    --hero-in: 1;
+  }
+  .hero-content {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+
+  /* Don't split a card/row across a page break where avoidable */
+  .proc-step, .pb-acc-item, .about-bullet, .stat, .pp-acc-item,
+  .rt-subgroup, .res-row, .res-spotlight, .report-row {
+    break-inside: avoid-page;
+    page-break-inside: avoid;   /* fallback for engines without break-inside support */
+  }
+
+  a { color: var(--ink) !important; text-decoration: underline; }
+}
+
+
