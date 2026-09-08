@@ -3,7 +3,7 @@
 Website and supporting documents for the Stanford HEAL-AI Lab (Health AI Evaluation).
 
 **Live site:** https://heal-ai-website.vercel.app
-**GitHub Pages mirror:** https://shai-yaan.github.io/heal-ai/
+**GitHub Pages mirror:** Not launched due to Org Restrictions
 
 ## Structure
 
