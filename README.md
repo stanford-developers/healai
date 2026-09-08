@@ -19,6 +19,11 @@ directly from the `main` branch without a build step.
 - `assets/` — images, logos, staff photos
 - `supabase/` — database schema and RLS policies (run in the Supabase SQL Editor)
 - `.nojekyll` — tells GitHub Pages to serve files as-is, without Jekyll processing
+- `.vercelignore` — repo files that must NOT be served (internal PDFs, `supabase/`).
+  Needed because the deploy root is now the repo root: anything not listed
+  there is publicly fetchable. Note this covers Vercel only — GitHub Pages
+  ignores it and would publish those files, so exclude them there too before
+  enabling Pages.
 - `HEAL AI Website Org Plan.docx.pdf` — site organization/planning doc
 - `HEAL-AI_Master_Landscape_Report Final.docx.pdf` — landscape report
 
