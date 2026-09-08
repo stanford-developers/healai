@@ -25,23 +25,23 @@
 --   working; drop it if you never build one.
 
 -- ── Replace the public SELECT policy ─────────────────────────────────────
+--
+-- SUPERSEDED: this file's original policy also granted admins read access
+-- to every row, via an `exists` subquery against `profiles` from inside a
+-- `profiles` policy. That recurses — Postgres enforces RLS on the subquery
+-- too, so the read fails with 42P17 and admin login breaks. See
+-- fix_profiles_rls_recursion.sql for the diagnosis and the correct pattern
+-- (a security definer function) if admin-read-all is ever needed.
+--
+-- The policy below is the corrected one: own row only, no self-reference.
+-- It is all the site needs — admin.js reads only its own row, and the
+-- admin checks on the other tables read the signed-in admin's own row.
 drop policy if exists "profiles are publicly readable" on public.profiles;
+drop policy if exists "users read own profile, admins read all" on public.profiles;
 
-create policy "users read own profile, admins read all"
+create policy "users read own profile"
   on public.profiles for select
-  using (
-    auth.uid() = id
-    or exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.is_admin = true
-    )
-  );
-
--- Note on the self-reference: the `exists` subquery reads `profiles` from
--- inside a `profiles` policy. Postgres does not re-apply the policy to a
--- subquery inside that same policy's expression, so this does not recurse.
--- The `p` alias is required — without it the subquery's `id` binds to the
--- outer row and every row matches.
+  using (auth.uid() = id);
 
 
 -- ── Pin the search_path on the signup trigger ────────────────────────────
