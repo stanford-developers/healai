@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#
+# Deploy to Vercel production whenever `main` is pushed.
+#
+# WHY THIS EXISTS
+#   Vercel's git integration for this project is broken: the project's link
+#   points at `shai-yaan/heal-ai`, the path from before the repo moved to
+#   `stanford-developers`. Vercel's GitHub App has no access to that
+#   SAML-enforced org (the API returns repo_not_found when asked to relink),
+#   so no push webhook ever reaches Vercel and nothing auto-deploys.
+#
+#   Restoring the real integration needs an org owner to authorize Vercel's
+#   GitHub App for `stanford-developers`. Until that happens, this hook
+#   covers the gap locally so the live site can't silently go stale.
+#
+# SCOPE — what this does NOT cover
+#   Only pushes from this working copy trigger a deploy. A commit made in
+#   the GitHub web UI, or a push from another machine or collaborator, will
+#   NOT deploy. That gap can only be closed by the org-owner fix above.
+#
+# ORDERING
+#   git has no post-push hook, so this runs just before the push. It
+#   publishes the exact commits being pushed, which is the intent. If the
+#   push is then rejected (e.g. the remote moved ahead), the deploy has
+#   already happened — rebase and push again, which redeploys. It never
+#   blocks the push: a failed deploy warns and lets the push proceed, so a
+#   Vercel outage can't strand your commits locally.
+#
+# ESCAPE HATCH
+#   git push --no-verify        # skip the deploy for this push
+#   HEAL_AI_SKIP_DEPLOY=1 git push
+#
+# INSTALL (already configured, recorded here for a fresh clone)
+#   git config core.hooksPath .githooks
+
+set -uo pipefail
+
+readonly BRANCH="refs/heads/main"
+
+if [ "${HEAL_AI_SKIP_DEPLOY:-}" = "1" ]; then
+  echo "pre-push: HEAL_AI_SKIP_DEPLOY=1 set, skipping Vercel deploy."
+  exit 0
+fi
+
+# stdin gives one line per ref being pushed:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# A local sha of all zeros means the ref is being deleted — never deploy then.
+pushing_main=0
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  [ "$remote_ref" = "$BRANCH" ] || continue
+  case "$local_sha" in
+    *[!0]*) pushing_main=1 ;;   # has a non-zero char, so it's a real commit
+  esac
+done
+
+if [ "$pushing_main" -ne 1 ]; then
+  exit 0
+fi
+
+# Homebrew paths: hooks don't inherit an interactive shell's PATH.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+if ! command -v vercel >/dev/null 2>&1; then
+  echo "pre-push: WARNING - vercel CLI not found, skipping deploy." >&2
+  echo "pre-push: install with 'brew install vercel-cli', then run 'vercel --prod' by hand." >&2
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+echo "pre-push: deploying $(git rev-parse --short HEAD) to Vercel production…"
+
+# --yes skips the interactive project prompts; the project is already linked
+# via .vercel/project.json. Deploys from the repo root, which is the site
+# root now, with .vercelignore keeping internal docs out.
+if (cd "$repo_root" && vercel --prod --yes >/tmp/heal-ai-deploy.log 2>&1); then
+  url="$(grep -Eo 'https://[a-z0-9.-]*vercel\.app' /tmp/heal-ai-deploy.log | tail -1)"
+  echo "pre-push: deployed. ${url:-see /tmp/heal-ai-deploy.log}"
+  echo "pre-push: live at https://heal-ai-website.vercel.app"
+else
+  echo "pre-push: WARNING - deploy failed, push continues anyway." >&2
+  tail -15 /tmp/heal-ai-deploy.log >&2
+  echo "pre-push: full log at /tmp/heal-ai-deploy.log — rerun with 'vercel --prod'." >&2
+fi
+
+exit 0

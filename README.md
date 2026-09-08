@@ -39,10 +39,32 @@ Then open http://localhost:5178.
 
 ## Deploying
 
-Two deploy targets, both serving from the repository root:
+Production is Vercel, serving from the repository root:
+https://heal-ai-website.vercel.app
 
-- **GitHub Pages** — deploys automatically on every push to `main`.
-- **Vercel** — `vercel --prod` from the repository root.
+**Pushing to GitHub does not deploy on its own.** Vercel's git integration
+for this project is broken — its link points at `shai-yaan/heal-ai`, the path
+from before the repo moved into `stanford-developers`, and Vercel's GitHub App
+has no access to that SAML-enforced org (the API answers `repo_not_found`).
+Fixing it properly needs an org owner to authorize the Vercel GitHub App.
 
-Routing is hash-based (`#toolkit`, `#about`), so both hosts serve deep links
-and page refreshes correctly even from a subpath like `/heal-ai/`.
+Until then a committed `pre-push` hook covers the gap: pushing `main` from a
+clone with the hook installed deploys automatically. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+To deploy by hand, or after a commit made outside this working copy:
+
+```bash
+vercel --prod
+```
+
+Caveats worth knowing:
+
+- The hook only fires for pushes **from your machine**. A commit made in the
+  GitHub web UI, or pushed by a collaborator, will not deploy.
+- Skip it for a docs-only push with `git push --no-verify`.
+- Routing is hash-based (`#toolkit`, `#about`), so deep links and refreshes
+  work on any static host, including from a subpath like `/heal-ai/`.
