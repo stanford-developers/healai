@@ -1,6 +1,6 @@
 /* ╔═══════════════════════════════════════════════════════════════════════╗
    ║  HEAL-AI · css/style.css                                              ║
-   ║  Stanford Medicine — Health AI Evaluation Lab                         ║
+   ║  Stanford Health Care — Health AI Evaluation Lab                         ║
    ╠═══════════════════════════════════════════════════════════════════════╣
    ║                                                                       ║
    ║  TABLE OF CONTENTS                                                    ║
@@ -919,11 +919,15 @@ nav.topnav {
   grid-template-columns: repeat(5, 1fr);
   margin-bottom: 72px;
 }
+/* Flex column so .dotrow can be pushed to the card's bottom edge — the cards
+   stretch to equal height, so the dot gauges line up across the row no matter
+   how long each step's description runs. */
 .proc-step {
   padding: 36px 30px;
   border: 1px solid var(--line); border-right: none;
   background: var(--bg);
   position: relative;
+  display: flex; flex-direction: column;
   transition: background var(--t-fast);
 }
 .proc-step:last-child { border-right: 1px solid var(--line); }
@@ -937,7 +941,7 @@ nav.topnav {
   margin-bottom: 12px;
 }
 .proc-step p { font-size: 13.5px; color: var(--ink-mid); line-height: 1.65; }
-.proc-step .dotrow { display: flex; align-items: center; gap: 6px; margin-top: 18px; }
+.proc-step .dotrow { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 18px; }
 .proc-step .dotrow .d {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--line-strong);
@@ -1438,9 +1442,11 @@ nav.topnav {
 }
 .pp-side > p { font-size: 14.5px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 28px; }
 
+/* Columns follow however many stats PP_STATS holds, so removing one doesn't
+   leave an empty cell. */
 .pp-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 14px;
   margin-bottom: 32px;
 }
@@ -2185,7 +2191,7 @@ footer {
   .fg-nav            { gap: 32px; padding: 0 24px 32px; padding-top: 28px; }
   .fg-bottom         { padding: 20px 24px; }
 
-  .pp-stats          { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pp-stats          { gap: 8px; }
   .pp-stat           { padding: 12px; }
   .pp-stat .n        { font-size: 24px; }
 }

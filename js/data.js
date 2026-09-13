@@ -27,7 +27,7 @@
    ⑥ FURM_STEPS ............. 5-step process methodology
    ⑦ VIDEOS ................. 6-part training series (Phase 2)
    ⑧ RESOURCE_CATEGORIES .... tabbed library, includes the 8 sample reports
-   ⑧b RESOURCE_GROUPS ....... Templates/Guides/Sample Reports Level-2 tabs
+   ⑧b RESOURCE_GROUPS ....... Templates/Sample Reports Level-2 tabs
    ⑨ PP_STATS / PP_STANFORD / PP_EXTERNAL  ... patient partner panel content
    ⑩ PLAYBOOK_SECTIONS ...... 2-part internal process accordion + considerations
    ⑪ (removed — team roster now lives entirely in Supabase's team_members table)
@@ -73,8 +73,8 @@ const NAV_ITEMS = [
 ─────────────────────────────────────────────────────────────────────────── */
 const HERO_COPY = {
   eyebrow: 'The human layer of AI governance',
-  headline: 'Your AI governance checks the model performance. <em>We evaluate what happens when people use it.</em>',
-  sub: 'HEAL-AI runs structured ethical evaluations of healthcare AI tools before and after they are turned on by talking directly to stakeholders to surface value collisions for more informed AI deployment.',
+  headline: 'Your AI governance focuses on the model. <em>We spot problems that arise when people use it.</em>',
+  sub: 'The HEAL-AI Lab provides resources for healthcare organizations to do fast but robust ethical review of AI tools focusing on the issues that matter most to patients and staff.',
   buttons: [
     { label: 'See the process →', action: 'page:toolkit',           variant: 'prime' },
     { label: 'Browse resources',  action: 'page:toolkit:resources', variant: 'second' },
@@ -89,12 +89,12 @@ const HERO_COPY = {
    `bullets` accepts any number of pillar cards — the layout flexes.
 ─────────────────────────────────────────────────────────────────────────── */
 const HOME_ABOUT = {
-  statement: "Workflow friction. Value collisions. Gaps between what people were promised and what they experience. None of it shows up in a monitoring dashboard, <em>it shows up when we talk to the people closest to the tool.</em> Our process sits alongside the AI governance you already have, and ends in a clear call: move forward, change it, pause it, or decline.",
+  statement: "Workflow friction. Conflicting values. Gaps between good intentions and what's likely to happen in practice. None of it shows up in a monitoring dashboard, <em>it shows up when we talk to the people closest to the tool.</em> Our process sits alongside the AI governance you already have, to help you to make the call: move forward, modify plans, or decline.",
   bullets: [
     { title: 'Fair, Useful, Reliable',
-      body: "Grounded in Stanford's FURM framework, peer-reviewed and evidence-based." },
-    { title: 'Patient-included',
-      body: 'Structured patient-partner input is foundational, not a checkbox.' },
+      body: 'Broader AI governance process, known as FURM.' },
+    { title: 'Inclusive of Patients',
+      body: 'Train and engage patients to help assess uses of AI.' },
     { title: 'Adaptable',
       body: 'Templates &amp; playbook designed for cross-institutional use.' },
   ],
@@ -104,8 +104,13 @@ const HOME_ABOUT = {
 /* ─────────────────────────────────────────────────────────────────────────
    ④ STATS · the 3-stat band beneath the hero
 ─────────────────────────────────────────────────────────────────────────── */
+/* Single source of truth for the count of AI tools evaluated — shown on the
+   home page stats band and again as "Tools reviewed" on the patient page.
+   Update it here and both places stay in sync. */
+const TOOLS_EVALUATED = '20+';
+
 const STATS = [
-  { n: '12+',  label: 'AI tools evaluated across <strong>Stanford Health Care</strong>' },
+  { n: TOOLS_EVALUATED,  label: 'AI tools evaluated across <strong>Stanford Health Care</strong>' },
   { n: '100%', label: 'of evaluations include <strong>structured patient input</strong>' },
   { n: '8',    label: '<strong>redacted sample reports</strong> in the resource library' },
 ];
@@ -120,19 +125,19 @@ const STATS = [
 ─────────────────────────────────────────────────────────────────────────── */
 const GET_STARTED_STEPS = [
   { n: '01', icon: 'video',    title: 'Watch the videos',
-    desc: 'A six-part training series introduces FURM, the five-step process, and patient panel facilitation.',
+    desc: 'A six-part training series introduces FURM, the ethics assessment process, and patient panel facilitation.',
     action: 'page:videos' },
   { n: '02', icon: 'route',    title: 'Learn the process',
     desc: 'Walk through Intake → Stakeholder Interviewing → Expert Vetting → Delivery with worked examples.',
     action: 'page:toolkit' },
   { n: '03', icon: 'download', title: 'Download resources',
-    desc: 'Templates, interview guides, focus-group materials, and eight redacted sample reports.',
+    desc: 'Templates, interview guides, focus-group materials, and redacted sample reports.',
     action: 'page:toolkit:resources' },
-  { n: '04', icon: 'book',     title: 'Adapt the playbook',
-    desc: 'Use the playbook to right-size the process for your institution.',
+  { n: '04', icon: 'book',     title: 'Use the playbook',
+    desc: 'Your companion in setting up the process and assessing different types of AI tools.',
     action: 'page:toolkit:playbook' },
   { n: '05', icon: 'mail',     title: 'Sign up for updates',
-    desc: "Subscribe so you know when new videos, templates, and reports go live.",
+    desc: "Subscribe so you know when new ethics reports and other materials go live.",
     action: 'url' },
 ];
 
@@ -145,19 +150,19 @@ const GET_STARTED_STEPS = [
 ─────────────────────────────────────────────────────────────────────────── */
 const FURM_STEPS = [
   { n: '01', title: 'Intake',
-    desc: 'A proposing team submits the AI tool for review. We capture background, intended use, stakeholder information and the deployment timeline.',
+    desc: 'A proposing team submits the AI use case for review. We capture background, intended use, stakeholder information and the deployment timeline.',
     gates: 1 },
   { n: '02', title: 'Stakeholder Interviews',
     desc: 'Structured interviews with stakeholders such as developers, clinical users, support staff, and patients.',
     gates: 2 },
   { n: '03', title: 'Analysis',
-    desc: 'Interviews are processed and value collisions are identified.',
+    desc: "Interviews are analyzed and places where stakeholders' values conflict are identified.",
     gates: 3 },
   { n: '04', title: 'Report Review',
-    desc: 'Experts review the report and identify gaps in our assessments that are important to surface.',
+    desc: 'Experts review the report and identify gaps in our assessments.',
     gates: 4 },
-  { n: '05', title: 'Delivery',
-    desc: 'A written report is shared with leadership and proposing teams.',
+  { n: '05', title: 'Report Delivery',
+    desc: 'The written report is shared with leadership and proposing teams.',
     gates: 5 },
 ];
 
@@ -228,27 +233,7 @@ const VIDEOS = [
      items reflect the source site's own "Coming soon" labels, not ours.
 ─────────────────────────────────────────────────────────────────────────── */
 const RESOURCE_CATEGORIES = [
-  /* ─ Tab 1 ─ Understanding the Process ─────────────────────────────── */
-  {
-    id: 'understand',
-    icon: 'clock',
-    label: 'Understanding the Process',
-    intro: {
-      h: 'Start here.',
-      p: 'A complete orientation: what our process is, why it exists, and what the steps deliver.',
-      bullets: ['Read the overview deck', 'Watch Videos 01–02', 'Skim the FURM whitepaper'],
-    },
-    items: [
-      { h: 'Overview',              icon: 'deck',  state: 'ready', href: '#',
-        sub: 'High-level introduction to HEAL-AI framework.' },
-      { h: 'FURM whitepaper',       icon: 'paper', state: 'ready', href: '#',
-        sub: 'A general process overview paper.' },
-      { h: 'Step-by-step process summary', icon: 'paper', state: 'soon',
-        sub: 'A walkthrough of the entire ethics assessment process, start to finish.' }, /* migrated from heal-ai.stanford.edu */
-    ],
-  },
-
-  /* ─ Tab 2 ─ Running Stakeholder Interviews ────────────────────────── */
+  /* ─ Tab 1 ─ Running Stakeholder Interviews ────────────────────────── */
   {
     id: 'interviews',
     icon: 'people',
@@ -343,31 +328,12 @@ const RESOURCE_CATEGORIES = [
     ],
   },
 
-  /* ─ Tab 5 ─ Adapting for Your Institution ──────────────────────────── */
-  {
-    id: 'adapt',
-    icon: 'building',
-    label: 'Adapting for Your Institution',
-    intro: {
-      h: 'Make this process yours.',
-      p: 'Resources for structure, integration, and staffing.',
-      bullets: [],
-    },
-    /* The other 4 items that used to live here (briefing deck, IRB notes,
-       tracking sheet, metrics) have been pulled pending real replacement
-       content — this is the one survivor, renamed from "Adaptation
-       worksheet". */
-    items: [
-      { h: 'Suggestions on how to scale this process', icon: 'sheet', state: 'ready', href: '#',
-        sub: 'A self-assessment to right-size the process for your institution.' },
-    ],
-  },
 ];
 
 
 /* ─────────────────────────────────────────────────────────────────────────
    ⑧b RESOURCE_GROUPS · Level-2 tabs inside the Toolkit tab's Resources
-   panel (Templates / Guides / Sample Reports).
+   panel (Templates / Sample Reports).
 ─────────────────────────────────────────────────────────────────────────────
    Each entry is one Level-2 tab. `categoryIds` points back at
    RESOURCE_CATEGORIES entries by `id` — the categories themselves are
@@ -382,8 +348,8 @@ const RESOURCE_CATEGORIES = [
 const RESOURCE_GROUPS = [
   { id: 'templates', icon: 'deck',  label: 'Templates',
     categoryIds: ['interviews', 'panel'] },
-  { id: 'guides',    icon: 'book',  label: 'Guides',
-    categoryIds: ['understand', 'adapt'] },
+  /* The "Guides" tab was removed by request, along with the two categories
+     it held ('understand' and 'adapt'). */
   { id: 'reports',   icon: 'paper', label: 'Sample Reports',
     categoryIds: ['reports'] },
 ];
@@ -506,35 +472,34 @@ const REPORT_DETAILS = {
    is expanded — this is controlled in app.js → renderPatient().
 ─────────────────────────────────────────────────────────────────────────── */
 const PP_STATS = [
-  { n: '10', label: 'Volunteer partners' },
-  { n: '12', label: 'Tools reviewed' },
-  { n: '3y', label: 'In operation' },
+  { n: '13', label: 'Volunteer partners' },
+  { n: TOOLS_EVALUATED, label: 'Tools reviewed' },
 ];
 
 const PP_STANFORD_LIST = [
   { n: '1', h: 'Recruitment from existing patient networks',
-    body: "We partner with Stanford Health Care's patient advisory council and community health programs." },
+    body: "We partner with Stanford Health Care's Patient and Family Partner Program, which coordinates patients interested in volunteering with the hospital." },
   { n: '2', h: 'Fundamentals training',
-    body: 'Training curriculum covering clinical AI basics, FURM, ethics review, and facilitation norms.' },
+    body: 'We convene patients in person or online for a 2-hour initial training session on AI and then provide ongoing learning opportunities.' },
   { n: '3', h: 'Tool-by-tool focus groups',
-    body: 'Moderated sessions per tool and follow-up written input.' },
+    body: 'We hold a video conference based focus group with 4 patients for each AI use case and then ask participants for feedback on our draft reports.' },
   { n: '4', h: 'Compensation &amp; sustaining engagement',
     body: 'Patients are compensated for their time; we send them monthly newsletter updates.' },
 ];
 
 const PP_EXTERNAL = [
   { h: 'Recruitment',
-    body: 'Start with the patient advisory groups you already have. Aim for a broad range of perspectives for your first cohort.' },
+    body: 'Aim for a broad range of perspectives. Places to recruit from could include patient volunteer or engagement programs, or even direct reach out to groups of former and current patients. Recruiting 10–12 patients allows you to rotate assessments through smaller focus groups without overburdening anyone.' },
   { h: 'Training',
-    body: 'Kick off your first meeting with a crash course on the fundamentals. Cover: how AI is used in care, FURM basics, ethics-review vocabulary, and details on the process.' },
+    body: "Onboard patients with a crash course in the basics of how AI works, how it's being used in healthcare, and common ethical issues. Send new, optional learning resources along every month or two." },
   { h: 'Facilitation',
-    body: 'Focus groups, one tool at a time, with a moderator and a scribe. Always provide a one-pager on the tool in plain language in advance.' },
+    body: "In online focus groups of about 4 patients, use best practices for facilitation to ensure everyone is heard. Probe patients' comments to really understand what values lie behind them. Always provide a one-pager on the tool in plain language in advance." },
   { h: 'Compensation',
-    body: 'Compensate at a rate that signals respect for their time and input. Build the compensation line into your evaluation program budget early on.' },
+    body: "Compensate at a rate that signals respect for their time and input, given your institution's resources." },
   { h: 'Scaling down',
-    body: 'Smaller institutions can run a smaller panel. The trade-off is throughput: small panels work if recruitment is genuinely diverse.' },
+    body: 'Smaller institutions may do fine with a smaller patient panel. Just make sure diverse perspectives are still represented — for example, in terms of care experiences, professional background, and demographics.' },
   { h: 'Sustaining the program',
-    body: 'Sustained engagement is what makes the panel valuable: partners build vocabulary, trust, and institutional memory by feeling connected to the process.' },
+    body: 'Sustained engagement is what makes the panel valuable. We invite our patients to university hosted events, keep them updated on report outcomes, and send monthly newsletters. Communicating monthly about the impact patients are having helps sustain engagement over time.' },
 ];
 
 
@@ -604,7 +569,7 @@ const PLAYBOOK_CONSIDERATIONS = [
 ─────────────────────────────────────────────────────────────────────────── */
 const ABOUT_CARDS = [
   { h: 'What we believe',
-    p: 'A transparent, patient-inclusive ethics review is an important part of the AI governance process. It is the only way clinical AI can be deployed ensuring the patient voices are heard. HEAL-AI provides that process, identifying the collision in values and sharing these findings with all key stakeholders.' },
+    p: 'Proactively spotting and addressing healthcare AI risks requires talking to the people who will be most affected, especially patients and clinicians. The HEAL-AI Lab at Stanford provides resources to help healthcare organizations conduct ethical assessments that are people-centered, fast, and feasible without a lot of resources.' },
 ];
 
 

@@ -681,10 +681,10 @@ function closeVideo() {
    ⑧ TOOLKIT PAGE — Resources tab: tabbed library + sample-report grid
    ─────────────────────────────────────────────────────────────────────────
    Renders one <button class="rt-tab"> per RESOURCE_GROUPS entry (Level 2:
-   Templates / Guides / Sample Reports), and one matching <div class="rt-panel">
+   Templates / Sample Reports), and one matching <div class="rt-panel">
    per group. Switching is handled by activateResourceGroupTab(id).
 
-   A group with more than one categoryId (Templates, Guides) renders each
+   A group with more than one categoryId (Templates) renders each
    RESOURCE_CATEGORIES entry as a labeled, stacked sub-section (Level 3 —
    not a third tablist, per WAI-ARIA guidance against nested tabs) inside
    the same panel, via renderResourceCategoryBlock().
@@ -1258,7 +1258,7 @@ function renderTeam(list) {
         <div class="tc-media">${media}</div>
         <div class="tc-overlay">
           <h4 class="tc-name-wrap">${nameEl}</h4>
-          <p class="tc-sub">${m.badge} · Stanford Medicine</p>
+          <p class="tc-sub">${m.badge} · Stanford Health Care</p>
           <p class="tc-role">${m.role}</p>
         </div>
       </article>`;

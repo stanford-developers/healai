@@ -45,16 +45,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- ─── EDIT HERE · SEO & social meta ───────────────────────────────────── -->
-  <title>HEAL-AI · Stanford Medicine: Ethical Clinical AI Evaluation</title>
-  <meta name="description" content="A Stanford toolkit for health systems implementing AI tools who want a structured, patient-inclusive way to evaluate clinical AI: videos, templates, sample reports, and a playbook for adapting the process to your institution.">
-  <meta name="keywords" content="Stanford, HEAL-AI, clinical AI, health AI governance, FURM, patient panel, AI ethics">
+  <title>HEAL-AI · Stanford Health Care: Ethical Assessment of AI Tools</title>
+  <meta name="description" content="A Stanford toolkit for health systems implementing AI tools who want a structured, patient-inclusive way to assess AI tools: videos, templates, sample reports, and a playbook for adapting the process to your institution.">
+  <meta name="keywords" content="Stanford, HEAL-AI, healthcare AI, health AI governance, FURM, patient panel, AI ethics">
   <meta name="author" content="Stanford HEAL-AI Lab">
   <meta name="theme-color" content="#8C1515"><!-- Stanford Cardinal · drives mobile browser chrome -->
 
   <!-- Open Graph / Twitter — replace og:image URL with a deployed asset later -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="HEAL-AI · Stanford Medicine">
-  <meta property="og:description" content="A toolkit for ethical clinical AI evaluation, built at Stanford and adaptable for your health system.">
+  <meta property="og:title" content="HEAL-AI · Stanford Health Care">
+  <meta property="og:description" content="A toolkit for the ethical assessment of AI tools, built at Stanford and adaptable for your health system.">
   <meta property="og:image" content="/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
 
@@ -252,9 +252,9 @@
       <div class="flow-head">
         <div>
           <p class="eyebrow">Get started</p>
-          <h2 class="h2" id="gs-h">A five-step flow for <em>adopting the process.</em></h2>
+          <h2 class="h2" id="gs-h">A five-step plan for <em>adopting the process.</em></h2>
         </div>
-        <p class="lede">Designed for cross-functional teams at health systems: clinical informatics, ethics, patient engagement, and AI governance.</p>
+        <p class="lede">Learn how you can adapt and implement ethical review at your organization.</p>
       </div>
       <div class="flow-grid" id="flow-grid" role="list"></div>
     </section>
@@ -267,7 +267,7 @@
         <div>
           <p class="eyebrow on-dark">Stay informed</p>
           <h2>Sign up for HEAL-AI updates.</h2>
-          <p>New videos, templates, and sample reports drop on a rolling basis. Subscribe and we'll let you know when the 6-part training series launches and when new redacted reports go live.</p>
+          <p>New sample reports and other resources drop on a rolling basis. Subscribe and we'll let you know when new redacted reports go live.</p>
         </div>
         <div class="signup-side">
           <a href="#" class="btn-cta" id="home-signup-btn" rel="noopener" target="_blank">
@@ -284,7 +284,7 @@
        Merged from three separate tabs into one. Level 1 (#tk-bar/.tk-tab)
        switches between Process/Playbook/Resources; Level 2 (#rt-bar,
        reusing the pre-existing Resources tab machinery) switches between
-       Templates/Guides/Sample Reports inside the Resources panel only.
+       Templates/Sample Reports inside the Resources panel only.
        All three .tk-panel shells are static HTML — only visibility is
        JS-toggled (renderToolkitTabs() in app.js) — matching the site's
        "HTML shell + JS fills the data-driven bits" convention. -->
@@ -292,13 +292,12 @@
     <header class="page-header">
       <p class="page-eyebrow">Toolkit</p>
       <h1 class="page-h1" id="toolkit-h">Everything you need to run <em>the evaluation process.</em></h1>
-      <p class="page-sub">Our methodology, the playbook our own team uses, and the templates, guides, and sample reports that make our process scalable to your institution.</p>
+      <p class="page-sub">Our methodology and the playbook, templates, guides, and sample reports that make our process scalable to your institution.</p>
     </header>
 
     <div class="tk-bar" role="tablist" aria-label="Toolkit sections" id="tk-bar"></div>
     <div id="tk-panels">
       <section class="tk-panel on" id="tk-pan-process" role="tabpanel" aria-labelledby="tk-tab-process">
-        <h2 class="h2 tk-h2">From intake to delivery, one consistent process across every tool.</h2>
         <!-- 4-step grid · rendered from FURM_STEPS in data.js -->
         <div class="process-steps" id="process-steps"></div>
       </section>
@@ -336,7 +335,7 @@
   <section class="page" id="page-videos" aria-labelledby="videos-h">
     <header class="page-header">
       <p class="page-eyebrow">Training Videos</p>
-      <h1 class="page-h1" id="videos-h">A six-part training series on <em>evaluating clinical AI.</em></h1>
+      <h1 class="page-h1" id="videos-h">A six-part training series on <em>the assessment of AI tools.</em></h1>
       <p class="page-sub">Watch the topics in any order. Each video links directly to the templates, reports, and resources referenced, so you can move from learning to applying without hunting around.</p>
     </header>
     <section class="section" id="videos-section"><!-- populated by renderVideos() --></section>
@@ -400,8 +399,8 @@
   <section class="page" id="page-patient" aria-labelledby="patient-h">
     <header class="page-header">
       <p class="page-eyebrow">Patient Partner Panel</p>
-      <h1 class="page-h1" id="patient-h">Patient voices, by design, <em>at Stanford, and at your institution.</em></h1>
-      <p class="page-sub">The Patient Partner Panel is the structural mechanism through which patient perspectives shape AI evaluations. Below: how we run ours, and how you can build one.</p>
+      <h1 class="page-h1" id="patient-h">Patient voices are <em>included in the evaluation process.</em></h1>
+      <p class="page-sub">We use a Patient Partner Panel to bring informed patient perspectives into AI governance. Below: how we run ours, and how you can build one.</p>
     </header>
 
     <!-- Two-column split: Stanford's implementation | External guide -->
@@ -409,7 +408,7 @@
       <section class="pp-side stanford" aria-labelledby="pp-stanford-h">
         <span class="pp-tag">Stanford's implementation</span>
         <h2 id="pp-stanford-h">How the Stanford panel works.</h2>
-        <p>Ten volunteer patient partners, recruited from Stanford Health Care's diverse patient community, meet routinely to review AI tools under evaluation. Each partner completes fundamentals training in clinical AI, ethics, and facilitation before reviewing their first tool.</p>
+        <p>Volunteer patient partners, recruited from Stanford Health Care's diverse patient community, meet routinely to review AI tools under evaluation. Each partner completes training in AI fundamentals and AI ethics before joining the review group. They continue learning through repeat participation in assessments, group conversations, and ongoing enrichment opportunities.</p>
         <div class="pp-stats" id="pp-stats"></div>
         <div class="pp-list" id="pp-stanford-list"></div>
       </section>
@@ -428,7 +427,7 @@
   <section class="page" id="page-about" aria-labelledby="about-page-h">
     <header class="page-header">
       <p class="page-eyebrow">About</p>
-      <h1 class="page-h1" id="about-page-h">A Stanford Medicine initiative for <em>ethical clinical AI.</em></h1>
+      <h1 class="page-h1" id="about-page-h">A Stanford Health Care initiative for <em>ethical assessment of AI tools.</em></h1>
     </header>
 
     <section class="section">
@@ -438,7 +437,7 @@
 
     <section class="section section-team">
       <p class="eyebrow">The team</p>
-      <h2 class="h2 team-h2">Meet the people behind HEAL-AI.</h2>
+      <h2 class="h2 team-h2">Meet the HEAL-AI team</h2>
       <div class="team-grid" id="about-team"></div>
     </section>
 
@@ -576,7 +575,7 @@
   <div class="foot-grid">
     <div class="foot-brand">
       <img class="logo-mark foot-logo" src="assets/heal-ai-logo-cardinal.svg" alt="HEAL-AI" />
-      <p>HEAL-AI is a Stanford Medicine toolkit for ethical clinical AI evaluation. Open and adaptable for health systems implementing AI tools.</p>
+      <p>The HEAL-AI Lab at Stanford creates tools for ethical evaluation of healthcare AI. Our resources are adaptable and free, and we're here to help.</p>
     </div>
     <div class="foot-col">
       <h5>Toolkit</h5>
@@ -592,9 +591,7 @@
     </div>
     <div class="foot-col">
       <h5>Stanford</h5>
-      <a href="https://med.stanford.edu/" target="_blank" rel="noopener">Stanford Medicine ↗</a>
-      <a href="https://bmir.stanford.edu/" target="_blank" rel="noopener">BMIR ↗</a>
-      <a href="https://hai.stanford.edu/" target="_blank" rel="noopener">Stanford HAI ↗</a>
+      <a href="https://stanfordhealthcare.org/" target="_blank" rel="noopener">Stanford Health Care ↗</a>
     </div>
   </div>
   <div class="foot-bottom">
