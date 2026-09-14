@@ -762,53 +762,87 @@ function renderToolkitResources() {
 }
 
 /**
- * Reads admin-uploaded resources from Supabase (public, read-only, no
- * login required — enforced by the "resources are publicly readable" RLS
- * policy) and returns them grouped by `category` — which is now one of
- * the actual RESOURCE_CATEGORIES ids ('interviews' | 'panel' | 'understand'
- * | 'adapt', see /supabase/reports_team_schema.sql), not a coarse
- * per-tab bucket — already shaped like a RESOURCE_CATEGORIES `items[]`
- * entry so resourceCardHTML() can render them unchanged. Returns {}
- * (silently) if Supabase isn't configured yet or the request fails — this
- * is enhancement, not required content, so a misconfigured or offline
- * backend should never break the static page.
+ * Reads resource cards from Supabase (public, read-only, no login required —
+ * enforced by the "resources are publicly readable" RLS policy), grouped by
+ * `category`: one of the RESOURCE_CATEGORIES ids ('interviews' | 'panel').
+ * Rows come back already shaped like a RESOURCE_CATEGORIES `items[]` entry,
+ * so resourceCardHTML() renders them unchanged.
+ *
+ * Returns { byCategory, authoritative }:
+ *   • authoritative=true  → the table is reachable AND holds at least one
+ *     row, so it is the source of truth and the static arrays in data.js
+ *     should be ignored entirely (that's what makes a deletion in the admin
+ *     dashboard actually remove a card).
+ *   • authoritative=false → Supabase is unconfigured/unreachable, or the
+ *     table is still empty because /supabase/resources_admin_migration.sql
+ *     hasn't been run. Callers keep rendering the static arrays so the page
+ *     is never blank.
+ *
+ * A row's link target is link_url if set, else the public URL of its
+ * uploaded file; a row with neither renders as "Coming soon".
+ *
+ * Cached in a module-level promise because three renderers ask for this and
+ * they should share one request.
  */
-async function getPublicResources() {
-  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return {};
-  try {
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data, error } = await sb.from('resources').select('*').order('created_at', { ascending: false });
-    if (error || !data) return {};
-    const byCategory = {};
-    data.forEach(r => {
-      (byCategory[r.category] ??= []).push({
-        h: r.title,
-        sub: r.description || '',
-        icon: 'paper',
-        state: 'ready',
-        href: sb.storage.from('resource-files').getPublicUrl(r.file_path).data.publicUrl,
+let _publicResourcesPromise = null;
+function getPublicResources() {
+  _publicResourcesPromise ??= (async () => {
+    const empty = { byCategory: {}, authoritative: false };
+    if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return empty;
+    try {
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      /* Ordered client-side rather than with .order('priority') so this
+         query doesn't reference a column that only exists after
+         resources_admin_migration.sql has been run — a missing column makes
+         PostgREST 400 the whole request, which would log a console error on
+         every page load of a not-yet-migrated deployment. Row counts here
+         are in the dozens, so sorting locally costs nothing. */
+      const { data, error } = await sb
+        .from('resources')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (error || !data || !data.length) return empty;
+
+      const ordered = [...data].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+
+      const byCategory = {};
+      ordered.forEach(r => {
+        const href = r.link_url
+          || (r.file_path ? sb.storage.from('resource-files').getPublicUrl(r.file_path).data.publicUrl : '');
+        (byCategory[r.category] ??= []).push({
+          h: r.title,
+          sub: r.description || '',
+          icon: r.icon || 'paper',
+          state: href ? 'ready' : 'soon',
+          href,
+        });
       });
-    });
-    return byCategory;
-  } catch {
-    return {};
-  }
+      return { byCategory, authoritative: true };
+    } catch {
+      return empty;
+    }
+  })();
+  return _publicResourcesPromise;
 }
 
-/** Re-renders one category's item list (spotlight + divided list), merging
- *  in any admin-uploaded items for it — same resourceCardHTML() treatment
- *  as the static ones, so an upload reads as a normal list entry rather
- *  than a separate "recently added" strip. Runs once, after the static
- *  panels are already built and visible — network-dependent content
- *  should never delay or block the initial render. */
+/** The cards to render for one category: the DB's rows once the table is
+ *  populated, otherwise the static data.js array. See getPublicResources()
+ *  for why "populated" rather than "reachable" is the switch. */
+function resolveResourceItems(cat, { byCategory, authoritative }) {
+  return authoritative ? (byCategory[cat.id] || []) : cat.items;
+}
+
+/** Re-renders each Toolkit category's item list (spotlight + divided list)
+ *  from Supabase once the fetch resolves. Runs after the static panels are
+ *  already built and visible — network-dependent content should never delay
+ *  or block the initial render. */
 async function enhanceToolkitResourcesWithUploads() {
-  const byCategory = await getPublicResources();
+  const resources = await getPublicResources();
+  if (!resources.authoritative) return;
   RESOURCE_CATEGORIES.forEach(cat => {
-    const uploaded = byCategory[cat.id];
-    if (!uploaded || !uploaded.length) return;
     const mount = byId('rt-items-' + cat.id);
-    if (!mount) return;
-    mount.innerHTML = resourceItemsHTML([...cat.items, ...uploaded]);
+    if (!mount) return;   /* 'panel' has no Toolkit mount — it's on /patient */
+    mount.innerHTML = resourceItemsHTML(resolveResourceItems(cat, resources));
     wireResourceCategoryPanel(mount);
   });
 }
@@ -1146,6 +1180,46 @@ function renderPatientPanel() {
       });
     }
   });
+
+  renderPatientResources();
+}
+
+/**
+ * The 'panel' resource category, rendered at the foot of the Patient Panel
+ * page rather than under Toolkit → Resources. It is deliberately NOT listed
+ * in RESOURCE_GROUPS, so renderToolkitResources() never picks it up — this
+ * is its only render site. Card markup is the shared resourceCardHTML()
+ * treatment, so it looks identical to the Toolkit cards.
+ *
+ * Admin-uploaded items for category 'panel' are merged in by
+ * enhancePatientResourcesWithUploads(), the same "paint static, then
+ * upgrade" pattern used on the Toolkit tab.
+ */
+function renderPatientResources() {
+  const cat = RESOURCE_CATEGORIES.find(c => c.id === 'panel');
+  const mount = byId('pp-resources');
+  if (!cat || !mount) return;
+
+  byId('pp-res-h').innerHTML    = cat.intro.h;
+  byId('pp-res-lede').innerHTML = cat.intro.p;
+  mount.innerHTML = resourceItemsHTML(cat.items);
+  wireResourceCategoryPanel(mount);
+
+  enhancePatientResourcesWithUploads();
+}
+
+/** Re-renders the Patient Panel page's 'panel' cards from Supabase once the
+ *  fetch resolves. Mirrors enhanceToolkitResourcesWithUploads(), which
+ *  handles the categories that render on the Toolkit tab. */
+async function enhancePatientResourcesWithUploads() {
+  const cat = RESOURCE_CATEGORIES.find(c => c.id === 'panel');
+  const mount = byId('pp-resources');
+  if (!cat || !mount) return;
+
+  const resources = await getPublicResources();
+  if (!resources.authoritative) return;
+  mount.innerHTML = resourceItemsHTML(resolveResourceItems(cat, resources));
+  wireResourceCategoryPanel(mount);
 }
 
 /**
@@ -2159,6 +2233,11 @@ function buildSearchIndex() {
   };
 
   NAV_ITEMS.forEach(n => add(n.label, '', n.id));
+
+  /* The 'panel' category lives on the Patient Panel page, not in any
+     RESOURCE_GROUPS tab, so index its items against that page instead. */
+  (RESOURCE_CATEGORIES.find(c => c.id === 'panel')?.items || [])
+    .forEach(item => add(item.h, item.sub, 'patient'));
 
   RESOURCE_GROUPS.forEach(group => {
     group.categoryIds.forEach(catId => {

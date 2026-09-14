@@ -37,7 +37,7 @@ function showView(name) {
 
 /* ── Dashboard sub-tabs: Toolkit resources / Sample Reports / Team / News ── */
 const DASH_TABS = ['resources', 'reports', 'team', 'news'];
-const DASH_H2   = { resources: 'Upload a resource', reports: 'Publish a report', team: 'Publish a team member', news: 'Publish a news item' };
+const DASH_H2   = { resources: 'Publish a resource', reports: 'Publish a report', team: 'Publish a team member', news: 'Publish a news item' };
 
 function setDashTab(name) {
   DASH_TABS.forEach(tab => {
@@ -121,47 +121,64 @@ async function syncViewToSession(session) {
 /* ─────────────────────────────────────────────────────────────────────────
    UPLOAD / LIST / DELETE
    ────────────────────────────────────────────────────────────────────── */
+/**
+ * Publishes one resource card. A card carries either an uploaded file or a
+ * link, and with neither it publishes as a "Coming soon" card — so the only
+ * hard requirements are a title and a category. Supplying both a file and a
+ * link is rejected rather than silently picking one, since which of the two
+ * the card would point at isn't obvious from the form.
+ */
 async function handleUploadSubmit(e) {
   e.preventDefault();
-  const fileInput = byId('upload-file');
-  const file = fileInput.files[0];
+  const file = byId('upload-file').files[0];
+  const link = byId('upload-link').value.trim();
   const title = byId('upload-title').value.trim();
   const description = byId('upload-description').value.trim();
   const category = byId('upload-category').value;
+  const icon = byId('upload-icon').value;
+  const priority = Number(byId('upload-priority').value) || 0;
   const status = byId('upload-status');
   const submit = byId('upload-submit');
 
-  if (!file) { status.textContent = 'Choose a file first.'; return; }
-
-  submit.disabled = true;
-  status.textContent = 'Uploading…';
-
-  const { data: { session } } = await sb.auth.getSession();
-  const path = `${category}/${crypto.randomUUID()}-${file.name}`;
-
-  const { error: uploadError } = await sb.storage.from('resource-files').upload(path, file);
-  if (uploadError) {
-    submit.disabled = false;
-    status.textContent = 'Upload failed: ' + uploadError.message;
+  if (file && link) {
+    status.textContent = 'Give a file or a link, not both — the card links to one place.';
     return;
   }
 
-  const { error: insertError } = await sb.from('resources').insert({
-    title, description, category,
-    file_path: path,
-    file_name: file.name,
-    file_size_bytes: file.size,
+  submit.disabled = true;
+  status.textContent = file ? 'Uploading…' : 'Saving…';
+
+  const { data: { session } } = await sb.auth.getSession();
+  const row = {
+    title, description, category, icon, priority,
+    link_url: link || null,
     uploaded_by: session.user.id,
-  });
+  };
+
+  if (file) {
+    const path = `${category}/${crypto.randomUUID()}-${file.name}`;
+    const { error: uploadError } = await sb.storage.from('resource-files').upload(path, file);
+    if (uploadError) {
+      submit.disabled = false;
+      status.textContent = 'Upload failed: ' + uploadError.message;
+      return;
+    }
+    row.file_path = path;
+    row.file_name = file.name;
+    row.file_size_bytes = file.size;
+  }
+
+  const { error: insertError } = await sb.from('resources').insert(row);
 
   submit.disabled = false;
 
   if (insertError) {
-    status.textContent = 'File uploaded, but saving its details failed: ' + insertError.message;
+    status.textContent = (file ? 'File uploaded, but saving its details failed: ' : 'Saving failed: ')
+      + insertError.message;
     return;
   }
 
-  status.textContent = 'Uploaded.';
+  status.textContent = file ? 'Uploaded.' : 'Published.';
   byId('upload-form').reset();
   loadResources();
 }
@@ -173,42 +190,82 @@ function formatBytes(n) {
   return (n / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+/* Mirrors the `label` of each RESOURCE_CATEGORIES entry in js/data.js, plus
+   where that category renders. admin.js can't read data.js (the dashboard
+   doesn't load it), so these are duplicated deliberately — keep in sync if a
+   category is renamed. */
+const RESOURCE_CATEGORY_LABEL = {
+  interviews: 'Stakeholder Interviews · Toolkit',
+  panel:      'Patient Partner Group · Patient Panel',
+  reports:    'Writing & Delivering Your Report · Toolkit',
+};
+
+/** Where a card points, in words — the public site derives the same thing
+ *  from link_url/file_path, so this makes a misfiled row obvious here rather
+ *  than only on the live page. */
+function resourceTargetLabel(r) {
+  if (r.link_url)  return r.link_url === '#' ? 'Placeholder link (#) — needs a real URL' : 'Links to ' + r.link_url;
+  if (r.file_path) return `${r.file_name || 'file'} · ${formatBytes(r.file_size_bytes)}`;
+  return 'No file or link — shows as "Coming soon"';
+}
+
 async function loadResources() {
   const list = byId('resource-list');
   const { data, error } = await sb
     .from('resources')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('priority', { ascending: false })
+    .order('created_at', { ascending: true });
 
   if (error) {
     list.innerHTML = `<p class="admin-empty">Couldn't load resources: ${error.message}</p>`;
     return;
   }
   if (!data.length) {
-    list.innerHTML = '<p class="admin-empty">Nothing uploaded yet.</p>';
+    list.innerHTML = '<p class="admin-empty">Nothing published yet.</p>';
     return;
   }
 
+  /* Listed in the same order the public site renders them, grouped by
+     category, so "which card is the big one" is answerable from here. */
   list.innerHTML = data.map(r => `
     <div class="admin-resource-row" data-id="${r.id}">
       <div>
-        <span class="admin-resource-category">${r.category}</span>
+        <span class="admin-resource-category">${RESOURCE_CATEGORY_LABEL[r.category] || r.category}</span>
         <h4>${r.title}</h4>
         <p>${r.description || ''}</p>
-        <span class="admin-resource-meta">${r.file_name || ''} · ${formatBytes(r.file_size_bytes)}</span>
+        <span class="admin-resource-meta">${r.icon || 'paper'} · ${resourceTargetLabel(r)}</span>
       </div>
-      <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}" data-path="${r.file_path}">Delete</button>
+      <div class="admin-news-row-actions">
+        <label class="admin-priority-field">
+          <span>Order</span>
+          <input type="number" step="10" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? 0}">
+        </label>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}" data-path="${r.file_path || ''}">Delete</button>
+      </div>
     </div>
   `).join('');
 
+  list.querySelectorAll('.admin-priority-input').forEach(input => {
+    input.addEventListener('change', () => handleResourcePriorityChange(input.dataset.id, input.value));
+  });
   list.querySelectorAll('.admin-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => handleDelete(btn.dataset.id, btn.dataset.path));
   });
 }
 
+/** Resources get their own priority handler rather than sharing
+ *  handlePriorityChange(): `resources.priority` is NOT NULL (a blank would
+ *  be rejected) and, because DESC ordering puts NULLs first in Postgres, a
+ *  nullable column would float un-ordered cards to the top of a section. */
+async function handleResourcePriorityChange(id, value) {
+  await sb.from('resources').update({ priority: Number(value) || 0 }).eq('id', id);
+  loadResources();
+}
+
 async function handleDelete(id, path) {
-  if (!confirm('Delete this resource? This removes the file too.')) return;
-  await sb.storage.from('resource-files').remove([path]);
+  if (!confirm('Delete this resource? It disappears from the public site, and any uploaded file is removed too.')) return;
+  if (path) await sb.storage.from('resource-files').remove([path]);
   await sb.from('resources').delete().eq('id', id);
   loadResources();
 }

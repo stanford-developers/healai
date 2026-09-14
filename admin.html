@@ -7,8 +7,9 @@
   ────────────────────────────────────────────────────────────────────────────
   PURPOSE
     Standalone admin page for editing every admin-manageable content list
-    on the site without touching code: Toolkit resources (templates,
-    guides), Sample Reports, Team members, and News-tab items (seminar
+    on the site without touching code: Toolkit resources (the Templates
+    and Patient-Panel cards), Sample Reports, Team members, and News-tab
+    items (seminar
     videos, news articles, scholarly publications). Deliberately NOT part
     of the public single-page app in index.html, and not linked from the
     main nav — reached only by direct URL (or the small footer link on
@@ -90,7 +91,7 @@
       <div class="admin-dash-head">
         <div>
           <p class="eyebrow">Signed in as <strong id="dash-email"></strong></p>
-          <h2 id="dash-h2">Upload a resource</h2>
+          <h2 id="dash-h2">Publish a resource</h2>
         </div>
         <button class="btn-second" id="dash-logout">Log out</button>
       </div>
@@ -102,17 +103,15 @@
         <button class="admin-tab"    id="dash-tab-news"      role="tab" aria-selected="false" data-panel="news">News</button>
       </div>
 
-      <!-- ── Toolkit resources panel — category is one of the 4 actual
-           Resource categories (not a top-level tab) so an upload blends
-           into that specific section's list instead of a separate
-           "recently added" strip. See RESOURCE_CATEGORIES in js/data.js
-           for the canonical id/label pairs. ─────────────────────────── -->
+      <!-- ── Toolkit resources panel — this table is the SOURCE OF TRUTH
+           for every resource card on the public site (see
+           /supabase/resources_admin_migration.sql, which seeded the cards
+           that used to be hardcoded in js/data.js). Deleting a row here
+           removes that card from the site. `category` decides where it
+           renders: 'interviews' → Toolkit → Resources → Templates,
+           'panel' → the Patient Panel page. ─────────────────────────── -->
       <div id="dash-panel-resources">
         <form id="upload-form" class="admin-upload-form">
-          <label class="admin-field">
-            <span>File</span>
-            <input type="file" id="upload-file" required>
-          </label>
           <label class="admin-field">
             <span>Title</span>
             <input type="text" id="upload-title" required maxlength="120" placeholder="e.g. Interview guide template">
@@ -124,15 +123,51 @@
           <label class="admin-field">
             <span>Category</span>
             <select id="upload-category" required>
-              <option value="interviews">Running Stakeholder Interviews</option>
-              <option value="panel">Running a Patient Partner Group</option>
+              <option value="interviews">Running Stakeholder Interviews · Toolkit</option>
+              <option value="panel">Running a Patient Partner Group · Patient Panel page</option>
+              <option value="reports">Writing &amp; Delivering Your Report · Toolkit</option>
             </select>
           </label>
-          <button type="submit" class="btn-prime" id="upload-submit">Upload</button>
+
+          <!-- Icon shown on the card. Values are ICONS keys from js/data.js —
+               keep this list a subset of those, or the card renders blank. -->
+          <label class="admin-field">
+            <span>Icon</span>
+            <select id="upload-icon" required>
+              <option value="paper">Document</option>
+              <option value="sheet">Spreadsheet</option>
+              <option value="deck">Slide deck</option>
+              <option value="book">Guide / handbook</option>
+              <option value="mic">Interview / focus group</option>
+              <option value="mail">Outreach / email</option>
+              <option value="cal">Schedule / tracker</option>
+              <option value="people">Group / panel</option>
+              <option value="video">Video</option>
+              <option value="link">External link</option>
+            </select>
+          </label>
+
+          <!-- A card needs a file OR a link, not both. With neither it
+               publishes as a dimmed "Coming soon" card, which is how the
+               site advertises a resource that isn't written yet. -->
+          <label class="admin-field">
+            <span>File (optional — upload the document itself)</span>
+            <input type="file" id="upload-file">
+          </label>
+          <label class="admin-field">
+            <span>Link instead (optional — for a web page, or a file already hosted elsewhere)</span>
+            <input type="url" id="upload-link" maxlength="500" placeholder="https://…">
+          </label>
+          <label class="admin-field">
+            <span>Order (higher shows first; the top card of a section renders as the large one)</span>
+            <input type="number" id="upload-priority" value="0" step="10">
+          </label>
+
+          <button type="submit" class="btn-prime" id="upload-submit">Publish resource</button>
         </form>
         <p class="admin-status" id="upload-status" role="status" aria-live="polite"></p>
 
-        <h3 class="admin-list-h">Uploaded resources</h3>
+        <h3 class="admin-list-h">Published resources</h3>
         <div id="resource-list" class="admin-resource-list">
           <p class="admin-empty">Loading…</p>
         </div>

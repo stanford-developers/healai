@@ -221,7 +221,19 @@ const VIDEOS = [
      • `reports[]` (only on the "reports" category) → the 8 redacted
                      sample reports rendered as a dense grid.
 
-   EDIT HERE  →  add new items to any items[] or rewrite intro copy.
+   ⚠ `items[]` IS NO LONGER WHERE YOU EDIT CARDS.
+   Resource cards are admin-managed now: they live in Supabase's `resources`
+   table and are added, re-ordered, and deleted from /admin.html. As soon as
+   that table holds one row it wins outright and everything in these items[]
+   arrays is ignored — see getPublicResources() in app.js.
+
+   These arrays survive as the fallback for exactly two situations: Supabase
+   being unreachable, and /supabase/resources_admin_migration.sql not having
+   been run yet (that file seeds these same 12 cards as rows). Keep them
+   roughly in sync if you like, but a change here will NOT show up on a
+   normal, migrated deployment.
+
+   `intro` copy and the category list itself are still edited here.
    The 8 SAMPLE REPORTS are the spec-required deliverables — keep all 8.
 
    PROVENANCE NOTE (migrated content)
@@ -239,13 +251,13 @@ const RESOURCE_CATEGORIES = [
     icon: 'people',
     label: 'Running Stakeholder Interviews',
     intro: {
-      h: 'Get usable signal from developers, users, and owners.',
-      p: 'Question banks, scheduling templates, and thematic-analysis scaffolds to help with interviews and data evaluation.',
-      bullets: ['Pull the interview guides', 'Use the thematic template', 'Pair with Video 03'],
+      h: 'Efficiently learn what matters to those affected by the AI — patients, users, clinical champions, and digital services administrators.',
+      p: 'Question banks, scheduling templates, and thematic-analysis guides to help with interviews and data evaluation.',
+      bullets: ['Pull the interview guides', 'Use the thematic template'],
     },
     items: [
-      { h: 'Interview guide for tool developers',      icon: 'mic',   state: 'soon',
-        sub: 'Template interview guide for the team that built or vended the AI tool, customizable per use case.' }, /* migrated from heal-ai.stanford.edu */
+      { h: 'Interview guides for different stakeholders', icon: 'mic', state: 'soon',
+        sub: 'Template guide for interviews with proposers or developers of the AI use case.' }, /* migrated from heal-ai.stanford.edu */
       { h: 'Interview guide for prospective tool users', icon: 'mic', state: 'soon',
         sub: 'Template interview guide for clinicians expected to use the tool, customizable per use case.' }, /* migrated from heal-ai.stanford.edu */
       { h: 'Thematic analysis template',   icon: 'sheet', state: 'ready',
@@ -270,7 +282,7 @@ const RESOURCE_CATEGORIES = [
     label: 'Running a Patient Partner Group',
     intro: {
       h: 'Bring patient voice into the room.',
-      p: 'How we recruit, train, and run our 10-volunteer panel, and the facilitation artifacts you need to do the same.',
+      p: 'How we recruit, train, and run our volunteer panel, and the facilitation artifacts you need to do the same.',
       bullets: ["Read Stanford's model", "Use the moderator's guide", 'Pair with Video 04'],
     },
     items: [
@@ -347,7 +359,11 @@ const RESOURCE_CATEGORIES = [
 ─────────────────────────────────────────────────────────────────────────── */
 const RESOURCE_GROUPS = [
   { id: 'templates', icon: 'deck',  label: 'Templates',
-    categoryIds: ['interviews', 'panel'] },
+    categoryIds: ['interviews'] },
+  /* NOTE · the 'panel' category is intentionally absent from every group.
+     It renders on the Patient Panel page instead — see
+     renderPatientResources() in app.js. Adding it back to a group here
+     would make those cards appear in both places. */
   /* The "Guides" tab was removed by request, along with the two categories
      it held ('understand' and 'adapt'). */
   { id: 'reports',   icon: 'paper', label: 'Sample Reports',
