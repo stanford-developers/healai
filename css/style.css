@@ -853,6 +853,97 @@ nav.topnav {
   max-width: none !important;
 }
 
+/* ─── SIGN-UP FORM ───────────────────────────────────────────────────────
+   The same three fields render in two places: inline on the cardinal
+   .signup-card (white-on-red), and in #signup-modal on white. Shared
+   structure lives in .signup-form/.signup-field; the .signup-card
+   overrides below are what invert it for the dark panel. */
+.signup-form { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.signup-field { display: flex; flex-direction: column; gap: 5px; }
+.signup-field span {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-low);
+}
+.signup-field input {
+  font-family: inherit; font-size: 14px; color: var(--ink);
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  width: 100%;
+}
+.signup-field input:focus { outline: none; border-color: var(--cardinal); }
+
+/* Off-screen rather than display:none — a bot that skips undisplayed
+   inputs should still see this one. aria-hidden + tabindex=-1 in the
+   markup keep it away from real users. */
+.signup-honeypot {
+  position: absolute; left: -9999px;
+  width: 1px; height: 1px; overflow: hidden;
+}
+
+.signup-status { font-size: 12.5px; line-height: 1.5; min-height: 18px; }
+.signup-status.is-error { color: var(--cardinal); }
+.signup-status.is-ok    { color: var(--ink); font-weight: 600; }
+
+/* Inline-on-the-card variant: the card is cardinal, so labels and the
+   status line invert, and inputs go translucent-white. */
+.signup-card .signup-side-form { align-items: stretch; width: 100%; }
+.signup-card .signup-field span { color: rgba(255,255,255,.72); }
+.signup-card .signup-field input {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.28);
+  color: #fff;
+}
+.signup-card .signup-field input::placeholder { color: rgba(255,255,255,.5); }
+.signup-card .signup-field input:focus {
+  border-color: #fff;
+  background: rgba(255,255,255,.18);
+}
+.signup-card .signup-status           { color: rgba(255,255,255,.85) !important; max-width: none !important; }
+.signup-card .signup-status.is-error  { color: #ffd9d9 !important; }
+.signup-card .signup-status.is-ok     { color: #fff !important; font-weight: 600; }
+.signup-card .btn-cta:disabled        { opacity: .6; cursor: not-allowed; transform: none; }
+
+/* SIGN-UP MODAL — the same overlay pattern as #video-modal/#report-modal,
+   on a light card since this is a form, not media. */
+#signup-modal {
+  position: fixed; inset: 0;
+  z-index: 1000;
+  padding: 40px 20px;
+  background: rgba(20, 20, 20, .55);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--t-med), visibility var(--t-med);
+}
+#signup-modal.open { opacity: 1; visibility: visible; }
+.sm-inner {
+  position: relative;
+  width: 100%; max-width: 440px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+}
+.sm-inner h3 {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 500; line-height: 1.2;
+  color: var(--ink);
+  margin: 6px 0 10px;
+}
+.sm-lede { font-size: 14px; line-height: 1.65; color: var(--ink-mid); margin-bottom: 22px; }
+/* .vm-close is positioned above its dark overlay; on this light card it
+   sits inside the padding instead. */
+.sm-inner .vm-close {
+  top: 14px; right: 14px;
+  background: var(--bg-soft);
+  color: var(--ink-mid);
+}
+.sm-inner .vm-close:hover { background: var(--line); }
+.sm-inner .btn-prime:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
 
 /* ═══════════════════════════════════════════════════════════════════════
    §8 · TOOLKIT PAGE (Process + Playbook + Resources, merged)

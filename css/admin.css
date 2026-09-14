@@ -167,3 +167,17 @@
   .admin-resource-row     { flex-direction: column; align-items: stretch; gap: 12px; }
   .admin-news-row-actions { align-items: flex-end; justify-content: flex-start; }
 }
+
+/* Submit + Cancel sit on one line. Cancel is only present while a form is
+   in edit mode (see startEdit() in admin.js). */
+.admin-form-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* A form being used to edit an existing row rather than publish a new one.
+   The left rule is the whole signal — it reads at a glance from anywhere on
+   the page, which matters because the row you clicked Edit on may have been
+   well below the form you were scrolled back up to. */
+.admin-form-editing {
+  border-left: 3px solid var(--cardinal);
+  padding-left: 20px;
+  margin-left: -23px;
+}

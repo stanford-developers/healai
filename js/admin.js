@@ -45,7 +45,11 @@ function setDashTab(name) {
     byId('dash-tab-' + tab).setAttribute('aria-selected', tab === name);
     byId('dash-panel-' + tab).hidden = tab !== name;
   });
-  byId('dash-h2').textContent = DASH_H2[name];
+  /* A panel left in edit mode keeps its "Edit …" heading when you switch
+     away and back, so the heading never disagrees with the form below it.
+     EDIT_ROW/PANEL_FORMS are declared later in the file but this only runs
+     after the whole script has evaluated. */
+  byId('dash-h2').textContent = EDIT_ROW[name] ? PANEL_FORMS[name].editH2 : DASH_H2[name];
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -118,18 +122,173 @@ async function syncViewToSession(session) {
   }
 }
 
+/* ═════════════════════════════════════════════════════════════════════════
+   EDIT MODE
+   ─────────────────────────────────────────────────────────────────────────
+   All four panels reuse their publish form for editing rather than growing
+   a second inline editor: clicking Edit on a row loads that row into the
+   form above and flips the panel into edit mode, so its submit handler
+   UPDATEs that row instead of INSERTing a new one. That keeps one set of
+   field definitions, validation, and file-upload logic per panel.
+
+   EDIT_ROW[panel] holds the row being edited, or null when the panel is in
+   its normal "publish a new one" state. Each panel's submit handler reads
+   it through editingRow() and finishes with finishEdit(), which resets the
+   form either way.
+
+   File fields are the one asymmetry: leaving the file input empty while
+   editing means "keep the file that's already attached", so those columns
+   are omitted from the UPDATE rather than written as null. Picking a new
+   file replaces the old one, and the old object is deleted from Storage
+   only after the row update succeeds.
+   ════════════════════════════════════════════════════════════════════════ */
+const EDIT_ROW = { resources: null, reports: null, team: null, news: null };
+
+/* One entry per panel: its form, the submit button's two labels, and the
+   function that loads a row's values into the fields. */
+const PANEL_FORMS = {
+  resources: { form: 'upload-form', submit: 'upload-submit', cancel: 'upload-cancel',
+               status: 'upload-status', publishLabel: 'Publish resource',
+               editH2: 'Edit a resource', fill: fillResourceForm },
+  reports:   { form: 'report-form', submit: 'report-submit', cancel: 'report-cancel',
+               status: 'report-status', publishLabel: 'Publish',
+               editH2: 'Edit a report', fill: fillReportForm },
+  team:      { form: 'team-form',   submit: 'team-submit',   cancel: 'team-cancel',
+               status: 'team-status',   publishLabel: 'Publish',
+               editH2: 'Edit a team member', fill: fillTeamForm },
+  news:      { form: 'news-form',   submit: 'news-submit',   cancel: 'news-cancel',
+               status: 'news-status',   publishLabel: 'Publish',
+               editH2: 'Edit a news item', fill: fillNewsForm },
+};
+
+function editingRow(panel) { return EDIT_ROW[panel]; }
+
+/** Loads `row` into the panel's form and switches it to edit mode. */
+function startEdit(panel, row) {
+  const cfg = PANEL_FORMS[panel];
+  EDIT_ROW[panel] = row;
+
+  byId(cfg.form).reset();          /* clear leftovers before filling */
+  cfg.fill(row);
+
+  byId(cfg.submit).textContent = 'Save changes';
+  byId(cfg.cancel).hidden = false;
+  byId(cfg.form).classList.add('admin-form-editing');
+  byId('dash-h2').textContent = cfg.editH2;
+  byId(cfg.status).textContent = 'Editing an existing entry. Save changes, or cancel to leave it as it was.';
+  byId(cfg.form).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Returns the panel to "publish a new one", discarding any edit. */
+function cancelEdit(panel) {
+  const cfg = PANEL_FORMS[panel];
+  EDIT_ROW[panel] = null;
+  byId(cfg.form).reset();
+  byId(cfg.submit).textContent = cfg.publishLabel;
+  byId(cfg.cancel).hidden = true;
+  byId(cfg.form).classList.remove('admin-form-editing');
+  byId('dash-h2').textContent = DASH_H2[panel];
+  byId(cfg.status).textContent = '';
+  if (panel === 'news') syncNewsFieldsToType();
+}
+
+/** Called by a submit handler after a successful save, to drop edit mode
+ *  without wiping the success message cancelEdit() would clear. */
+function finishEdit(panel) {
+  const cfg = PANEL_FORMS[panel];
+  const wasEditing = !!EDIT_ROW[panel];
+  EDIT_ROW[panel] = null;
+  byId(cfg.form).reset();
+  byId(cfg.submit).textContent = cfg.publishLabel;
+  byId(cfg.cancel).hidden = true;
+  byId(cfg.form).classList.remove('admin-form-editing');
+  byId('dash-h2').textContent = DASH_H2[panel];
+  return wasEditing;
+}
+
+/** The Edit button markup shared by all four lists. The row's JSON rides
+ *  along in a data attribute so the click handler doesn't need a second
+ *  round trip to fetch what it already has. */
+function editButtonHTML(panel, row) {
+  const payload = encodeURIComponent(JSON.stringify(row));
+  return `<button type="button" class="btn-second admin-edit-btn" data-panel="${panel}" data-row="${payload}">Edit</button>`;
+}
+
+/** Wires every Edit button inside `list`. */
+function wireEditButtons(list) {
+  list.querySelectorAll('.admin-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      startEdit(btn.dataset.panel, JSON.parse(decodeURIComponent(btn.dataset.row)));
+    });
+  });
+}
+
+/* ── Per-panel field loaders ─────────────────────────────────────────── */
+
+function fillResourceForm(r) {
+  byId('upload-title').value = r.title || '';
+  byId('upload-description').value = r.description || '';
+  byId('upload-category').value = r.category || 'interviews';
+  byId('upload-icon').value = r.icon || 'paper';
+  byId('upload-link').value = r.link_url && r.link_url !== '#' ? r.link_url : '';
+  byId('upload-priority').value = r.priority ?? 0;
+}
+
+function fillReportForm(r) {
+  byId('report-name').value = r.name || '';
+  byId('report-sub').value = r.sub || '';
+  byId('report-overview').value = r.overview || '';
+  byId('report-summary').value = r.summary || '';
+  byId('report-issues').value = (r.issues || []).join('\n');
+  byId('report-priority').value = r.priority ?? '';
+}
+
+function fillTeamForm(m) {
+  byId('team-name').value = m.name || '';
+  byId('team-role').value = m.role || '';
+  byId('team-badge').value = m.badge || '';
+  byId('team-profile').value = m.profile_url || '';
+  byId('team-priority').value = m.priority ?? '';
+}
+
+function fillNewsForm(r) {
+  byId('news-type').value = r.type || 'seminar_video';
+  syncNewsFieldsToType();            /* reveal the fields this type uses */
+  byId('news-title').value = r.title || '';
+  byId('news-description').value = r.description || '';
+  byId('news-date').value = r.date || '';
+  byId('news-link').value = r.link || '';
+  byId('news-priority').value = r.priority ?? '';
+  const m = r.meta || {};
+  byId('news-speaker').value = m.speaker || '';
+  byId('news-venue').value   = m.venue   || '';
+  byId('news-source').value  = m.source  || '';
+  byId('news-authors').value = m.authors || '';
+  byId('news-journal').value = m.journal || '';
+}
+
+
 /* ─────────────────────────────────────────────────────────────────────────
-   UPLOAD / LIST / DELETE
+   TOOLKIT RESOURCES — publish / edit / list / reorder / delete
    ────────────────────────────────────────────────────────────────────── */
 /**
- * Publishes one resource card. A card carries either an uploaded file or a
- * link, and with neither it publishes as a "Coming soon" card — so the only
- * hard requirements are a title and a category. Supplying both a file and a
- * link is rejected rather than silently picking one, since which of the two
- * the card would point at isn't obvious from the form.
+ * Publishes a new resource card, or saves changes to the one being edited.
+ *
+ * A card carries either an uploaded file or a link, and with neither it
+ * publishes as a "Coming soon" card — so the only hard requirements are a
+ * title and a category. Uploading a file while also giving a link is
+ * rejected rather than silently picking one.
+ *
+ * When editing, an empty file input means "keep the attached file", so the
+ * file columns are left out of the UPDATE. Uploading a new file replaces
+ * the old object and clears link_url; otherwise the link field is
+ * authoritative for link_url. A row that ends up with both keeps working —
+ * getPublicResources() in app.js prefers link_url — but the form can't
+ * create that state by accident.
  */
 async function handleUploadSubmit(e) {
   e.preventDefault();
+  const editing = editingRow('resources');
   const file = byId('upload-file').files[0];
   const link = byId('upload-link').value.trim();
   const title = byId('upload-title').value.trim();
@@ -152,7 +311,6 @@ async function handleUploadSubmit(e) {
   const row = {
     title, description, category, icon, priority,
     link_url: link || null,
-    uploaded_by: session.user.id,
   };
 
   if (file) {
@@ -168,18 +326,27 @@ async function handleUploadSubmit(e) {
     row.file_size_bytes = file.size;
   }
 
-  const { error: insertError } = await sb.from('resources').insert(row);
+  const { error: saveError } = editing
+    ? await sb.from('resources').update(row).eq('id', editing.id)
+    : await sb.from('resources').insert({ ...row, uploaded_by: session.user.id });
 
   submit.disabled = false;
 
-  if (insertError) {
+  if (saveError) {
     status.textContent = (file ? 'File uploaded, but saving its details failed: ' : 'Saving failed: ')
-      + insertError.message;
+      + saveError.message;
     return;
   }
 
-  status.textContent = file ? 'Uploaded.' : 'Published.';
-  byId('upload-form').reset();
+  /* Only now that the row points at the new file is the old one safe to
+     remove — a failed update above would otherwise leave a card whose file
+     had already been deleted. */
+  if (editing && file && editing.file_path) {
+    await sb.storage.from('resource-files').remove([editing.file_path]);
+  }
+
+  const wasEditing = finishEdit('resources');
+  status.textContent = wasEditing ? 'Changes saved.' : (file ? 'Uploaded.' : 'Published.');
   loadResources();
 }
 
@@ -264,11 +431,13 @@ async function loadResources() {
           <span>Order</span>
           <input type="number" step="10" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? 0}">
         </label>
+        ${editButtonHTML('resources', r)}
         <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}" data-path="${r.file_path || ''}">Delete</button>
       </div>
     </div>
   `).join('');
 
+  wireEditButtons(list);
   list.querySelectorAll('.admin-priority-input').forEach(input => {
     input.addEventListener('change', () => handleResourcePriorityChange(input.dataset.id, input.value));
   });
@@ -327,6 +496,7 @@ function collectNewsMeta(type) {
 
 async function handleNewsSubmit(e) {
   e.preventDefault();
+  const editing = editingRow('news');
   const type = byId('news-type').value;
   const title = byId('news-title').value.trim();
   const description = byId('news-description').value.trim();
@@ -337,26 +507,29 @@ async function handleNewsSubmit(e) {
   const submit = byId('news-submit');
 
   submit.disabled = true;
-  status.textContent = 'Publishing…';
+  status.textContent = editing ? 'Saving…' : 'Publishing…';
 
   const { data: { session } } = await sb.auth.getSession();
-  const { error } = await sb.from('news_items').insert({
+  const row = {
     type, title, description, date,
     link: link || null,
     priority: priorityRaw === '' ? null : Number(priorityRaw),
     meta: collectNewsMeta(type),
-    uploaded_by: session.user.id,
-  });
+  };
+
+  const { error } = editing
+    ? await sb.from('news_items').update(row).eq('id', editing.id)
+    : await sb.from('news_items').insert({ ...row, uploaded_by: session.user.id });
 
   submit.disabled = false;
 
   if (error) {
-    status.textContent = 'Publish failed: ' + error.message;
+    status.textContent = (editing ? 'Saving failed: ' : 'Publish failed: ') + error.message;
     return;
   }
 
-  status.textContent = 'Published.';
-  byId('news-form').reset();
+  const wasEditing = finishEdit('news');
+  status.textContent = wasEditing ? 'Changes saved.' : 'Published.';
   syncNewsFieldsToType();
   loadNewsItems();
 }
@@ -401,11 +574,13 @@ async function loadNewsItems() {
           <span>Priority</span>
           <input type="number" step="1" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? ''}" placeholder="date">
         </label>
+        ${editButtonHTML('news', r)}
         <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}">Delete</button>
       </div>
     </div>
   `).join('');
 
+  wireEditButtons(list);
   list.querySelectorAll('.admin-priority-input').forEach(input => {
     input.addEventListener('change', () => handlePriorityChange('news_items', input.dataset.id, input.value, loadNewsItems));
   });
@@ -446,12 +621,16 @@ async function handleReportSubmit(e) {
   const file = byId('report-file').files[0];
   const status = byId('report-status');
   const submit = byId('report-submit');
+  const editing = editingRow('reports');
 
   submit.disabled = true;
-  status.textContent = 'Publishing…';
+  status.textContent = editing ? 'Saving…' : 'Publishing…';
 
   const { data: { session } } = await sb.auth.getSession();
-  let file_path = null, file_name = null;
+  const row = {
+    name, sub, overview, summary, issues,
+    priority: priorityRaw === '' ? null : Number(priorityRaw),
+  };
 
   if (file) {
     const path = `${crypto.randomUUID()}-${file.name}`;
@@ -461,26 +640,32 @@ async function handleReportSubmit(e) {
       status.textContent = 'File upload failed: ' + uploadError.message;
       return;
     }
-    file_path = path;
-    file_name = file.name;
+    row.file_path = path;
+    row.file_name = file.name;
+  } else if (!editing) {
+    /* A brand-new report with no file attached is explicit about it; an
+       edit with an empty file input keeps whatever is already attached. */
+    row.file_path = null;
+    row.file_name = null;
   }
 
-  const { error } = await sb.from('reports').insert({
-    name, sub, overview, summary, issues,
-    file_path, file_name,
-    priority: priorityRaw === '' ? null : Number(priorityRaw),
-    uploaded_by: session.user.id,
-  });
+  const { error } = editing
+    ? await sb.from('reports').update(row).eq('id', editing.id)
+    : await sb.from('reports').insert({ ...row, uploaded_by: session.user.id });
 
   submit.disabled = false;
 
   if (error) {
-    status.textContent = 'Publish failed: ' + error.message;
+    status.textContent = (editing ? 'Saving failed: ' : 'Publish failed: ') + error.message;
     return;
   }
 
-  status.textContent = 'Published.';
-  byId('report-form').reset();
+  if (editing && file && editing.file_path) {
+    await sb.storage.from('report-files').remove([editing.file_path]);
+  }
+
+  const wasEditing = finishEdit('reports');
+  status.textContent = wasEditing ? 'Changes saved.' : 'Published.';
   loadReports();
 }
 
@@ -512,11 +697,13 @@ async function loadReports() {
           <span>Priority</span>
           <input type="number" step="1" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? ''}" placeholder="upload order">
         </label>
+        ${editButtonHTML('reports', r)}
         <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}" data-path="${r.file_path || ''}">Delete</button>
       </div>
     </div>
   `).join('');
 
+  wireEditButtons(list);
   list.querySelectorAll('.admin-priority-input').forEach(input => {
     input.addEventListener('change', () => handlePriorityChange('reports', input.dataset.id, input.value, loadReports));
   });
@@ -549,12 +736,17 @@ async function handleTeamSubmit(e) {
   const photo = byId('team-photo').files[0];
   const status = byId('team-status');
   const submit = byId('team-submit');
+  const editing = editingRow('team');
 
   submit.disabled = true;
-  status.textContent = 'Publishing…';
+  status.textContent = editing ? 'Saving…' : 'Publishing…';
 
   const { data: { session } } = await sb.auth.getSession();
-  let photo_path = null;
+  const row = {
+    name, role, badge,
+    profile_url: profile_url || null,
+    priority: priorityRaw === '' ? null : Number(priorityRaw),
+  };
 
   if (photo) {
     const path = `${crypto.randomUUID()}-${photo.name}`;
@@ -564,25 +756,31 @@ async function handleTeamSubmit(e) {
       status.textContent = 'Photo upload failed: ' + uploadError.message;
       return;
     }
-    photo_path = path;
+    row.photo_path = path;
+    /* Clear any legacy photo_url so there's never ambiguity about which
+       image is current — same rule as handleTeamPhotoChange(). */
+    row.photo_url = null;
+  } else if (!editing) {
+    row.photo_path = null;
   }
 
-  const { error } = await sb.from('team_members').insert({
-    name, role, badge, photo_path,
-    profile_url: profile_url || null,
-    priority: priorityRaw === '' ? null : Number(priorityRaw),
-    uploaded_by: session.user.id,
-  });
+  const { error } = editing
+    ? await sb.from('team_members').update(row).eq('id', editing.id)
+    : await sb.from('team_members').insert({ ...row, uploaded_by: session.user.id });
 
   submit.disabled = false;
 
   if (error) {
-    status.textContent = 'Publish failed: ' + error.message;
+    status.textContent = (editing ? 'Saving failed: ' : 'Publish failed: ') + error.message;
     return;
   }
 
-  status.textContent = 'Published.';
-  byId('team-form').reset();
+  if (editing && photo && editing.photo_path) {
+    await sb.storage.from('team-photos').remove([editing.photo_path]);
+  }
+
+  const wasEditing = finishEdit('team');
+  status.textContent = wasEditing ? 'Changes saved.' : 'Published.';
   loadTeamMembers();
 }
 
@@ -619,11 +817,13 @@ async function loadTeamMembers() {
           <span>${(m.photo_path || m.photo_url) ? 'Replace photo' : 'Add photo'}</span>
           <input type="file" accept="image/*" class="admin-photo-input" data-id="${m.id}" data-old-path="${m.photo_path || ''}">
         </label>
+        ${editButtonHTML('team', m)}
         <button type="button" class="btn-second admin-delete-btn" data-id="${m.id}" data-path="${m.photo_path || ''}">Delete</button>
       </div>
     </div>
   `).join('');
 
+  wireEditButtons(list);
   list.querySelectorAll('.admin-priority-input').forEach(input => {
     input.addEventListener('change', () => handlePriorityChange('team_members', input.dataset.id, input.value, loadTeamMembers));
   });
@@ -689,6 +889,9 @@ function initAdmin() {
   byId('news-form').addEventListener('submit', handleNewsSubmit);
   byId('report-form').addEventListener('submit', handleReportSubmit);
   byId('team-form').addEventListener('submit', handleTeamSubmit);
+  Object.keys(PANEL_FORMS).forEach(panel => {
+    byId(PANEL_FORMS[panel].cancel).addEventListener('click', () => cancelEdit(panel));
+  });
 
   sb.auth.onAuthStateChange((_event, session) => syncViewToSession(session));
   sb.auth.getSession().then(({ data: { session } }) => syncViewToSession(session));

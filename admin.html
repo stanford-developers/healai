@@ -163,7 +163,10 @@
             <input type="number" id="upload-priority" value="0" step="10">
           </label>
 
-          <button type="submit" class="btn-prime" id="upload-submit">Publish resource</button>
+          <div class="admin-form-actions">
+            <button type="submit" class="btn-prime" id="upload-submit">Publish resource</button>
+            <button type="button" class="btn-second admin-cancel-btn" id="upload-cancel" hidden>Cancel edit</button>
+          </div>
         </form>
         <p class="admin-status" id="upload-status" role="status" aria-live="polite"></p>
 
@@ -207,7 +210,10 @@
             <span>Priority (optional — higher shows earlier in the grid; leave blank for newest-first)</span>
             <input type="number" id="report-priority" step="1" placeholder="Leave blank to sort by upload order">
           </label>
-          <button type="submit" class="btn-prime" id="report-submit">Publish</button>
+          <div class="admin-form-actions">
+            <button type="submit" class="btn-prime" id="report-submit">Publish</button>
+            <button type="button" class="btn-second admin-cancel-btn" id="report-cancel" hidden>Cancel edit</button>
+          </div>
         </form>
         <p class="admin-status" id="report-status" role="status" aria-live="polite"></p>
 
@@ -244,7 +250,10 @@
             <span>Priority (optional — higher shows earlier in the grid; leave blank for newest-first)</span>
             <input type="number" id="team-priority" step="1" placeholder="Leave blank to sort by upload order">
           </label>
-          <button type="submit" class="btn-prime" id="team-submit">Publish</button>
+          <div class="admin-form-actions">
+            <button type="submit" class="btn-prime" id="team-submit">Publish</button>
+            <button type="button" class="btn-second admin-cancel-btn" id="team-cancel" hidden>Cancel edit</button>
+          </div>
         </form>
         <p class="admin-status" id="team-status" role="status" aria-live="polite"></p>
 
@@ -309,7 +318,10 @@
             <span>Priority (optional — when a feed has more than 5 items, higher priority shows first on the News landing page; leave blank to just sort by date)</span>
             <input type="number" id="news-priority" step="1" placeholder="Leave blank to sort by date">
           </label>
-          <button type="submit" class="btn-prime" id="news-submit">Publish</button>
+          <div class="admin-form-actions">
+            <button type="submit" class="btn-prime" id="news-submit">Publish</button>
+            <button type="button" class="btn-second admin-cancel-btn" id="news-cancel" hidden>Cancel edit</button>
+          </div>
         </form>
         <p class="admin-status" id="news-status" role="status" aria-live="polite"></p>
 

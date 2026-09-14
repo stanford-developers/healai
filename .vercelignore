@@ -16,6 +16,12 @@ HEAL-AI_Master_Landscape_Report Final.docx.pdf
 # expression guarding it.
 supabase/
 
+# Source for the Google Apps Script sign-up endpoint. It runs inside the
+# HEAL-AI Google account, not on this site, so serving it here would only
+# publish its internals (sheet name, validation rules, honeypot field) to
+# anyone probing the form.
+google-apps-script/
+
 # Repo metadata, not site content.
 README.md
 .claude/

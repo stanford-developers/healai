@@ -48,19 +48,30 @@ const SHOW_VIDEOS = false;
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ② SIGN-UP URL
+   ② SIGN-UP · endpoint + fallback URL
 ─────────────────────────────────────────────────────────────────────────────
-   The Google Form (or future Mailchimp / HubSpot) URL used by every
-   "Sign up for updates" CTA across the site. The following elements get
-   their href set to this value at runtime in app.js → renderNav():
+   SIGNUP_ENDPOINT is the Google Apps Script Web App URL that appends one
+   row (name / email / affiliation) to the signups Google Sheet. Setup
+   instructions, and the script to paste, are in
+   /google-apps-script/signup-sheet.gs.
 
-     • Top-nav button         (#nav-signup-btn)
-     • Mobile menu button     (added in renderNav)
-     • Home page Sign-up card (#home-signup-btn)
-     • Footer link            (#footer-signup)
+   WHEN SET  → the site collects sign-ups in its own form: inline in the
+               home page's sign-up card, and in a modal from every other
+               "Sign up" CTA. Nothing leaves the site.
+   WHEN NOT  → every CTA falls back to opening SIGN_UP_URL in a new tab,
+               which is how the site behaved before the form existed.
 
-   EDIT HERE  →  replace with the live Google Form URL once provisioned.
+   The URL looks like https://script.google.com/macros/s/AKfycb…/exec —
+   it is a write-only endpoint, not a secret, and gives no access to the
+   Sheet's contents, so it is fine to have in a public repo.
+
+   EDIT HERE  →  paste your deployed Web app URL over the placeholder.
 ─────────────────────────────────────────────────────────────────────────── */
+const SIGNUP_ENDPOINT = 'https://script.google.com/macros/s/REPLACE-WITH-SCRIPT-ID/exec';
+
+/* Fallback only — used by every "Sign up for updates" CTA when
+   SIGNUP_ENDPOINT is still the placeholder above. See openSignUp() in
+   app.js for the elements involved. */
 const SIGN_UP_URL = 'https://docs.google.com/forms/d/e/REPLACE-WITH-FORM-ID/viewform';
 
 

@@ -260,8 +260,18 @@
     </section>
 
     <!-- SIGN-UP CTA CARD ──────────────────────────────────────────────────
-         The href on #home-signup-btn is wired up at runtime from
-         SIGN_UP_URL (config.js).                                            -->
+         Two mutually exclusive right-hand sides, picked at runtime by
+         initSignUpForms() in app.js depending on whether SIGNUP_ENDPOINT
+         is configured in config.js:
+
+           .signup-side-form → the real inline form, posting to the Apps
+                               Script endpoint that appends a row to the
+                               signups Google Sheet.
+           .signup-side-link → the pre-form fallback, a button opening
+                               SIGN_UP_URL in a new tab.
+
+         Both are in the markup so the page needs no template branching;
+         the unused one is removed on init.                                  -->
     <section class="section">
       <div class="signup-card">
         <div>
@@ -269,7 +279,35 @@
           <h2>Sign up for HEAL-AI updates.</h2>
           <p>New sample reports and other resources drop on a rolling basis. Subscribe and we'll let you know when new redacted reports go live.</p>
         </div>
-        <div class="signup-side">
+
+        <div class="signup-side signup-side-form" id="home-signup-form-side" hidden>
+          <form class="signup-form" id="home-signup-form" novalidate>
+            <label class="signup-field">
+              <span>Name</span>
+              <input type="text" name="name" autocomplete="name" required maxlength="200">
+            </label>
+            <label class="signup-field">
+              <span>Email</span>
+              <input type="email" name="email" autocomplete="email" required maxlength="200">
+            </label>
+            <label class="signup-field">
+              <span>Affiliation</span>
+              <input type="text" name="affiliation" autocomplete="organization" required maxlength="200"
+                     placeholder="Your institution or organization">
+            </label>
+            <!-- Honeypot · hidden from people, tempting to bots. Checked
+                 server-side in signup-sheet.gs. Not type=hidden so that a
+                 bot filling "every input" still trips it. -->
+            <div class="signup-honeypot" aria-hidden="true">
+              <label>Company<input type="text" name="company" tabindex="-1" autocomplete="off"></label>
+            </div>
+            <button type="submit" class="btn-cta">Sign up <span aria-hidden="true">→</span></button>
+            <p class="signup-status" role="status" aria-live="polite"></p>
+          </form>
+          <p class="signup-foot">No spam · Unsubscribe anytime</p>
+        </div>
+
+        <div class="signup-side signup-side-link" id="home-signup-link-side" hidden>
           <a href="#" class="btn-cta" id="home-signup-btn" rel="noopener" target="_blank">
             Sign up via Google Form <span aria-hidden="true">→</span>
           </a>
@@ -340,6 +378,43 @@
     </header>
     <section class="section" id="videos-section"><!-- populated by renderVideos() --></section>
   </section>
+
+  <!-- SIGN-UP MODAL ────────────────────────────────────────────────────────
+       The same three fields as the home page's inline form, for every
+       other "Sign up" CTA (top nav, mobile menu, footers, Get Started
+       step 05). Opened by openSignUp() in app.js, but only when
+       SIGNUP_ENDPOINT is configured — otherwise those CTAs stay plain
+       links to SIGN_UP_URL and this modal is never shown. Same
+       Escape/backdrop-close behavior as the other two modals. -->
+  <div id="signup-modal" role="dialog" aria-modal="true" aria-labelledby="sm-title" aria-hidden="true">
+    <div class="sm-inner">
+      <button class="vm-close" id="sm-close" aria-label="Close sign-up form">×</button>
+      <p class="eyebrow">Stay informed</p>
+      <h3 id="sm-title">Sign up for HEAL-AI updates.</h3>
+      <p class="sm-lede">New sample reports and other resources drop on a rolling basis. We'll let you know when they go live.</p>
+      <form class="signup-form" id="modal-signup-form" novalidate>
+        <label class="signup-field">
+          <span>Name</span>
+          <input type="text" name="name" autocomplete="name" required maxlength="200">
+        </label>
+        <label class="signup-field">
+          <span>Email</span>
+          <input type="email" name="email" autocomplete="email" required maxlength="200">
+        </label>
+        <label class="signup-field">
+          <span>Affiliation</span>
+          <input type="text" name="affiliation" autocomplete="organization" required maxlength="200"
+                 placeholder="Your institution or organization">
+        </label>
+        <div class="signup-honeypot" aria-hidden="true">
+          <label>Company<input type="text" name="company" tabindex="-1" autocomplete="off"></label>
+        </div>
+        <button type="submit" class="btn-prime">Sign up <span aria-hidden="true">→</span></button>
+        <p class="signup-status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+
 
   <!-- VIDEO MODAL ──────────────────────────────────────────────────────────
        Centralized accessible <dialog>-like overlay. Opened by openVideo()

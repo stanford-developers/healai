@@ -97,10 +97,27 @@ function svgIcon(name, opts = {}) {
 }
 
 /**
- * Open SIGN_UP_URL in a new tab. Single helper so the URL only lives in
- * config.js — there are no string copies of it floating around.
+ * True once SIGNUP_ENDPOINT in config.js points at a real deployed Apps
+ * Script Web App. Everything sign-up related branches on this, so the site
+ * works both before and after that URL is pasted in — see
+ * /google-apps-script/signup-sheet.gs for the deploy steps.
  */
-function openSignUp() { window.open(SIGN_UP_URL, '_blank', 'noopener'); }
+function hasSignUpEndpoint() {
+  return typeof SIGNUP_ENDPOINT === 'string'
+    && SIGNUP_ENDPOINT.length > 0
+    && !SIGNUP_ENDPOINT.includes('REPLACE-WITH');
+}
+
+/**
+ * Every "Sign up" CTA funnels through here: the modal form when we can
+ * collect sign-ups ourselves, otherwise the old behavior of opening
+ * SIGN_UP_URL in a new tab. Single helper so neither URL is duplicated
+ * anywhere.
+ */
+function openSignUp() {
+  if (hasSignUpEndpoint()) { openSignUpModal(); return; }
+  window.open(SIGN_UP_URL, '_blank', 'noopener');
+}
 
 
 /* ═════════════════════════════════════════════════════════════════════════
@@ -243,8 +260,16 @@ function renderNav() {
   ms.className = 'btn-cta';
   ms.textContent = 'Sign up for updates →';
   mobile.appendChild(ms);
+  ms.addEventListener('click', e => {
+    if (!hasSignUpEndpoint()) return;      /* let the href do its job */
+    e.preventDefault();
+    closeMobileMenu();
+    openSignUp();
+  });
 
-  /* Wire every Sign-up CTA on the site to SIGN_UP_URL */
+  /* Every Sign-up CTA. With an endpoint configured these open the modal
+     form instead of navigating; the href stays set as a no-JS fallback,
+     so preventDefault() is what actually suppresses the navigation. */
   ['nav-signup-btn', 'home-signup-btn', 'footer-signup', 'footer-global-signup']
     .forEach(id => {
       const el = byId(id);
@@ -252,6 +277,11 @@ function renderNav() {
       el.href = SIGN_UP_URL;
       el.target = '_blank';
       el.rel = 'noopener';
+      el.addEventListener('click', e => {
+        if (!hasSignUpEndpoint()) return;
+        e.preventDefault();
+        openSignUp();
+      });
     });
 
   /* Brand mark → home */
@@ -600,9 +630,16 @@ function renderVideos() {
         the patient panel, writing the EOP, and adapting the process — is in
         production. Sign up for updates and we'll let you know the moment it goes live.</p>
         <div style="margin-top:24px">
-          <a href="${SIGN_UP_URL}" target="_blank" rel="noopener" class="btn-prime">Notify me →</a>
+          <a href="${SIGN_UP_URL}" target="_blank" rel="noopener" class="btn-prime" id="videos-notify-btn">Notify me →</a>
         </div>
       </div>`;
+    /* Same treatment as the other CTAs: open our own form when we have an
+       endpoint, otherwise let the href fall through to SIGN_UP_URL. */
+    byId('videos-notify-btn').addEventListener('click', e => {
+      if (!hasSignUpEndpoint()) return;
+      e.preventDefault();
+      openSignUp();
+    });
     return;
   }
 
@@ -674,6 +711,128 @@ function closeVideo() {
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ⑦b SIGN-UP FORM · name / email / affiliation → signups Google Sheet
+   ─────────────────────────────────────────────────────────────────────────
+   Posts to SIGNUP_ENDPOINT, an Apps Script Web App that appends one row
+   per submission (see /google-apps-script/signup-sheet.gs). There are two
+   copies of the same form — inline in the home page's sign-up card, and in
+   #signup-modal for every other CTA — both wired by the same code here.
+
+   When SIGNUP_ENDPOINT is still the config.js placeholder, none of this
+   activates: the home card shows its old "Sign up via Google Form" button
+   and the CTAs keep opening SIGN_UP_URL. That way the site is never in a
+   state where the form is visible but can't submit.
+
+   REQUEST SHAPE — Content-Type is text/plain, not application/json. That
+   makes it a CORS "simple request" so the browser skips the preflight
+   OPTIONS call, which Apps Script web apps can't answer. The body is still
+   JSON; the script parses it with JSON.parse.
+   ════════════════════════════════════════════════════════════════════════ */
+function initSignUpForms() {
+  const enabled = hasSignUpEndpoint();
+
+  /* Home card: show whichever side matches our capability, drop the other
+     so there's no duplicate hidden form in the accessibility tree. */
+  const formSide = byId('home-signup-form-side');
+  const linkSide = byId('home-signup-link-side');
+  if (formSide && linkSide) {
+    (enabled ? linkSide : formSide).remove();
+    (enabled ? formSide : linkSide).hidden = false;
+  }
+
+  if (!enabled) return;
+
+  [byId('home-signup-form'), byId('modal-signup-form')]
+    .filter(Boolean)
+    .forEach(form => form.addEventListener('submit', handleSignUpSubmit));
+
+  const modal = byId('signup-modal');
+  byId('sm-close').addEventListener('click', closeSignUpModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeSignUpModal(); });
+}
+
+function openSignUpModal() {
+  const modal = byId('signup-modal');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  /* Focus the first field so a keyboard user lands inside the dialog
+     rather than wherever the trigger left them. */
+  modal.querySelector('input[name="name"]').focus();
+}
+
+function closeSignUpModal() {
+  const modal = byId('signup-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+async function handleSignUpSubmit(e) {
+  e.preventDefault();
+  const form   = e.currentTarget;
+  const status = form.querySelector('.signup-status');
+  const submit = form.querySelector('button[type="submit"]');
+  const field  = n => form.querySelector(`[name="${n}"]`);
+
+  const payload = {
+    name:        field('name').value.trim(),
+    email:       field('email').value.trim(),
+    affiliation: field('affiliation').value.trim(),
+    company:     field('company').value,     /* honeypot, expected empty */
+  };
+
+  /* Validated here as well as in the script: a same-page message beats a
+     round trip, and the form is novalidate so the browser won't do it. */
+  if (!payload.name || !payload.email || !payload.affiliation) {
+    setSignUpStatus(status, 'Please fill in all three fields.', 'error');
+    return;
+  }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(payload.email)) {
+    setSignUpStatus(status, 'That email address does not look right.', 'error');
+    return;
+  }
+
+  submit.disabled = true;
+  setSignUpStatus(status, 'Signing you up…', '');
+
+  try {
+    const res = await fetch(SIGNUP_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',    /* Apps Script 302s to its googleusercontent host */
+    });
+    const result = await res.json();
+
+    submit.disabled = false;
+
+    if (!result.ok) {
+      setSignUpStatus(status, result.error || 'Something went wrong. Please try again.', 'error');
+      return;
+    }
+
+    form.reset();
+    setSignUpStatus(status, "You're on the list. Thanks!", 'ok');
+
+  } catch {
+    submit.disabled = false;
+    /* Network failure, or a response we couldn't read. We can't tell
+       whether the row was written, so don't claim either way. */
+    setSignUpStatus(status,
+      'We couldn\'t reach the sign-up service. Please try again, or email us if it keeps failing.',
+      'error');
+  }
+}
+
+function setSignUpStatus(el, message, kind) {
+  el.textContent = message;
+  el.classList.toggle('is-error', kind === 'error');
+  el.classList.toggle('is-ok',    kind === 'ok');
 }
 
 
@@ -2156,10 +2315,13 @@ function bindGlobalEvents() {
   });
   byId('rm-close').addEventListener('click', closeReportModal);
 
+  const signupModal = byId('signup-modal');
+
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (modal.classList.contains('open'))       { closeVideo(); return; }
     if (reportModal.classList.contains('open')) { closeReportModal(); return; }
+    if (signupModal.classList.contains('open')) { closeSignUpModal(); return; }
     if (mobileOpen) { closeMobileMenu(); return; }
   });
 }
@@ -2370,6 +2532,7 @@ function init() {
   /* Document-level wiring */
   bindGlobalEvents();
   bindNewsNav();
+  initSignUpForms();
   initPauseMediaControl();
   initSiteSearch();
 
