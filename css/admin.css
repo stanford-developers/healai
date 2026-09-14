@@ -111,6 +111,54 @@
 
 .admin-list-h { font-family: var(--serif); font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 16px; }
 
+/* ─── FILTER BAR ─────────────────────────────────────────────────────────
+   Sits between a list's heading and the list itself (Toolkit resources,
+   Sample Reports, News). Wraps freely so adding a control doesn't need a
+   layout rethink; the search field takes the slack via .admin-filter-grow. */
+.admin-filter-bar {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px;
+  padding-bottom: 16px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.admin-filter-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-low); }
+.admin-filter-grow  { flex: 1 1 180px; min-width: 0; }
+.admin-filter-field input,
+.admin-filter-field select {
+  font-family: var(--sans, inherit);
+  font-size: 13px; color: var(--ink);
+  padding: 7px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  max-width: 100%;
+}
+.admin-filter-field input:focus,
+.admin-filter-field select:focus { outline: none; border-color: var(--cardinal); }
+
+/* Only rendered while a filter is set, so it doubles as the signal that
+   the list below is not showing everything. */
+.admin-filter-clear {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--cardinal);
+  padding: 8px 2px;
+  border-bottom: 1px solid currentColor;
+}
+.admin-filter-count {
+  flex-basis: 100%;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--ink-low);
+  margin: 0;
+}
+
+/* Same trap as .admin-field[hidden] above: .btn-second sets an explicit
+   display, and an author rule always beats the UA's `[hidden]{display:none}`
+   no matter the specificity. Without this the "Cancel edit" buttons are
+   visible even when their form is not in edit mode. */
+.admin-cancel-btn[hidden],
+.admin-filter-clear[hidden] { display: none; }
+
 .admin-resource-list { display: flex; flex-direction: column; }
 .admin-resource-row {
   display: flex; align-items: flex-start; justify-content: space-between;

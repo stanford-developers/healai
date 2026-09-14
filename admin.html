@@ -171,6 +171,53 @@
         <p class="admin-status" id="upload-status" role="status" aria-live="polite"></p>
 
         <h3 class="admin-list-h">Published resources</h3>
+
+        <!-- Filter bar. Filtering happens client-side against the rows
+             already fetched by loadResources() — no extra round trip, and
+             the row count is small enough that it stays instant. -->
+        <div class="admin-filter-bar" role="search">
+          <label class="admin-filter-field admin-filter-grow">
+            <span>Search</span>
+            <input type="search" id="resource-filter-q" placeholder="Title or description">
+          </label>
+          <label class="admin-filter-field">
+            <span>Section</span>
+            <select id="resource-filter-category">
+              <option value="">All sections</option>
+              <option value="interviews">Stakeholder Interviews</option>
+              <option value="panel">Patient Partner Group</option>
+              <option value="reports">Writing &amp; Delivering Your Report</option>
+            </select>
+          </label>
+          <label class="admin-filter-field">
+            <span>Icon</span>
+            <select id="resource-filter-icon">
+              <option value="">Any icon</option>
+              <option value="paper">Document</option>
+              <option value="sheet">Spreadsheet</option>
+              <option value="deck">Slide deck</option>
+              <option value="book">Guide / handbook</option>
+              <option value="mic">Interview / focus group</option>
+              <option value="mail">Outreach / email</option>
+              <option value="cal">Schedule / tracker</option>
+              <option value="people">Group / panel</option>
+              <option value="video">Video</option>
+              <option value="link">External link</option>
+            </select>
+          </label>
+          <label class="admin-filter-field">
+            <span>Links to</span>
+            <select id="resource-filter-state">
+              <option value="">Anything</option>
+              <option value="file">An uploaded file</option>
+              <option value="link">An external link</option>
+              <option value="placeholder">A placeholder (#)</option>
+              <option value="soon">Nothing — "Coming soon"</option>
+            </select>
+          </label>
+          <button type="button" class="admin-filter-clear" id="resource-filter-clear" hidden>Clear</button>
+          <p class="admin-filter-count" id="resource-filter-count" role="status" aria-live="polite"></p>
+        </div>
         <div id="resource-list" class="admin-resource-list">
           <p class="admin-empty">Loading…</p>
         </div>
@@ -218,6 +265,23 @@
         <p class="admin-status" id="report-status" role="status" aria-live="polite"></p>
 
         <h3 class="admin-list-h">Published reports</h3>
+
+        <div class="admin-filter-bar" role="search">
+          <label class="admin-filter-field admin-filter-grow">
+            <span>Search</span>
+            <input type="search" id="report-filter-q" placeholder="Tool nickname or subtitle">
+          </label>
+          <label class="admin-filter-field">
+            <span>Full report file</span>
+            <select id="report-filter-file">
+              <option value="">Either</option>
+              <option value="yes">Attached</option>
+              <option value="no">Not attached</option>
+            </select>
+          </label>
+          <button type="button" class="admin-filter-clear" id="report-filter-clear" hidden>Clear</button>
+          <p class="admin-filter-count" id="report-filter-count" role="status" aria-live="polite"></p>
+        </div>
         <div id="report-list" class="admin-resource-list">
           <p class="admin-empty">Loading…</p>
         </div>
@@ -326,6 +390,32 @@
         <p class="admin-status" id="news-status" role="status" aria-live="polite"></p>
 
         <h3 class="admin-list-h">Published news items</h3>
+
+        <!-- The year dropdown is filled from the rows themselves in
+             loadNewsItems(), so it only ever offers years that exist. -->
+        <div class="admin-filter-bar" role="search">
+          <label class="admin-filter-field admin-filter-grow">
+            <span>Search</span>
+            <input type="search" id="news-filter-q" placeholder="Title, speaker, source or journal">
+          </label>
+          <label class="admin-filter-field">
+            <span>Feed</span>
+            <select id="news-filter-type">
+              <option value="">All feeds</option>
+              <option value="seminar_video">Seminar video</option>
+              <option value="news_article">News article</option>
+              <option value="scholarly_publication">Scholarly publication</option>
+            </select>
+          </label>
+          <label class="admin-filter-field">
+            <span>Year</span>
+            <select id="news-filter-year">
+              <option value="">All years</option>
+            </select>
+          </label>
+          <button type="button" class="admin-filter-clear" id="news-filter-clear" hidden>Clear</button>
+          <p class="admin-filter-count" id="news-filter-count" role="status" aria-live="polite"></p>
+        </div>
         <div id="news-item-list" class="admin-resource-list">
           <p class="admin-empty">Loading…</p>
         </div>

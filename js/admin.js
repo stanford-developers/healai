@@ -123,6 +123,148 @@ async function syncViewToSession(session) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════
+   LIST FILTERING
+   ─────────────────────────────────────────────────────────────────────────
+   Resources, Sample Reports, and News each get a filter bar above their
+   manage list. Filtering is client-side against rows already fetched by
+   that list's load function: these tables hold tens of rows, not
+   thousands, so re-querying Supabase per keystroke would add latency and
+   load for no benefit.
+
+   Each load function therefore splits in two — fetch into LIST_ROWS, then
+   render from it — so a filter change re-renders without a round trip. It
+   also means an edit or delete refreshes the list while keeping whatever
+   filter is active.
+
+   Adding a filter to a list means: markup in admin.html, a predicate in
+   LIST_FILTERS below, and the control ids in its `controls` array.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/** Every row fetched for each panel, unfiltered. */
+const LIST_ROWS = { resources: [], reports: [], news: [] };
+
+function filterValue(id) {
+  const el = byId(id);
+  return el ? el.value.trim() : '';
+}
+
+/** Case-insensitive "does any of these fields contain the query" test. */
+function matchesQuery(q, fields) {
+  if (!q) return true;
+  const needle = q.toLowerCase();
+  return fields.some(f => String(f || '').toLowerCase().includes(needle));
+}
+
+/** Which of the four link states a resource row is in — the same
+ *  distinction resourceTargetLabel() renders, kept in one place so the
+ *  filter and the label can't disagree. */
+function resourceLinkState(r) {
+  if (r.link_url === '#') return 'placeholder';
+  if (r.link_url)         return 'link';
+  if (r.file_path)        return 'file';
+  return 'soon';
+}
+
+const LIST_FILTERS = {
+  resources: {
+    controls: ['resource-filter-q', 'resource-filter-category', 'resource-filter-icon', 'resource-filter-state'],
+    clear: 'resource-filter-clear',
+    count: 'resource-filter-count',
+    noun: 'resource',
+    render: () => renderResourceList(),
+    active: () => !!(filterValue('resource-filter-q') || filterValue('resource-filter-category')
+                  || filterValue('resource-filter-icon') || filterValue('resource-filter-state')),
+    match: r =>
+      matchesQuery(filterValue('resource-filter-q'), [r.title, r.description])
+      && (!filterValue('resource-filter-category') || r.category === filterValue('resource-filter-category'))
+      && (!filterValue('resource-filter-icon')     || (r.icon || 'paper') === filterValue('resource-filter-icon'))
+      && (!filterValue('resource-filter-state')    || resourceLinkState(r) === filterValue('resource-filter-state')),
+  },
+
+  reports: {
+    controls: ['report-filter-q', 'report-filter-file'],
+    clear: 'report-filter-clear',
+    count: 'report-filter-count',
+    noun: 'report',
+    render: () => renderReportList(),
+    active: () => !!(filterValue('report-filter-q') || filterValue('report-filter-file')),
+    match: r => {
+      const wantFile = filterValue('report-filter-file');
+      return matchesQuery(filterValue('report-filter-q'), [r.name, r.sub])
+        && (!wantFile || (wantFile === 'yes' ? !!r.file_path : !r.file_path));
+    },
+  },
+
+  news: {
+    controls: ['news-filter-q', 'news-filter-type', 'news-filter-year'],
+    clear: 'news-filter-clear',
+    count: 'news-filter-count',
+    noun: 'news item',
+    render: () => renderNewsList(),
+    active: () => !!(filterValue('news-filter-q') || filterValue('news-filter-type') || filterValue('news-filter-year')),
+    match: r => {
+      const m = r.meta || {};
+      return matchesQuery(filterValue('news-filter-q'), [r.title, r.description, m.speaker, m.venue, m.source, m.authors, m.journal])
+        && (!filterValue('news-filter-type') || r.type === filterValue('news-filter-type'))
+        && (!filterValue('news-filter-year') || String(r.date || '').slice(0, 4) === filterValue('news-filter-year'));
+    },
+  },
+};
+
+/** The rows a panel should currently show. */
+function visibleRows(panel) {
+  return LIST_ROWS[panel].filter(LIST_FILTERS[panel].match);
+}
+
+/** Keeps the "Showing n of m" line and the Clear button in sync. Called by
+ *  each render function, so it's correct after a filter change, an edit, or
+ *  a delete alike. */
+function syncFilterChrome(panel, shown) {
+  const cfg = LIST_FILTERS[panel];
+  const total = LIST_ROWS[panel].length;
+  const on = cfg.active();
+  byId(cfg.clear).hidden = !on;
+  byId(cfg.count).textContent = on
+    ? `Showing ${shown} of ${total} ${cfg.noun}${total === 1 ? '' : 's'}`
+    : '';
+}
+
+function clearFilter(panel) {
+  LIST_FILTERS[panel].controls.forEach(id => { const el = byId(id); if (el) el.value = ''; });
+  LIST_FILTERS[panel].render();
+}
+
+/** Rebuilds the News year dropdown from the years actually present, keeping
+ *  the current selection if it still exists. */
+function syncNewsYearOptions() {
+  const sel = byId('news-filter-year');
+  if (!sel) return;
+  const current = sel.value;
+  const years = [...new Set(LIST_ROWS.news.map(r => String(r.date || '').slice(0, 4)).filter(Boolean))]
+    .sort().reverse();
+  sel.innerHTML = '<option value="">All years</option>'
+    + years.map(y => `<option value="${y}">${y}</option>`).join('');
+  if (years.includes(current)) sel.value = current;
+}
+
+function initListFilters() {
+  Object.keys(LIST_FILTERS).forEach(panel => {
+    const cfg = LIST_FILTERS[panel];
+    cfg.controls.forEach(id => {
+      const el = byId(id);
+      if (!el) return;
+      /* 'input' for the search box so it filters as you type; 'change' is
+         enough for the selects and fires on them too. */
+      el.addEventListener('input', cfg.render);
+      el.addEventListener('change', cfg.render);
+    });
+    const clearBtn = byId(cfg.clear);
+    if (clearBtn) clearBtn.addEventListener('click', () => clearFilter(panel));
+  });
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
    EDIT MODE
    ─────────────────────────────────────────────────────────────────────────
    All four panels reuse their publish form for editing rather than growing
@@ -411,14 +553,31 @@ async function loadResources() {
     list.innerHTML = `<p class="admin-empty">Couldn't load resources: ${error.message}</p>`;
     return;
   }
-  if (!data.length) {
+
+  LIST_ROWS.resources = data;
+  renderResourceList();
+}
+
+/** Renders the resource list from LIST_ROWS, honouring the filter bar.
+ *  Split out from loadResources() so filtering re-renders without
+ *  re-querying — see the LIST FILTERING block above. */
+function renderResourceList() {
+  const list = byId('resource-list');
+  const rows = visibleRows('resources');
+  syncFilterChrome('resources', rows.length);
+
+  if (!LIST_ROWS.resources.length) {
     list.innerHTML = '<p class="admin-empty">Nothing published yet.</p>';
+    return;
+  }
+  if (!rows.length) {
+    list.innerHTML = '<p class="admin-empty">No resources match these filters.</p>';
     return;
   }
 
   /* Listed in the same order the public site renders them, grouped by
      category, so "which card is the big one" is answerable from here. */
-  list.innerHTML = data.map(r => `
+  list.innerHTML = rows.map(r => `
     <div class="admin-resource-row" data-id="${r.id}">
       <div>
         <span class="admin-resource-category">${RESOURCE_CATEGORY_LABEL[r.category] || r.category}</span>
@@ -556,12 +715,27 @@ async function loadNewsItems() {
     list.innerHTML = `<p class="admin-empty">Couldn't load news items: ${error.message}</p>`;
     return;
   }
-  if (!data.length) {
+
+  LIST_ROWS.news = data;
+  syncNewsYearOptions();
+  renderNewsList();
+}
+
+function renderNewsList() {
+  const list = byId('news-item-list');
+  const rows = visibleRows('news');
+  syncFilterChrome('news', rows.length);
+
+  if (!LIST_ROWS.news.length) {
     list.innerHTML = '<p class="admin-empty">Nothing published yet.</p>';
     return;
   }
+  if (!rows.length) {
+    list.innerHTML = '<p class="admin-empty">No news items match these filters.</p>';
+    return;
+  }
 
-  list.innerHTML = data.map(r => `
+  list.innerHTML = rows.map(r => `
     <div class="admin-resource-row" data-id="${r.id}">
       <div>
         <span class="admin-resource-category">${NEWS_TYPE_LABEL[r.type] || r.type}</span>
@@ -680,12 +854,26 @@ async function loadReports() {
     list.innerHTML = `<p class="admin-empty">Couldn't load reports: ${error.message}</p>`;
     return;
   }
-  if (!data.length) {
+
+  LIST_ROWS.reports = data;
+  renderReportList();
+}
+
+function renderReportList() {
+  const list = byId('report-list');
+  const rows = visibleRows('reports');
+  syncFilterChrome('reports', rows.length);
+
+  if (!LIST_ROWS.reports.length) {
     list.innerHTML = '<p class="admin-empty">Nothing published yet.</p>';
     return;
   }
+  if (!rows.length) {
+    list.innerHTML = '<p class="admin-empty">No reports match these filters.</p>';
+    return;
+  }
 
-  list.innerHTML = data.map(r => `
+  list.innerHTML = rows.map(r => `
     <div class="admin-resource-row" data-id="${r.id}">
       <div>
         <h4>${r.name}</h4>
@@ -892,6 +1080,7 @@ function initAdmin() {
   Object.keys(PANEL_FORMS).forEach(panel => {
     byId(PANEL_FORMS[panel].cancel).addEventListener('click', () => cancelEdit(panel));
   });
+  initListFilters();
 
   sb.auth.onAuthStateChange((_event, session) => syncViewToSession(session));
   sb.auth.getSession().then(({ data: { session } }) => syncViewToSession(session));
