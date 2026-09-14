@@ -109,6 +109,14 @@ const HOME_ABOUT = {
    Update it here and both places stay in sync. */
 const TOOLS_EVALUATED = '20+';
 
+/* Institution shown after the badge on every About page team card —
+   "Director · Stanford Health Care". Change it here to move the whole team
+   at once. A member who isn't at this institution can override it with the
+   Affiliation field in /admin.html → Team, which fills
+   team_members.affiliation (see /supabase/team_affiliation_migration.sql);
+   anyone left blank follows this value. */
+const DEFAULT_AFFILIATION = 'Stanford Health Care';
+
 const STATS = [
   { n: TOOLS_EVALUATED,  label: 'AI tools evaluated across <strong>Stanford Health Care</strong>' },
   { n: '100%', label: 'of evaluations include <strong>structured patient input</strong>' },

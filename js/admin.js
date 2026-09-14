@@ -389,6 +389,7 @@ function fillTeamForm(m) {
   byId('team-name').value = m.name || '';
   byId('team-role').value = m.role || '';
   byId('team-badge').value = m.badge || '';
+  byId('team-affiliation').value = m.affiliation || '';
   byId('team-profile').value = m.profile_url || '';
   byId('team-priority').value = m.priority ?? '';
 }
@@ -919,6 +920,7 @@ async function handleTeamSubmit(e) {
   const name = byId('team-name').value.trim();
   const role = byId('team-role').value.trim();
   const badge = byId('team-badge').value.trim();
+  const affiliation = byId('team-affiliation').value.trim();
   const profile_url = byId('team-profile').value.trim();
   const priorityRaw = byId('team-priority').value.trim();
   const photo = byId('team-photo').files[0];
@@ -932,6 +934,9 @@ async function handleTeamSubmit(e) {
   const { data: { session } } = await sb.auth.getSession();
   const row = {
     name, role, badge,
+    /* Null, not '', so the card falls back to DEFAULT_AFFILIATION rather
+       than rendering "Director · " with a dangling separator. */
+    affiliation: affiliation || null,
     profile_url: profile_url || null,
     priority: priorityRaw === '' ? null : Number(priorityRaw),
   };
@@ -994,7 +999,7 @@ async function loadTeamMembers() {
         <span class="admin-resource-category">${m.badge}</span>
         <h4>${m.name}</h4>
         <p>${m.role}</p>
-        <span class="admin-resource-meta">${(m.photo_path || m.photo_url) ? 'Has a photo' : 'No photo — initials avatar'}</span>
+        <span class="admin-resource-meta">${m.affiliation ? m.affiliation : 'Lab default affiliation'} · ${(m.photo_path || m.photo_url) ? 'Has a photo' : 'No photo — initials avatar'}</span>
       </div>
       <div class="admin-news-row-actions">
         <label class="admin-priority-field">

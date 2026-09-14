@@ -1505,7 +1505,7 @@ function renderTeam(list) {
         <div class="tc-media">${media}</div>
         <div class="tc-overlay">
           <h4 class="tc-name-wrap">${nameEl}</h4>
-          <p class="tc-sub">${m.badge} · Stanford Health Care</p>
+          <p class="tc-sub">${m.badge} · ${m.affiliation || DEFAULT_AFFILIATION}</p>
           <p class="tc-role">${m.role}</p>
         </div>
       </article>`;
@@ -1529,6 +1529,10 @@ async function getPublicTeamMembers() {
     return data.map(m => ({
       name: m.name, role: m.role, badge: m.badge, priority: m.priority,
       profile: m.profile_url || '',
+      /* Empty means "use DEFAULT_AFFILIATION" — see the team card markup
+         in renderTeamGrid(). Only set on members who aren't at the lab's
+         default institution. */
+      affiliation: m.affiliation || '',
       /* `photo_url` (a plain URL/relative path — used by the original 7,
          see /supabase/team_migration.sql) wins over `photo_path` (a file
          actually uploaded to the team-photos Storage bucket via the
