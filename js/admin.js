@@ -200,13 +200,36 @@ const RESOURCE_CATEGORY_LABEL = {
   reports:    'Writing & Delivering Your Report · Toolkit',
 };
 
+/** A link shown as host + filename rather than in full: these are
+ *  100+ character URLs into a Stanford media path, and printing them whole
+ *  wrapped a row over four lines without telling you anything the short
+ *  form doesn't. The untruncated URL stays available as a `title` tooltip —
+ *  see resourceTargetTitle(). Falls back to the raw string if it won't
+ *  parse as a URL. */
+function shortenUrl(url) {
+  try {
+    const u = new URL(url);
+    const last = u.pathname.split('/').filter(Boolean).pop();
+    return last ? `${u.host}/…/${last}` : u.host;
+  } catch {
+    return url;
+  }
+}
+
 /** Where a card points, in words — the public site derives the same thing
  *  from link_url/file_path, so this makes a misfiled row obvious here rather
  *  than only on the live page. */
 function resourceTargetLabel(r) {
-  if (r.link_url)  return r.link_url === '#' ? 'Placeholder link (#) — needs a real URL' : 'Links to ' + r.link_url;
+  if (r.link_url)  return r.link_url === '#' ? 'Placeholder link (#) — needs a real URL' : 'Links to ' + shortenUrl(r.link_url);
   if (r.file_path) return `${r.file_name || 'file'} · ${formatBytes(r.file_size_bytes)}`;
   return 'No file or link — shows as "Coming soon"';
+}
+
+/** Hover text for the meta line: the full URL, since resourceTargetLabel()
+ *  only shows an abbreviated form. Empty for non-link rows, which drops the
+ *  attribute rather than showing an empty tooltip. */
+function resourceTargetTitle(r) {
+  return r.link_url && r.link_url !== '#' ? r.link_url : '';
 }
 
 async function loadResources() {
@@ -234,7 +257,7 @@ async function loadResources() {
         <span class="admin-resource-category">${RESOURCE_CATEGORY_LABEL[r.category] || r.category}</span>
         <h4>${r.title}</h4>
         <p>${r.description || ''}</p>
-        <span class="admin-resource-meta">${r.icon || 'paper'} · ${resourceTargetLabel(r)}</span>
+        <span class="admin-resource-meta" title="${resourceTargetTitle(r)}">${r.icon || 'paper'} · ${resourceTargetLabel(r)}</span>
       </div>
       <div class="admin-news-row-actions">
         <label class="admin-priority-field">

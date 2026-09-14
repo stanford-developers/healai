@@ -118,6 +118,11 @@
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
 }
+/* A flex item defaults to min-width:auto, i.e. it refuses to shrink below
+   its min-content width. A resource row's meta line can hold a long
+   unbreakable URL, which would otherwise force the row wider than the panel
+   and push the actions block out past its right edge. */
+.admin-resource-row > div { min-width: 0; }
 .admin-resource-row h4 { font-size: 14.5px; font-weight: 600; color: var(--ink); margin: 4px 0 2px; }
 .admin-resource-row p { font-size: 13px; color: var(--ink-mid); }
 .admin-resource-category {
@@ -128,7 +133,9 @@
   background: var(--cardinal-tint);
   padding: 2px 8px; border-radius: 4px;
 }
-.admin-resource-meta { font-size: 11.5px; color: var(--ink-low); display: block; margin-top: 4px; }
+/* `anywhere` rather than break-word: these are URLs with no spaces to
+   break at, so the browser needs permission to break mid-token. */
+.admin-resource-meta { font-size: 11.5px; color: var(--ink-low); display: block; margin-top: 4px; overflow-wrap: anywhere; }
 .admin-empty { font-size: 13px; color: var(--ink-low); }
 
 /* News-item row: same shape as .admin-resource-row, plus an inline
@@ -149,3 +156,14 @@
    .admin-priority-field, sized to fit a native file-chooser control. */
 .admin-photo-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-low); max-width: 180px; }
 .admin-photo-field input[type="file"] { font-size: 12px; color: var(--ink-mid); }
+
+/* ─── BREAKPOINT · ≤620px (phones) ───────────────────────────────────────
+   Every manage list (.admin-resource-row, shared by Toolkit resources,
+   Sample Reports, Team, and News) puts its text and its actions side by
+   side. On a phone that leaves the text column a word wide and overlaps
+   the Order label with the category pill, so stack them instead: text
+   first, actions in a row beneath it. */
+@media (max-width: 620px) {
+  .admin-resource-row     { flex-direction: column; align-items: stretch; gap: 12px; }
+  .admin-news-row-actions { align-items: flex-end; justify-content: flex-start; }
+}
