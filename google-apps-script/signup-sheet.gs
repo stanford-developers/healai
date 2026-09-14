@@ -50,8 +50,36 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+/**
+ * The Sheet to write into, taken from its URL:
+ *   https://docs.google.com/spreadsheets/d/THIS_LONG_ID_HERE/edit
+ *
+ * Addressing it by ID rather than with getActiveSpreadsheet() on purpose.
+ * getActiveSpreadsheet() only works when the script is *bound* to a Sheet
+ * (created via Extensions → Apps Script from inside it) and returns null
+ * for a standalone script made at script.google.com — a difference that is
+ * invisible until the first write fails. An explicit ID works either way.
+ */
+var SHEET_ID = 'REPLACE-WITH-SPREADSHEET-ID';
+
 var SHEET_NAME = 'Signups';
 var MAX_LEN = 200;
+
+/** Opens the target Sheet, preferring the explicit ID and falling back to
+ *  the bound spreadsheet so an unedited SHEET_ID still works in a
+ *  container-bound script. */
+function openSheet() {
+  var ss = (SHEET_ID && SHEET_ID.indexOf('REPLACE-WITH') === -1)
+    ? SpreadsheetApp.openById(SHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+
+  if (!ss) {
+    throw new Error(
+      'No spreadsheet. Set SHEET_ID to the id from your Sheet URL — this ' +
+      'script is not bound to one.');
+  }
+  return ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+}
 
 /**
  * Handles the site's POST. Sent as text/plain rather than application/json
@@ -78,8 +106,7 @@ function doPost(e) {
       return json({ ok: false, error: 'That email address does not look right.' });
     }
 
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME)
-             || SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_NAME);
+    var sheet = openSheet();
 
     /* Header row on first use, so a fresh Sheet is readable immediately. */
     if (sheet.getLastRow() === 0) {
@@ -95,10 +122,22 @@ function doPost(e) {
   }
 }
 
-/** A GET on the endpoint is someone opening the URL in a browser. Say so
- *  plainly rather than showing an Apps Script error page. */
+/** A GET on the endpoint is someone opening the URL in a browser, or a
+ *  health check. Reports whether the Sheet is actually reachable, since
+ *  that is the one part of the setup a POST can't tell you about without
+ *  writing a row. */
 function doGet() {
-  return json({ ok: true, message: 'HEAL-AI signup endpoint. Submit the form on the site instead.' });
+  try {
+    var sheet = openSheet();
+    return json({
+      ok: true,
+      sheet: sheet.getName(),
+      rows: sheet.getLastRow(),
+      message: 'HEAL-AI signup endpoint is healthy. Submit the form on the site to add a row.',
+    });
+  } catch (err) {
+    return json({ ok: false, error: String(err) });
+  }
 }
 
 function clean(v) {
