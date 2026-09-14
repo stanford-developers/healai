@@ -241,6 +241,13 @@ const VIDEOS = [
    roughly in sync if you like, but a change here will NOT show up on a
    normal, migrated deployment.
 
+   None of the fallback items carry an href any more, so they all render as
+   "Coming soon". That is deliberate: the real files now live in Supabase
+   Storage, and the only time this fallback is used is when Supabase is
+   unreachable — in which case those Storage URLs would be unreachable too.
+   A dimmed card is honest there; a link to a host we already know is down
+   is not.
+
    `intro` copy and the category list itself are still edited here.
    The 8 SAMPLE REPORTS are the spec-required deliverables — keep all 8.
 
@@ -268,17 +275,13 @@ const RESOURCE_CATEGORIES = [
         sub: 'Template guide for interviews with proposers or developers of the AI use case.' }, /* migrated from heal-ai.stanford.edu */
       { h: 'Interview guide for prospective tool users', icon: 'mic', state: 'soon',
         sub: 'Template interview guide for clinicians expected to use the tool, customizable per use case.' }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Thematic analysis template',   icon: 'sheet', state: 'ready',
-        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/template_for_thematic_content_analysis_of_interview_and_focus_group_transcripts.docx',
+      { h: 'Thematic analysis template',   icon: 'sheet', state: 'soon',
         sub: 'Template for thematic content analysis of interview and focus group transcripts.' }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Interview &amp; focus group tracking sheet', icon: 'cal', state: 'ready',
-        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/tracking_sheet_for_recording_progress_of_stakeholder_interviews_and_patient_focus_group.xlsx',
+      { h: 'Interview &amp; focus group tracking sheet', icon: 'cal', state: 'soon',
         sub: 'Spreadsheet for tracking progress of stakeholder interviews and the patient focus group.' }, /* migrated from heal-ai.stanford.edu */
-      { h: '&ldquo;What to Expect&rdquo; guide for use-case submissions', icon: 'paper', state: 'ready',
-        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/what_to_expect_document_for_teams_submitting_proposed_use_cases_for_ethical_assessment.docx',
+      { h: '&ldquo;What to Expect&rdquo; guide for use-case submissions', icon: 'paper', state: 'soon',
         sub: 'What teams should expect when submitting a proposed use case for ethical assessment.' }, /* migrated from heal-ai.stanford.edu */
-      { h: 'Expert Oversight Panel meeting template', icon: 'paper', state: 'ready',
-        href: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/template_for_meetings_with_expert_oversight_panel.docx',
+      { h: 'Expert Oversight Panel meeting template', icon: 'paper', state: 'soon',
         sub: 'Template for structuring meetings with the Expert Oversight Panel.' }, /* migrated from heal-ai.stanford.edu */
     ],
   },
@@ -388,6 +391,14 @@ const RESOURCE_GROUPS = [
    visitors read the real content here instead of being redirected off-site
    — the external link only remains as `reports[].href` for reference.
 
+   `downloadHref` is empty on all 8 as of 2026-09-15. heal-ai.stanford.edu
+   now serves THIS site (GitHub Pages took the domain over from the old
+   Drupal install), so the .docx files those links pointed at are gone, as
+   are the per-report pages in `reports[].href`. openReportDetail() renders
+   an empty downloadHref as "Full report coming soon" rather than a link
+   that 404s. Paste a working URL back in, or upload the file through
+   /admin.html → Sample Reports, when the files have a new home.
+
    Keyed by the same `code` used in RESOURCE_CATEGORIES' reports[] above.
 ─────────────────────────────────────────────────────────────────────────── */
 const REPORT_DETAILS = {
@@ -401,7 +412,7 @@ const REPORT_DETAILS = {
       'Stakeholders were not aligned about the primary risk: design team members and clinicians focused on false positives, while patients were more concerned about false negatives.',
       'Most stakeholders do not feel patient consent for use of the tool is needed; however, information about the tool’s use should be provided to those who screen positive.',
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/heartread-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
   '02': {
     overview: 'This large language model, nicknamed NoteBuddy, aims to help nurses create end-of-shift summaries more efficiently. Currently, nurses spend 30–60 minutes after 12-hour shifts compiling notes from the EMR to ensure the incoming care team is fully informed. NoteBuddy is integrated into the EMR and scans notes, test results, and medications to generate draft summaries. Nurses are required to review and edit every draft before it becomes the final summary.',
@@ -412,7 +423,7 @@ const REPORT_DETAILS = {
       'Nurses, who are held responsible for the accuracy and completeness of the notes, worry they might be asked to vouch for information in the LLM-generated draft they lack firsthand knowledge of.',
       'Long-term use of the tool could undermine nurses’ training and skill in identifying important information in the EMR and synthesizing it.',
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/notebuddy-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
   '03': {
     overview: 'This large language model, nicknamed AuthorizeMe, is under consideration to streamline the insurance prior authorization (PA) process. Hospital financial staff currently prepare these requests manually, taking about 20 minutes each; because they are not clinically trained, key information in the EHR can be hard to find, leading to denials and care delays. AuthorizeMe automatically extracts patient information to populate PA forms and drafts answers to insurers’ medical questions, linking to source documents. Staff review and edit before submission. It is expected to cut preparation time by 25%.',
@@ -423,7 +434,7 @@ const REPORT_DETAILS = {
       'Stakeholders expressed concerns about the potential workforce effects of the tool.',
       "Some patients and developers expressed uncertainty about whether the healthcare system's training data are large and diverse enough to ensure equal performance across all kinds of PA requests.",
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/authorizeme-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
   '04': {
     overview: 'This large language model, nicknamed RadiRead, is designed to help radiologists generate imaging reports more efficiently. Each study typically takes 6–23 minutes to dictate, and radiologists may review over 100 studies per shift. RadiRead automatically generates the impression section of a radiology report from what the radiologist dictated in the findings section, highlighting key findings and recommending follow-up care. The radiologist reviews and edits it before finalizing the report.',
@@ -435,7 +446,7 @@ const REPORT_DETAILS = {
       "The implementation team should propose a concrete plan for assessing the tool's accuracy and any workload reductions.",
       'Some patients and clinicians expressed discomfort entrusting patient data to a third-party vendor on a promise of deidentification the health system could not directly verify.',
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/radiread-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
   '05': {
     overview: 'This generative AI tool, nicknamed Copilot, helps doctors summarize patient visits. Doctors currently spend roughly twice as much time on EMR documentation as with patients, contributing to burnout. Copilot uses voice recognition and large language models to transcribe and summarize visit conversations, distinguishing among speakers and organizing summaries into key sections. Doctors still review and edit the AI-generated summaries before they’re added to the record.',
@@ -447,7 +458,7 @@ const REPORT_DETAILS = {
       'Correcting inaccuracies in draft summaries may require more human oversight than is likely to occur, given the goal of reducing physicians’ workload.',
       'It is unclear what information patients receive when asked for consent, especially concerning transmission and use of their data by the third-party vendor.',
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/copilot-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
   '06': {
     overview: 'Two AI tools, Payment Probability (PP) and Denial Appeal Drafter (DAD), are being considered to improve how the Denials Management team handles denied insurance claims. PP assigns each denied claim a Likelihood of Payment score (0–100%) based on past claims and payment history, helping staff prioritize the most promising appeals. DAD then drafts the appeal letter itself, pulling clinical information from the denied visit and up to six months of related records, with citations linking to the supporting record. Both are powered by large language models; staff review and edit the output.',
@@ -459,7 +470,7 @@ const REPORT_DETAILS = {
       'Patients worried that, over time, using the PP tool might make the health system less willing to care for patients with less favorable insurers.',
       'If the DAD tool hallucinates information the user does not catch before submission to a government payer, there could be legal implications.',
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/pp-dad-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
   '07': {
     overview: 'This AI tool, nicknamed LabAlert, is designed to help reduce unnecessary lab testing for hospitalized patients. A significant portion of daily standing-order lab tests, especially repeated complete blood counts and chemistry panels, may not be clinically necessary after the first few days, yet can cause discomfort and disrupt sleep. LabAlert predicts whether a patient’s next test result is likely to be stable, using lab history, vital signs, and medications, and triggers an EHR notification prompting the doctor to reconsider the order.',
@@ -469,7 +480,7 @@ const REPORT_DETAILS = {
       'All stakeholder groups recognized potential for automation bias, though none perceived it as high; alarm fatigue, intrinsic motivation, and accountability concerns seem likely to mitigate it.',
       "Stakeholders generally believed physicians should be informed of the model's false-positive/false-negative rates, the nature of its training data, and patient characteristics or groups for whom it may underperform.",
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/labalert-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
   '08': {
     overview: 'This random forest model, nicknamed SendOff, is designed to help reduce unplanned readmissions (patients returning within 3 days of discharge). SendOff generates a risk score that the discharge planning team can use to prioritize referrals to the health system’s Transition of Care program, which has limited capacity to support every patient after discharge. Physicians can still refer patients based on their own judgment; TOC staff make the final call on who receives post-discharge support.',
@@ -480,7 +491,7 @@ const REPORT_DETAILS = {
       'The tool may underperform for patient subgroups at risk of readmission due to factors the model does not consider.',
       "Monitoring the tool's performance over time should address the risk that its accuracy could degrade.",
     ],
-    downloadHref: 'https://heal-ai.stanford.edu/sites/g/files/sbiybj33291/files/media/file/sendoff-ethics-report-for-external-distribution.docx',
+    downloadHref: '',
   },
 };
 

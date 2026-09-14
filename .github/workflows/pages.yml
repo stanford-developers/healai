@@ -1,0 +1,110 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Deploy the HEAL-AI site to GitHub Pages
+# ───────────────────────────────────────────────────────────────────────────
+# WHY A WORKFLOW RATHER THAN "DEPLOY FROM A BRANCH"
+#   Pages' branch mode publishes the whole repo root. This repo keeps things
+#   at the root that must never be served: internal planning PDFs, the
+#   database schema and RLS policies, and the Apps Script source (which
+#   holds the signups Sheet id). Branch mode published all of them.
+#
+#   So the site is assembled here from an ALLOWLIST. Anything not named
+#   below is not published — a new internal file added at the root is
+#   private by default, which is the opposite of the branch-mode behaviour
+#   and the whole point of doing it this way.
+#
+# ADDING A FILE TO THE SITE
+#   Add it to SITE_PATHS. Forgetting to is a visible 404, whereas
+#   forgetting to exclude something in a denylist is a silent leak.
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: Deploy site to Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you re-publish without a code change, from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; a queued one supersedes an older pending one
+# but an in-flight deploy is allowed to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the published site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Everything the public site actually needs, and nothing else.
+          # CNAME must be here or Pages drops the custom domain on deploy.
+          # An explicit array rather than a space-separated string: no
+          # reliance on word splitting, and paths with spaces stay safe.
+          SITE_PATHS=(
+            index.html
+            admin.html
+            js
+            css
+            assets
+            CNAME
+            .nojekyll
+          )
+
+          mkdir -p _site
+          for path in "${SITE_PATHS[@]}"; do
+            if [ ! -e "$path" ]; then
+              echo "::error::SITE_PATHS names '$path', which does not exist"
+              exit 1
+            fi
+            cp -R "$path" _site/
+          done
+
+          # vercel.json used to provide cleanUrls, which is what made /admin
+          # work. Pages has no rewrite support, so serve the same file at
+          # /admin/ as a directory index to keep that URL alive.
+          mkdir -p _site/admin
+          cp admin.html _site/admin/index.html
+
+          echo "Published tree:"
+          find _site -type f | sort | sed 's/^/  /'
+
+      - name: Fail if anything internal slipped in
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A belt-and-braces check on the allowlist above: these must never
+          # be reachable on the public site, so assert it rather than trust it.
+          leaked=0
+          for pattern in 'supabase' 'google-apps-script' '*.sql' '*.gs' '*.pdf' 'README*' '.githooks' '.claude'; do
+            if find _site -name "$pattern" -print -quit | grep -q .; then
+              echo "::error::'$pattern' must not be published, but is present in _site"
+              leaked=1
+            fi
+          done
+          [ "$leaked" -eq 0 ]
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1228,7 +1228,21 @@ function openReportDetail(code) {
   byId('rm-overview').textContent = meta.overview;
   byId('rm-summary').textContent  = meta.summary;
   byId('rm-issues').innerHTML     = meta.issues.map(i => `<li>${i}</li>`).join('');
-  byId('rm-download').href        = meta.downloadHref;
+  /* A report whose file isn't hosted anywhere yet shows the action as
+     unavailable rather than linking somewhere that 404s. Treats '#' as
+     "no file" too, since that's the placeholder the admin form writes. */
+  const dl = byId('rm-download');
+  const hasFile = meta.downloadHref && meta.downloadHref !== '#';
+  dl.classList.toggle('is-unavailable', !hasFile);
+  if (hasFile) {
+    dl.href = meta.downloadHref;
+    dl.removeAttribute('aria-disabled');
+    dl.innerHTML = 'Download Full Report &rarr;';
+  } else {
+    dl.removeAttribute('href');          /* not focusable/clickable without one */
+    dl.setAttribute('aria-disabled', 'true');
+    dl.textContent = 'Full report coming soon';
+  }
 
   const modal = byId('report-modal');
   modal.classList.add('open');

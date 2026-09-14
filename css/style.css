@@ -337,6 +337,17 @@ nav.topnav {
   transform: translateY(-1px);
   box-shadow: 0 10px 22px rgba(140, 21, 21, .22);
 }
+
+/* A CTA standing in for something not available yet — currently the sample
+   report modal's download, for reports whose file has no host (see
+   openReportDetail() in app.js). Reads as inert, and the hover lift is
+   suppressed so it doesn't invite a click. */
+.btn-cta.is-unavailable {
+  background: var(--line-strong);
+  color: var(--ink-low);
+  cursor: default;
+}
+.btn-cta.is-unavailable:hover { background: var(--line-strong); transform: none; box-shadow: none; }
 .btn-cta.outline {
   background: transparent;
   color: var(--cardinal);

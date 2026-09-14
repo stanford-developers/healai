@@ -2,13 +2,12 @@
 
 Website and supporting documents for the Stanford HEAL-AI Lab (Health AI Evaluation).
 
-**Live site:** https://heal-ai-website.vercel.app
-**GitHub Pages mirror:** Not launched due to Org Restrictions
+**Live site:** https://heal-ai.stanford.edu
 
 ## Structure
 
-The static site lives at the repository root, so GitHub Pages can serve it
-directly from the `main` branch without a build step.
+The static site lives at the repository root. It has no build step — the
+Pages workflow copies the site files into an artifact and publishes that.
 
 - `index.html` — page structure/markup
 - `admin.html` — admin dashboard (unlinked from the public site; Supabase auth + RLS gated)
@@ -18,14 +17,13 @@ directly from the `main` branch without a build step.
 - `css/style.css` — styling and design tokens
 - `assets/` — images, logos, staff photos
 - `supabase/` — database schema and RLS policies (run in the Supabase SQL Editor)
-- `.nojekyll` — tells GitHub Pages to serve files as-is, without Jekyll processing
-- `.vercelignore` — repo files that must NOT be served (internal PDFs, `supabase/`).
-  Needed because the deploy root is now the repo root: anything not listed
-  there is publicly fetchable. Note this covers Vercel only — GitHub Pages
-  ignores it and would publish those files, so exclude them there too before
-  enabling Pages.
-- `HEAL AI Website Org Plan.docx.pdf` — site organization/planning doc
-- `HEAL-AI_Master_Landscape_Report Final.docx.pdf` — landscape report
+- `google-apps-script/signup-sheet.gs` — source of the sign-up endpoint that
+  appends to the signups Google Sheet. Runs in Google, not on this site.
+- `.github/workflows/pages.yml` — the deploy. Publishes an **allowlist** of
+  site paths, so anything else in the repo is private by default.
+- `.nojekyll` — serve files as-is, without Jekyll processing
+- `HEAL AI Website Org Plan.docx.pdf` — site organization/planning doc (not published)
+- `HEAL-AI_Master_Landscape_Report Final.docx.pdf` — landscape report (not published)
 
 ## Running locally
 
@@ -39,32 +37,28 @@ Then open http://localhost:5178.
 
 ## Deploying
 
-Production is Vercel, serving from the repository root:
-https://heal-ai-website.vercel.app
+GitHub Pages, at https://heal-ai.stanford.edu. **Push to `main` and it
+deploys** — `.github/workflows/pages.yml` does it, and it works from any
+machine or from the GitHub web UI. Watch a run in the Actions tab; you can
+also re-publish without a code change via "Run workflow" there.
 
-**Pushing to GitHub does not deploy on its own.** Vercel's git integration
-for this project is broken — its link points at `shai-yaan/heal-ai`, the path
-from before the repo moved into `stanford-developers`, and Vercel's GitHub App
-has no access to that SAML-enforced org (the API answers `repo_not_found`).
-Fixing it properly needs an org owner to authorize the Vercel GitHub App.
+### The site is an allowlist
 
-Until then a committed `pre-push` hook covers the gap: pushing `main` from a
-clone with the hook installed deploys automatically. Enable it once per clone:
+The workflow publishes only the paths named in `SITE_PATHS`. That is
+deliberate: the repo root also holds internal planning PDFs, the database
+schema and RLS policies, and the Apps Script source containing the signups
+Sheet id. Publishing from the branch directly served all of those.
 
-```bash
-git config core.hooksPath .githooks
-```
-
-To deploy by hand, or after a commit made outside this working copy:
-
-```bash
-vercel --prod
-```
+**Adding a file to the site means adding it to `SITE_PATHS`.** Forgetting to
+is a 404 you will notice; a denylist's failure mode is a silent leak. A
+second step in the job asserts that no `.sql`, `.gs`, `.pdf`, `supabase/` or
+`google-apps-script/` content made it into the artifact, and fails the build
+if it did.
 
 Caveats worth knowing:
 
-- The hook only fires for pushes **from your machine**. A commit made in the
-  GitHub web UI, or pushed by a collaborator, will not deploy.
-- Skip it for a docs-only push with `git push --no-verify`.
 - Routing is hash-based (`#toolkit`, `#about`), so deep links and refreshes
   work on any static host, including from a subpath like `/heal-ai/`.
+- Pages has no URL rewriting, so the workflow also writes `admin.html` to
+  `/admin/index.html` to keep `/admin` working.
+- `CNAME` must stay in `SITE_PATHS` or Pages drops the custom domain.
