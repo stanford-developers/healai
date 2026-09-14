@@ -750,8 +750,15 @@ function initSignUpForms() {
     .filter(Boolean)
     .forEach(form => form.addEventListener('submit', handleSignUpSubmit));
 
+  /* Guarded because the browser can pair a cached index.html with a fresh
+     app.js for a while after a deploy. Throwing here would abort the rest
+     of init() — hero canvases, search, everything below this call — over a
+     modal that simply isn't in that copy of the HTML. */
   const modal = byId('signup-modal');
-  byId('sm-close').addEventListener('click', closeSignUpModal);
+  const close = byId('sm-close');
+  if (!modal || !close) return;
+
+  close.addEventListener('click', closeSignUpModal);
   modal.addEventListener('click', e => { if (e.target === modal) closeSignUpModal(); });
 }
 
@@ -2321,7 +2328,10 @@ function bindGlobalEvents() {
     if (e.key !== 'Escape') return;
     if (modal.classList.contains('open'))       { closeVideo(); return; }
     if (reportModal.classList.contains('open')) { closeReportModal(); return; }
-    if (signupModal.classList.contains('open')) { closeSignUpModal(); return; }
+    /* Optional chaining for the same cached-HTML reason as
+       initSignUpForms() — an Escape press shouldn't throw and swallow the
+       mobile-menu close below it. */
+    if (signupModal?.classList.contains('open')) { closeSignUpModal(); return; }
     if (mobileOpen) { closeMobileMenu(); return; }
   });
 }
