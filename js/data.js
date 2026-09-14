@@ -92,7 +92,7 @@ const HOME_ABOUT = {
   statement: "Workflow friction. Conflicting values. Gaps between good intentions and what's likely to happen in practice. None of it shows up in a monitoring dashboard, <em>it shows up when we talk to the people closest to the tool.</em> Our process sits alongside the AI governance you already have, to help you to make the call: move forward, modify plans, or decline.",
   bullets: [
     { title: 'Fair, Useful, Reliable',
-      body: 'Broader AI governance process, known as FURM.' },
+      body: "Grounded in Stanford's broader AI governance process, known as FURM." },
     { title: 'Inclusive of Patients',
       body: 'Train and engage patients to help assess uses of AI.' },
     { title: 'Adaptable',
@@ -112,7 +112,7 @@ const TOOLS_EVALUATED = '20+';
 const STATS = [
   { n: TOOLS_EVALUATED,  label: 'AI tools evaluated across <strong>Stanford Health Care</strong>' },
   { n: '100%', label: 'of evaluations include <strong>structured patient input</strong>' },
-  { n: '8',    label: '<strong>redacted sample reports</strong> in the resource library' },
+  { n: '15',   label: '<strong>redacted sample reports</strong> in the resource library' },
 ];
 
 

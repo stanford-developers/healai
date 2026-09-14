@@ -433,10 +433,17 @@ function routeAction(action) {
   if (action.startsWith('page:')) {
     /* "page:toolkit:resources" → goPage('toolkit') then activate its
        Resources Level-1 tab, so buttons/cards can deep-link into a
-       specific Toolkit section instead of always landing on Process. */
+       specific Toolkit section instead of always landing on Process.
+
+       A bare "page:toolkit" falls back to 'process' rather than leaving
+       the tab alone. The active tab persists for the life of the page, so
+       doing nothing here meant "See the process" and "Learn the process"
+       landed on whichever tab the visitor had opened last — click "Browse
+       resources" once and every later process link went to Resources. */
     const [, name, tkTab] = action.split(':');
     goPage(name);
-    if (tkTab) activateToolkitTab(tkTab, false);
+    if (name === 'toolkit') activateToolkitTab(tkTab || 'process', false);
+    else if (tkTab) activateToolkitTab(tkTab, false);
   }
   else if (action === 'url') openSignUp();
 }
