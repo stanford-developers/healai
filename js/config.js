@@ -67,7 +67,7 @@ const SHOW_VIDEOS = false;
 
    EDIT HERE  →  paste your deployed Web app URL over the placeholder.
 ─────────────────────────────────────────────────────────────────────────── */
-const SIGNUP_ENDPOINT = 'https://script.google.com/macros/s/REPLACE-WITH-SCRIPT-ID/exec';
+const SIGNUP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyAk0JCEFbms9t3YCdkJmNhpHzXB0q-HXkgkHWqIIraWbSCinZJVKUS20w8PnnfYVVW/exec';
 
 /* Fallback only — used by every "Sign up for updates" CTA when
    SIGNUP_ENDPOINT is still the placeholder above. See openSignUp() in

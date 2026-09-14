@@ -60,7 +60,7 @@
  * for a standalone script made at script.google.com — a difference that is
  * invisible until the first write fails. An explicit ID works either way.
  */
-var SHEET_ID = 'REPLACE-WITH-SPREADSHEET-ID';
+var SHEET_ID = '1Wg2I0XHnBw8zbXFbRmFrX571Msc3fZwBPielt59RK68';
 
 var SHEET_NAME = 'Signups';
 var MAX_LEN = 200;
