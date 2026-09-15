@@ -567,9 +567,9 @@ const PLAYBOOK_SECTIONS = [
     subitems: [
       { h: 'Conducting Stakeholder Interviews',
         body: 'The ethics team schedules and staffs each stakeholder interview, distributing a plain-language tool summary in advance.' },
-      { h: 'Running the data-analysis review',
+      { h: 'Analyzing Findings',
         body: 'Interview transcripts are coded and reviewed, with value collisions identified for each AI use case.' },
-      { h: 'Drafting the Ethics &amp; Operations Plan',
+      { h: 'Drafting the Ethics Plan',
         body: 'Findings are synthesized into written recommendations, and are subsequently shared with clinical and operational leadership.' },
     ],
   },
@@ -580,11 +580,11 @@ const PLAYBOOK_SECTIONS = [
     summary: 'The scheduling, documentation, and tracking work that keeps every evaluation moving on time.',
     subitems: [
       { h: 'Scheduling &amp; calendar coordination',
-        body: 'Booking interview slots with stakeholders; holding recurring team meetings; and tracking the timeline for each tool from intake through delivery.' },
+        body: 'Booking interview slots with stakeholders; holding recurring team meetings; and tracking the timeline for each use case from intake through delivery.' },
       { h: 'Documentation &amp; recordkeeping',
-        body: 'Filing consent forms and compensation paperwork, archiving interview transcripts, and keeping the intake log current as tools move between stages.' },
+        body: 'Best practices for documenting your workflow and keeping it moving.' },
       { h: 'Cross-team coordination',
-        body: 'Acting as the point of contact between the ethics team, data stewards, and the patient panel, and confirming meeting logistics so reviewers can focus on the assessment itself.' },
+        body: 'Tips for coordinating with other teams in your AI governance process.' },
     ],
   },
 ];
