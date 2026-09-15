@@ -651,15 +651,22 @@ const PARTNER_LOGOS = [
    link to a full, searchable listing page for that feed.
 
    `date` must be an ISO string ('YYYY-MM-DD') — everything sorts and
-   formats off of it. Setting `featured: true` on a SEMINAR_VIDEOS entry
-   makes it the big spotlight card at the top of the News tab; if none is
-   flagged, the spotlight falls back to the single most recent video.
+   formats off of it.
 
-   PLACEHOLDER CONTENT NOTICE
-     Only the Michelle Mello Grand Rounds entry below is real. Every entry
-     whose title/desc starts with "PLACEHOLDER" is scaffolding to prove out
-     the layout — replace with the real title, date, byline, and link
-     before this ships publicly. Do not leave placeholder entries live.
+   WHICH ITEM IS FEATURED
+     The spotlight is chosen from the picker at the top of /admin.html →
+     News, which sets news_items.featured (see
+     /supabase/news_featured_migration.sql). `featured: true` on a
+     SEMINAR_VIDEOS entry below still works as a fallback for the static
+     data, and with no pick at all the spotlight shows the most recent
+     seminar.
+
+   THE WHOLE TAB IS CURRENTLY HIDDEN
+     SHOW_NEWS is false in config.js — the 15 placeholder entries that
+     used to fill these three arrays were deleted on 2026-09-15, which
+     left the articles and publications feeds empty. Only SEMINAR_VIDEOS
+     still has content (3 real talks). Publish through the admin
+     dashboard, then flip SHOW_NEWS back to true.
 ─────────────────────────────────────────────────────────────────────────── */
 const SEMINAR_VIDEOS = [
   { date: '2026-05-14',
