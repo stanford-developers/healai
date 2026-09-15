@@ -328,9 +328,17 @@ const RESOURCE_CATEGORIES = [
       { h: 'EOP template', icon: 'paper', state: 'ready', href: '#',
         sub: 'Blank Report Template' },
     ],
-    /* The 8 SAMPLE REPORTS — required by spec. Names, order, and hrefs
-       migrated from heal-ai.stanford.edu/resources (Ethics Assessment
-       Reports section); descriptions are the real report subtitles. */
+    /* ⚠ FALLBACK ONLY, like items[] above. The sample reports are
+       admin-managed now: they live in Supabase's `reports` table and are
+       added, edited, re-ordered, and deleted from /admin.html → Sample
+       Reports. Once that table holds one row it wins outright and this
+       array plus REPORT_DETAILS below are ignored — see
+       getPublicReports() in app.js and
+       /supabase/reports_admin_migration.sql, which seeds these same 8.
+
+       `href` pointed at each report's page on the old Drupal site and is
+       dead; nothing renders it (the browser uses data-code), so it is kept
+       only as a record of where the content came from. */
     reports: [
       { code: '01', name: 'HeartRead', href: 'https://heal-ai.stanford.edu/hcm-ethical-assessment',
         sub: 'A predictive algorithm to screen for hypertrophic cardiomyopathy.' },
@@ -391,13 +399,15 @@ const RESOURCE_GROUPS = [
    visitors read the real content here instead of being redirected off-site
    — the external link only remains as `reports[].href` for reference.
 
+   ⚠ FALLBACK ONLY — the `reports` table is the source of truth once it
+   has rows. See the note on reports[] above.
+
    `downloadHref` is empty on all 8 as of 2026-09-15. heal-ai.stanford.edu
    now serves THIS site (GitHub Pages took the domain over from the old
-   Drupal install), so the .docx files those links pointed at are gone, as
-   are the per-report pages in `reports[].href`. openReportDetail() renders
-   an empty downloadHref as "Full report coming soon" rather than a link
-   that 404s. Paste a working URL back in, or upload the file through
-   /admin.html → Sample Reports, when the files have a new home.
+   Drupal install), so the .docx files those links pointed at are gone.
+   reportDetailHTML() renders an empty downloadHref as an inert "Full
+   report coming soon" rather than a link that 404s. Attach each file
+   through /admin.html → Sample Reports when they have a new home.
 
    Keyed by the same `code` used in RESOURCE_CATEGORIES' reports[] above.
 ─────────────────────────────────────────────────────────────────────────── */

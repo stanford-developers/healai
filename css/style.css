@@ -1186,51 +1186,6 @@ nav.topnav {
 }
 .vm-close:hover { background: rgba(255, 255, 255, .22); }
 
-/* REPORT MODAL — "hidden pane" for the 8 sample reports (see
-   openReportDetail() in app.js). Same overlay pattern as #video-modal, but
-   a light/readable card since this is text-heavy content, not video. */
-#report-modal {
-  position: fixed; inset: 0;
-  z-index: 1000;
-  padding: 40px 20px;
-  background: rgba(20, 20, 20, .55);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; visibility: hidden;
-  transition: opacity var(--t-med), visibility var(--t-med);
-}
-#report-modal.open { opacity: 1; visibility: visible; }
-.rm-inner {
-  position: relative; width: 100%; max-width: 640px;
-  background: var(--bg);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-3);
-}
-.rm-scroll { padding: 40px 36px; max-height: 82vh; overflow-y: auto; }
-.rm-pill {
-  display: inline-flex;
-  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em;
-  color: var(--cardinal); background: var(--cardinal-tint);
-  padding: 4px 9px; border-radius: 4px; margin-bottom: 12px;
-}
-.rm-scroll h3 { font-family: var(--serif); font-size: 24px; font-weight: 500; color: var(--ink); margin-bottom: 22px; line-height: 1.25; }
-.rm-section { margin-bottom: 24px; }
-.rm-section h4 {
-  font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--cardinal); margin-bottom: 8px;
-}
-.rm-section p { font-size: 14px; color: var(--ink-mid); line-height: 1.65; }
-.rm-section ul { padding-left: 18px; }
-.rm-section li { font-size: 14px; color: var(--ink-mid); line-height: 1.6; margin-bottom: 8px; }
-.rm-close {
-  position: absolute; top: 16px; right: 16px;
-  width: 34px; height: 34px; border-radius: 50%;
-  background: var(--bg-soft); color: var(--ink-mid);
-  font-size: 20px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--t-fast), color var(--t-fast);
-}
-.rm-close:hover { background: var(--cardinal-tint); color: var(--cardinal); }
-#rm-download { margin-top: 8px; display: inline-flex; }
 
 /* Phase-1 fallback notice (SHOW_VIDEOS = false) */
 .videos-hidden-notice {
@@ -1450,47 +1405,87 @@ nav.topnav {
 .res-spotlight.linked:hover .res-arrow,
 .res-row.linked:hover .res-arrow { color: var(--cardinal); transform: translateX(3px); }
 
-/* 8 redacted sample reports — denser layout than the cards.
-   `auto-fit` lets the grid use 2 columns at desktop, drop to 1 on phones,
-   and re-pack cleanly during 200% browser zoom. */
-.reports-grid {
+/* ─── SAMPLE REPORT BROWSER ───────────────────────────────────────────────
+   Master–detail: report names down the left, the selected report on the
+   right (see renderReportBrowser() in app.js). Replaced a tile grid plus a
+   full-screen modal, so reading a second report is one click, not a
+   close-then-reopen.
+
+   The list is a fixed column and the detail pane takes the rest. `start`
+   alignment keeps a short list from stretching to the pane's height. */
+.report-browser {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(200px, 270px) 1fr;
+  gap: 18px;
   margin-top: 18px;
   align-items: start;
 }
-.report-row {
-  display: flex; align-items: center; gap: 16px;
-  padding: 18px 20px;
+
+.rb-list {
+  display: flex; flex-direction: column; gap: 6px;
+  /* Long lists scroll within the column rather than pushing the detail
+     pane down the page. Caps at roughly eight rows. */
+  max-height: 520px; overflow-y: auto;
+  padding-right: 4px;
+}
+.rb-item {
+  display: flex; align-items: flex-start; gap: 11px;
+  width: 100%; text-align: left;
+  padding: 12px 13px;
   background: var(--bg);
   border: 1px solid var(--line);
+  border-left: 3px solid transparent;
   border-radius: var(--radius);
   cursor: pointer;
-  /* Uniform ease-in-out micro-interaction */
-  transition: all .25s ease-in-out;
+  transition: background var(--t-fast), border-color var(--t-fast);
 }
-.report-row:hover { border-color: var(--cardinal); transform: translateX(2px); }
-.report-pill {
-  font-family: var(--mono); font-size: 11px;
-  font-weight: 600; letter-spacing: .04em;
-  color: var(--cardinal);
-  background: var(--cardinal-tint);
-  padding: 4px 9px;
-  border-radius: 4px;
+.rb-item:hover { background: var(--bg-soft); }
+.rb-item.on {
+  background: var(--bg-soft);
+  border-color: var(--line);
+  border-left-color: var(--cardinal);
+}
+.rb-item-pill {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
+  color: var(--cardinal); background: var(--cardinal-tint);
+  padding: 3px 7px; border-radius: 4px;
   flex-shrink: 0;
-  min-width: 34px; text-align: center;
 }
-.report-row h5  { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 2px; }
-.report-row span{ font-size: 12px; color: var(--ink-mid); }
-.report-row svg {
-  width: 14px; height: 14px;
-  stroke: var(--ink-low); stroke-width: 2;
-  fill: none;
-  margin-left: auto; flex-shrink: 0;
-  transition: stroke var(--t-fast);
+/* min-width:0 so a long tool name wraps instead of widening the column. */
+.rb-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rb-item-name { font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.rb-item-sub  { font-size: 11.5px; color: var(--ink-mid); line-height: 1.4; }
+.rb-item.on .rb-item-name { color: var(--cardinal); }
+
+.rb-detail {
+  padding: 26px 28px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
 }
-.report-row:hover svg { stroke: var(--cardinal); }
+.rb-detail:focus-visible { outline: 2px solid var(--cardinal); outline-offset: 2px; }
+.rb-detail-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 22px; }
+.rb-detail-pill {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  color: var(--cardinal); background: var(--cardinal-tint);
+  padding: 4px 9px; border-radius: 4px;
+  flex-shrink: 0;
+}
+.rb-detail-name { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1.25; }
+.rb-detail-sub  { font-size: 13px; color: var(--ink-mid); line-height: 1.5; margin-top: 3px; }
+
+.rb-section { margin-bottom: 22px; }
+.rb-section h5 {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--cardinal); margin-bottom: 8px;
+}
+.rb-section p  { font-size: 14px; color: var(--ink-mid); line-height: 1.65; }
+.rb-section ul { padding-left: 18px; }
+.rb-section li { font-size: 14px; color: var(--ink-mid); line-height: 1.6; margin-bottom: 8px; }
+
+.rb-actions { margin-top: 4px; }
+.rb-actions .btn-cta { display: inline-flex; }
+.rb-empty { font-size: 13.5px; color: var(--ink-low); margin-top: 18px; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1677,7 +1672,7 @@ nav.topnav {
    ─────────────────────────────────────────────────────────────────────── */
 /* auto-fit rather than a fixed 1fr 1fr — ABOUT_CARDS (data.js) can be down
    to a single card, and this keeps that card full-width instead of
-   leaving a dead second column, same pattern as .team-grid/.reports-grid. */
+   leaving a dead second column, same pattern as .team-grid. */
 .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; margin-bottom: 44px; }
 .white-card {
   padding: 28px;
@@ -2233,13 +2228,20 @@ footer {
   .proc-step         { border-right: 1px solid var(--line); }
   .signup-card       { grid-template-columns: 1fr; padding: 44px 32px; }
   .signup-side       { align-items: flex-start; }
-  /* Note: .reports-grid and .team-grid are NOT overridden here because
-     they use `auto-fit minmax(...)` and self-collapse — adding a manual
-     override here would fight that and reintroduce jagged wraps. */
+  /* The report browser drops to one column at 900px, below. .team-grid is
+     NOT overridden here because it uses `auto-fit minmax(...)` and
+     self-collapses — a manual override would fight that. */
+  .report-browser    { grid-template-columns: minmax(180px, 240px) 1fr; }
 }
 
 /* ─── BREAKPOINT · ≤900px (Phone / mobile activation) ─────────────────── */
 @media (max-width: 900px) {
+  /* Side-by-side stops working once the detail pane is narrower than its
+     own text; list on top, report below. max-height caps the list so the
+     content it controls stays visible without a long scroll past it. */
+  .report-browser    { grid-template-columns: 1fr; }
+  .rb-list           { max-height: 260px; }
+  .rb-detail         { padding: 22px 20px; }
   nav.topnav         { padding: 0 18px; }
   .nav-center        { display: none; }
   .nav-toggle        { display: flex; }
@@ -2419,7 +2421,7 @@ footer :focus-visible {
 
   /* Don't split a card/row across a page break where avoidable */
   .proc-step, .pb-acc-item, .about-bullet, .stat, .pp-acc-item,
-  .rt-subgroup, .res-row, .res-spotlight, .report-row {
+  .rt-subgroup, .res-row, .res-spotlight, .rb-item, .rb-detail {
     break-inside: avoid-page;
     page-break-inside: avoid;   /* fallback for engines without break-inside support */
   }

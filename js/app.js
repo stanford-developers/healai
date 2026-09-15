@@ -867,8 +867,8 @@ function setSignUpStatus(el, message, kind) {
    with the dashed/dimmed treatment either way.
    The "reports" category has an extra .reports-grid section beneath the
    standard items (the 8 redacted sample reports) — clicking one opens the
-   in-site report-detail modal (openReportDetail()) instead of navigating
-   away.
+   master-detail report browser (renderReportBrowser()) instead of
+   navigating away.
    A category can have an empty items[] (e.g. "adapt", pending real
    content) — renderResourceCategoryBlock() skips the card grid (and the
    "How to use this section" aside, if bullets is also empty) rather than
@@ -929,6 +929,11 @@ function renderToolkitResources() {
     panels.appendChild(panel);
     wireResourceCategoryPanel(panel);
   });
+
+  /* The Sample Reports panel ships an empty #rt-report-browser mount, so
+     fill it now from ALL_REPORTS (seeded synchronously from the static
+     data). enhanceReportsWithUploads() re-renders it if the DB has rows. */
+  renderReportBrowser();
 
   enhanceToolkitResourcesWithUploads();
   enhanceReportsWithUploads();
@@ -1068,7 +1073,10 @@ function renderResourceCategoryBlock(cat, showSubheading, idx) {
           Each report walks through intake, stakeholder findings, expert vetting, and the final recommendation.
           Tool names and vendor specifics are redacted.
         </p>
-        <div class="reports-grid" id="rt-reports-grid">${reportsGridHTML(ALL_REPORTS)}</div>
+
+        <!-- Master–detail: report names on the left, the selected report's
+             content on the right. Filled by renderReportBrowser(). -->
+        <div class="report-browser" id="rt-report-browser"></div>
       </div>`;
   }
 
@@ -1090,17 +1098,147 @@ function resourceItemsHTML(items) {
   return html + '</div>';
 }
 
-/** One sample-report tile grid — pulled out of renderResourceCategoryBlock()
- *  so enhanceReportsWithUploads() can re-render it once merged with
- *  admin-published reports. */
-function reportsGridHTML(list) {
-  return list.map(r => `
-    <div class="report-row" data-code="${r.code}" tabindex="0"
-         role="button" aria-label="Open sample report: ${stripHTML(r.name)}">
-      <span class="report-pill">${r.code}</span>
-      <div><h5>${r.name}</h5><span>${r.sub}</span></div>
-      ${svgIcon('arrowOut', {sw:2, stroke:'var(--ink-low)'})}
-    </div>`).join('');
+/* ═════════════════════════════════════════════════════════════════════════
+   SAMPLE REPORT BROWSER
+   ─────────────────────────────────────────────────────────────────────────
+   Master–detail: every report's name down the left, the selected one's
+   content on the right. Replaces the old tile grid + full-screen modal, so
+   comparing reports no longer means opening and closing a dialog each time.
+
+   a11y · a vertical WAI-ARIA tablist, which is what this pattern is:
+     role="tablist" aria-orientation="vertical" on the list
+     role="tab" + aria-selected on each name, role="tabpanel" on the detail
+     ROVING TABINDEX  → only the selected name is tabbable, so Tab moves
+                        past the list rather than through every report
+     ARROW KEYS       → Up/Down move and select; Home/End jump to the ends
+
+   Hovering a name also previews it, but only where the pointer can
+   genuinely hover — see the pointer check in wireReportBrowser(). On
+   touch, hover events are synthesised from taps and would fight the tap
+   itself.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/** Code of the report currently shown in the detail pane. */
+let selectedReportCode = null;
+
+function renderReportBrowser() {
+  const mount = byId('rt-report-browser');
+  if (!mount) return;
+
+  if (!ALL_REPORTS.length) {
+    mount.innerHTML = '<p class="rb-empty">No sample reports published yet.</p>';
+    return;
+  }
+
+  /* Keep the current selection across a re-render (an admin publishing a
+     report shouldn't yank the reader back to the first one), but fall back
+     to the first if it's gone. */
+  if (!ALL_REPORTS.some(r => r.code === selectedReportCode)) {
+    selectedReportCode = ALL_REPORTS[0].code;
+  }
+
+  mount.innerHTML = `
+    <div class="rb-list" role="tablist" aria-orientation="vertical" aria-label="Sample reports">
+      ${ALL_REPORTS.map(r => {
+        const on = r.code === selectedReportCode;
+        return `
+        <button class="rb-item${on ? ' on' : ''}" role="tab" id="rb-tab-${r.code}"
+                data-code="${r.code}" aria-selected="${on}" aria-controls="rb-detail"
+                tabindex="${on ? 0 : -1}">
+          <span class="rb-item-pill">${r.code}</span>
+          <span class="rb-item-text">
+            <span class="rb-item-name">${r.name}</span>
+            <span class="rb-item-sub">${r.sub}</span>
+          </span>
+        </button>`;
+      }).join('')}
+    </div>
+    <div class="rb-detail" id="rb-detail" role="tabpanel" tabindex="0"
+         aria-labelledby="rb-tab-${selectedReportCode}">
+      ${reportDetailHTML(ALL_REPORTS.find(r => r.code === selectedReportCode))}
+    </div>`;
+
+  wireReportBrowser(mount);
+}
+
+/** The right-hand pane for one report. */
+function reportDetailHTML(r) {
+  if (!r) return '';
+  const hasFile = r.downloadHref && r.downloadHref !== '#';
+  const download = hasFile
+    ? `<a class="btn-cta" href="${r.downloadHref}" target="_blank" rel="noopener">Download Full Report &rarr;</a>`
+    : `<span class="btn-cta is-unavailable" aria-disabled="true">Full report coming soon</span>`;
+
+  return `
+    <div class="rb-detail-head">
+      <span class="rb-detail-pill">${r.code}</span>
+      <div>
+        <h4 class="rb-detail-name">${r.name}</h4>
+        <p class="rb-detail-sub">${r.sub}</p>
+      </div>
+    </div>
+    <div class="rb-section">
+      <h5>Tool overview</h5>
+      <p>${r.overview}</p>
+    </div>
+    <div class="rb-section">
+      <h5>Report summary</h5>
+      <p>${r.summary}</p>
+    </div>
+    <div class="rb-section">
+      <h5>Key issues identified</h5>
+      <ul>${(r.issues || []).map(i => `<li>${i}</li>`).join('')}</ul>
+    </div>
+    <div class="rb-actions">${download}</div>`;
+}
+
+/** Swaps the detail pane to `code` and moves the selected state. Only the
+ *  pane is re-rendered, not the list, so the hovered/focused name doesn't
+ *  get pulled out from under the pointer. */
+function selectReport(code, { focus = false } = {}) {
+  const r = ALL_REPORTS.find(x => x.code === code);
+  if (!r) return;
+  selectedReportCode = code;
+
+  $$('.rb-item').forEach(btn => {
+    const on = btn.dataset.code === code;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    btn.tabIndex = on ? 0 : -1;
+    if (on && focus) btn.focus();
+  });
+
+  const pane = byId('rb-detail');
+  if (pane) {
+    pane.innerHTML = reportDetailHTML(r);
+    pane.setAttribute('aria-labelledby', 'rb-tab-' + code);
+  }
+}
+
+function wireReportBrowser(mount) {
+  const items = [...mount.querySelectorAll('.rb-item')];
+
+  /* Only bind hover where hovering is real. On a touchscreen the browser
+     fires mouseenter off a tap, which would double-handle the click. */
+  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  items.forEach((btn, i) => {
+    btn.addEventListener('click', () => selectReport(btn.dataset.code));
+    if (canHover) btn.addEventListener('mouseenter', () => selectReport(btn.dataset.code));
+
+    btn.addEventListener('keydown', e => {
+      let target = -1;
+      switch (e.key) {
+        case 'ArrowDown': target = (i + 1) % items.length;                 break;
+        case 'ArrowUp':   target = (i - 1 + items.length) % items.length;  break;
+        case 'Home':      target = 0;                                      break;
+        case 'End':       target = items.length - 1;                       break;
+        default: return;
+      }
+      e.preventDefault();
+      selectReport(items[target].dataset.code, { focus: true });
+    });
+  });
 }
 
 /** Wires up a Level-2 panel's clickable cards after renderResourceCategoryBlock() HTML lands in the DOM. */
@@ -1111,14 +1249,6 @@ function wireResourceCategoryPanel(panel) {
     const fire = () => window.open(href, '_blank', 'noopener');
     c.addEventListener('click', fire);
     c.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
-    });
-  });
-  /* Sample-report row → opens the in-site detail modal, not an external tab */
-  panel.querySelectorAll('.report-row').forEach(row => {
-    const fire = () => openReportDetail(row.dataset.code);
-    row.addEventListener('click', fire);
-    row.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
     });
   });
@@ -1156,7 +1286,7 @@ function resourceCardHTML(item, variant) {
  * ALL_REPORTS is the merged static + admin-published sample-report list
  * (see enhanceReportsWithUploads()). Seeded synchronously from the 8
  * static reports (RESOURCE_CATEGORIES 'reports' entry + REPORT_DETAILS in
- * data.js) so the grid and openReportDetail() both work correctly before
+ * data.js) so the browser renders correctly before
  * the Supabase fetch resolves — same "paint fast, then upgrade" rule as
  * every other admin-editable list on the site.
  */
@@ -1181,80 +1311,43 @@ function staticReportsShaped() {
  * yet or the request fails — this is enhancement, not required content.
  */
 async function getPublicReports() {
-  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return [];
+  const empty = { reports: [], authoritative: false };
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return empty;
   try {
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data, error } = await sb.from('reports').select('*');
-    if (error || !data) return [];
-    return data.map(r => ({
-      name: r.name, sub: r.sub, priority: r.priority,
-      overview: r.overview, summary: r.summary, issues: r.issues || [],
-      downloadHref: r.file_path ? sb.storage.from('report-files').getPublicUrl(r.file_path).data.publicUrl : '#',
-    }));
+    if (error || !data || !data.length) return empty;
+    return {
+      authoritative: true,
+      reports: data.map(r => ({
+        name: r.name, sub: r.sub, priority: r.priority,
+        overview: r.overview, summary: r.summary, issues: r.issues || [],
+        /* '' rather than '#' — the detail pane reads an empty href as
+           "no file yet" and shows an inert button instead of a link. */
+        downloadHref: r.file_path ? sb.storage.from('report-files').getPublicUrl(r.file_path).data.publicUrl : '',
+      })),
+    };
   } catch {
-    return [];
+    return empty;
   }
 }
 
-/** Merges admin-published reports into ALL_REPORTS (priority first, then
- *  static reports keep their original order and uploads sort newest
- *  first among themselves — see prioritySort()), re-numbers every tile's
- *  code to match its new position, and re-renders the grid in place. */
+/** Swaps ALL_REPORTS over to the `reports` table once it holds rows, and
+ *  re-renders the browser. Same rule as resources (see
+ *  getPublicResources): a populated table wins outright, so deleting a
+ *  report in the admin dashboard actually removes it from the site. The
+ *  static arrays only show pre-migration or when Supabase is unreachable.
+ *
+ *  Codes are assigned by final sorted position, so they stay contiguous
+ *  ('01', '02', …) no matter what was added or removed. */
 async function enhanceReportsWithUploads() {
-  const uploaded = await getPublicReports();
-  if (!uploaded.length) return;
-  ALL_REPORTS = prioritySort([...staticReportsShaped(), ...uploaded])
+  const { reports, authoritative } = await getPublicReports();
+  if (!authoritative) return;
+  ALL_REPORTS = prioritySort(reports)
     .map((r, i) => ({ ...r, code: String(i + 1).padStart(2, '0') }));
-
-  const mount = byId('rt-reports-grid');
-  if (!mount) return;
-  mount.innerHTML = reportsGridHTML(ALL_REPORTS);
-  wireResourceCategoryPanel(mount);
+  renderReportBrowser();
 }
 
-/**
- * Opens the in-site "hidden pane" for a sample report. Static reports'
- * content is migrated from that report's page on heal-ai.stanford.edu
- * (REPORT_DETAILS in data.js); admin-published ones come straight from
- * the `reports` table. Either way, the "Download Full Report" action
- * points at whatever `downloadHref` ALL_REPORTS resolved for that row.
- */
-function openReportDetail(code) {
-  const meta = ALL_REPORTS.find(r => r.code === code);
-  if (!meta) return;
-
-  byId('rm-pill').textContent     = code;
-  byId('rm-title').textContent    = stripHTML(meta.name);
-  byId('rm-overview').textContent = meta.overview;
-  byId('rm-summary').textContent  = meta.summary;
-  byId('rm-issues').innerHTML     = meta.issues.map(i => `<li>${i}</li>`).join('');
-  /* A report whose file isn't hosted anywhere yet shows the action as
-     unavailable rather than linking somewhere that 404s. Treats '#' as
-     "no file" too, since that's the placeholder the admin form writes. */
-  const dl = byId('rm-download');
-  const hasFile = meta.downloadHref && meta.downloadHref !== '#';
-  dl.classList.toggle('is-unavailable', !hasFile);
-  if (hasFile) {
-    dl.href = meta.downloadHref;
-    dl.removeAttribute('aria-disabled');
-    dl.innerHTML = 'Download Full Report &rarr;';
-  } else {
-    dl.removeAttribute('href');          /* not focusable/clickable without one */
-    dl.setAttribute('aria-disabled', 'true');
-    dl.textContent = 'Full report coming soon';
-  }
-
-  const modal = byId('report-modal');
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-}
-function closeReportModal() {
-  const modal = byId('report-modal');
-  modal.classList.remove('open');
-  modal.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
-}
 
 /**
  * Activate a resource tab by id.
@@ -2341,18 +2434,11 @@ function bindGlobalEvents() {
   });
   byId('vm-close').addEventListener('click', closeVideo);
 
-  const reportModal = byId('report-modal');
-  reportModal.addEventListener('click', e => {
-    if (e.target === reportModal) closeReportModal();
-  });
-  byId('rm-close').addEventListener('click', closeReportModal);
-
   const signupModal = byId('signup-modal');
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (modal.classList.contains('open'))       { closeVideo(); return; }
-    if (reportModal.classList.contains('open')) { closeReportModal(); return; }
     /* Optional chaining for the same cached-HTML reason as
        initSignUpForms() — an Escape press shouldn't throw and swallow the
        mobile-menu close below it. */
@@ -2497,7 +2583,7 @@ function initSiteSearch() {
     goPage(m.pageId);
     if (m.tkTab) activateToolkitTab(m.tkTab, false);
     if (m.tkTab === 'resources' && m.groupId) activateResourceGroupTab(m.groupId, false);
-    if (m.reportCode) openReportDetail(m.reportCode);
+    if (m.reportCode) selectReport(m.reportCode);
     input.value = '';
     close();
   };
