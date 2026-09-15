@@ -989,6 +989,29 @@ function renderToolkitResources() {
  * Cached in a module-level promise because three renderers ask for this and
  * they should share one request.
  */
+/**
+ * Public URL for a file in a Storage bucket, asking Storage to serve it
+ * under its original name.
+ *
+ * Uploads are stored as `<uuid>-<original name>` so two files called
+ * "report.docx" can't collide. But a browser names a download after the
+ * last path segment, so that uuid ended up in front of every saved file:
+ *   f3962690-cb79-482b-afbc-393d259f5b50-mommy-watch-ethics-report.docx
+ *
+ * The `download` option adds ?download=<name>, and Storage answers with
+ * `Content-Disposition: attachment; filename="<name>"`, so the file saves
+ * as whatever `file_name` holds — the name it was uploaded under. The
+ * stored path is untouched.
+ *
+ * Returns '' when there's no file, which is what the card and report-pane
+ * renderers treat as "nothing attached yet".
+ */
+function storedFileUrl(sb, bucket, filePath, fileName) {
+  if (!filePath) return '';
+  const opts = fileName ? { download: fileName } : undefined;
+  return sb.storage.from(bucket).getPublicUrl(filePath, opts).data.publicUrl;
+}
+
 let _publicResourcesPromise = null;
 function getPublicResources() {
   _publicResourcesPromise ??= (async () => {
@@ -1013,7 +1036,7 @@ function getPublicResources() {
       const byCategory = {};
       ordered.forEach(r => {
         const href = r.link_url
-          || (r.file_path ? sb.storage.from('resource-files').getPublicUrl(r.file_path).data.publicUrl : '');
+          || storedFileUrl(sb, 'resource-files', r.file_path, r.file_name);
         (byCategory[r.category] ??= []).push({
           h: r.title,
           sub: r.description || '',
@@ -1415,7 +1438,7 @@ async function getPublicReports() {
         overview: r.overview, summary: r.summary, issues: r.issues || [],
         /* '' rather than '#' — the detail pane reads an empty href as
            "no file yet" and shows an inert button instead of a link. */
-        downloadHref: r.file_path ? sb.storage.from('report-files').getPublicUrl(r.file_path).data.publicUrl : '',
+        downloadHref: storedFileUrl(sb, 'report-files', r.file_path, r.file_name),
       })),
     };
   } catch {
@@ -1742,6 +1765,10 @@ async function getPublicTeamMembers() {
          see /supabase/team_migration.sql) wins over `photo_path` (a file
          actually uploaded to the team-photos Storage bucket via the
          admin form) when a row somehow has both. */
+      /* Not storedFileUrl() — a portrait is rendered inline in an <img>,
+         and that helper's ?download= would make Storage answer with
+         Content-Disposition: attachment, which is for files being saved,
+         not displayed. */
       photo: m.photo_url || (m.photo_path ? sb.storage.from('team-photos').getPublicUrl(m.photo_path).data.publicUrl : ''),
     }));
   } catch {
