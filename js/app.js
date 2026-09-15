@@ -660,9 +660,9 @@ function renderVideos() {
       <div class="videos-hidden-notice">
         <div class="badge">Phase 2 · Coming soon</div>
         <h3>Training videos launch with the next release.</h3>
-        <p>A six-part series — FURM, the five-step process, stakeholder interviews,
-        the patient panel, writing the EOP, and adapting the process — is in
-        production. Sign up for updates and we'll let you know the moment it goes live.</p>
+        <p>A six-part series is in production: FURM, the five-step process,
+        stakeholder interviews, the patient panel, writing the EOP, and adapting
+        the process. Sign up for updates and we'll let you know when it goes live.</p>
         <div style="margin-top:24px">
           <a href="${SIGN_UP_URL}" target="_blank" rel="noopener" class="btn-prime" id="videos-notify-btn">Notify me →</a>
         </div>
