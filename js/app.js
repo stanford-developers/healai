@@ -456,9 +456,20 @@ function routeAction(action) {
        doing nothing here meant "See the process" and "Learn the process"
        landed on whichever tab the visitor had opened last — click "Browse
        resources" once and every later process link went to Resources. */
-    const [, name, tkTab] = action.split(':');
+    const [, name, tkTab, rtGroup] = action.split(':');
     goPage(name);
-    if (name === 'toolkit') activateToolkitTab(tkTab || 'process', false);
+    if (name === 'toolkit') {
+      const tab = tkTab || 'process';
+      activateToolkitTab(tab, false);
+      /* The Resources tab's Level-2 group is sticky in exactly the same
+         way, so "Browse resources" was landing on whichever sub-tab was
+         last open — Sample Reports, for anyone who had looked at one.
+         Default to the first group, and allow an explicit target via a
+         fourth segment ("page:toolkit:resources:reports"). */
+      if (tab === 'resources') {
+        activateResourceGroupTab(rtGroup || RESOURCE_GROUPS[0].id, false);
+      }
+    }
     else if (tkTab) activateToolkitTab(tkTab, false);
   }
   else if (action === 'url') openSignUp();
