@@ -338,6 +338,22 @@
            Publications, all one table (news_items), distinguished by
            `type`. See /supabase/news_schema.sql. ─────────────────────── -->
       <div id="dash-panel-news" hidden>
+
+        <!-- Featured picker. Sits above the publish form because it acts on
+             the whole directory rather than on one item, and it is the
+             control most likely to be used on a return visit (rotating the
+             spotlight, vs. publishing something new). Options are built
+             from every news item by syncFeaturedOptions() in admin.js. -->
+        <div class="admin-featured-bar">
+          <label class="admin-field">
+            <span>Featured in the News tab's spotlight bar</span>
+            <select id="news-featured-select">
+              <option value="">Loading…</option>
+            </select>
+          </label>
+          <p class="admin-status" id="news-featured-status" role="status" aria-live="polite"></p>
+        </div>
+
         <form id="news-form" class="admin-upload-form">
           <label class="admin-field">
             <span>Type</span>

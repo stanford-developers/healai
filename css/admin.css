@@ -107,6 +107,29 @@
   gap: 24px; margin-bottom: 28px;
 }
 
+/* ─── FEATURED PICKER ────────────────────────────────────────────────────
+   Sits above the News publish form. Tinted and rule-marked so it reads as
+   a control over the whole directory rather than another form field. */
+.admin-featured-bar {
+  padding: 20px 22px;
+  margin-bottom: 28px;
+  background: var(--bg-soft);
+  border-left: 3px solid var(--cardinal);
+  border-radius: var(--radius);
+}
+.admin-featured-bar .admin-field { margin-bottom: 0; }
+.admin-featured-bar .admin-status { color: var(--ink-mid); }
+
+/* Marks the featured row in the News manage list, so the picker's choice
+   is visible where the items themselves are listed. */
+.admin-featured-pill {
+  display: inline-block; margin-left: 8px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #fff; background: var(--cardinal);
+  padding: 2px 8px; border-radius: 4px;
+}
+
 .admin-upload-form { border-bottom: 1px solid var(--line); padding-bottom: 28px; margin-bottom: 28px; }
 
 .admin-list-h { font-family: var(--serif); font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 16px; }

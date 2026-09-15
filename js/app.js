@@ -1809,21 +1809,54 @@ function newsPublicationItem(p) {
     </article>`;
 }
 
-/** `seminarList` is already merged + sorted (newsSorted) — the featured
- *  flag (only ever set on a static data.js entry) still wins if present,
- *  otherwise the spotlight is just whatever sorted to the top, so a
- *  high-priority admin-published talk can become the spotlight too. */
-function renderNewsSpotlight(seminarList) {
+/* How the spotlight presents each feed. The bar used to be seminar-only,
+   so it hardcoded "speaker · venue" and "Watch the talk"; any feed can be
+   featured now, and an article shown with a speaker line would render
+   "undefined · undefined". */
+const NEWS_SPOTLIGHT_SHAPE = {
+  seminar_video: {
+    cta: 'Watch the talk',
+    meta: i => [i.speaker, i.venue].filter(Boolean),
+  },
+  news_article: {
+    cta: 'Read the article',
+    meta: i => [i.source].filter(Boolean),
+  },
+  scholarly_publication: {
+    cta: 'Read the paper',
+    meta: i => [i.authors, i.journal].filter(Boolean),
+  },
+};
+
+/**
+ * The News tab's featured bar.
+ *
+ * `lists` is the three merged+sorted feeds keyed by type. The item an admin
+ * marked featured wins, whichever feed it came from (see
+ * /supabase/news_featured_migration.sql and the picker at the top of
+ * /admin.html → News). With nothing featured it falls back to the top
+ * seminar, which is what the bar did before the flag existed — so the
+ * section is never empty just because no one has made a pick.
+ */
+function renderNewsSpotlight(lists) {
   const mount = byId('news-spotlight');
   if (!mount) return;
-  const featured = seminarList.find(v => v.featured) || seminarList[0];
+
+  const all = [lists.seminar_video, lists.news_article, lists.scholarly_publication].flat();
+  const featured = all.find(i => i.featured) || lists.seminar_video[0];
   if (!featured) { mount.innerHTML = ''; return; }
+
+  /* Static data.js entries carry no `type`; the only one that can be
+     featured there is a seminar, which is also the fallback's feed. */
+  const shape = NEWS_SPOTLIGHT_SHAPE[featured.type] || NEWS_SPOTLIGHT_SHAPE.seminar_video;
+  const meta = [...shape.meta(featured), newsFormatDate(featured.date)].join(' · ');
+
   mount.innerHTML = `
     <span class="news-spotlight-tag">Featured</span>
     <h2 class="news-spotlight-title">${featured.title}</h2>
-    <p class="news-spotlight-meta">${featured.speaker} · ${featured.venue} · ${newsFormatDate(featured.date)}</p>
+    <p class="news-spotlight-meta">${meta}</p>
     <p class="news-spotlight-desc">${featured.desc}</p>
-    <a class="btn-cta" href="${featured.link}" target="_blank" rel="noopener">Watch the talk <span aria-hidden="true">→</span></a>`;
+    <a class="btn-cta" href="${featured.link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>`;
 }
 
 function renderNewsList(mountId, items, template, limit) {
@@ -1878,7 +1911,10 @@ async function getPublicNewsItems() {
       if (!byType[r.type]) return;
       byType[r.type].push({
         date: r.date, title: r.title, desc: r.description || '', link: r.link || '#',
-        priority: r.priority, ...(r.meta || {}),
+        priority: r.priority, featured: !!r.featured,
+        /* `type` rides along so renderNewsSpotlight() can shape its meta
+           line and button for whichever feed the featured item came from. */
+        type: r.type, ...(r.meta || {}),
       });
     });
     return byType;
@@ -1900,7 +1936,9 @@ async function initNewsFeature() {
   const articles = newsSorted([...NEWS_ARTICLES, ...uploaded.news_article]);
   const pubs     = newsSorted([...SCHOLARLY_PUBLICATIONS, ...uploaded.scholarly_publication]);
 
-  renderNewsSpotlight(seminar);
+  renderNewsSpotlight({
+    seminar_video: seminar, news_article: articles, scholarly_publication: pubs,
+  });
   renderNewsList('news-videos-list',       seminar,  newsVideoItem,       5);
   renderNewsList('news-articles-list',     articles, newsArticleItem,     5);
   renderNewsList('news-publications-list', pubs,     newsPublicationItem, 5);
