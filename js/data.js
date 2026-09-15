@@ -668,24 +668,6 @@ const SEMINAR_VIDEOS = [
     venue: 'Stanford Medicine Grand Rounds',
     desc: "Michelle Mello presents HEAL-AI's ethics review process and what two years of evaluations have surfaced about deploying AI tools responsibly across a health system.",
     link: '#', featured: true },
-  { date: '2026-02-03',
-    title: 'PLACEHOLDER — seminar title',
-    speaker: 'PLACEHOLDER — speaker name',
-    venue: 'PLACEHOLDER — venue',
-    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
-    link: '#' },
-  { date: '2025-11-19',
-    title: 'PLACEHOLDER — seminar title',
-    speaker: 'PLACEHOLDER — speaker name',
-    venue: 'PLACEHOLDER — venue',
-    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
-    link: '#' },
-  { date: '2025-09-08',
-    title: 'PLACEHOLDER — seminar title',
-    speaker: 'PLACEHOLDER — speaker name',
-    venue: 'PLACEHOLDER — venue',
-    desc: 'PLACEHOLDER — replace with a real seminar description before publishing.',
-    link: '#' },
   /* These 2 were originally in the Toolkit's "Case Studies & Talks"
      category (since removed). Exact day-of-month wasn't recorded at the
      source, only "June 2025" — the dates below are nominal placeholders
@@ -704,35 +686,9 @@ const SEMINAR_VIDEOS = [
     link: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview' },
 ];
 
-const NEWS_ARTICLES = [
-  { date: '2026-04-22', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
-    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
-  { date: '2026-01-15', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
-    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
-  { date: '2025-10-30', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
-    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
-  { date: '2025-08-11', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
-    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
-  { date: '2025-05-27', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
-    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
-  { date: '2025-02-14', title: 'PLACEHOLDER — article headline', source: 'PLACEHOLDER — publication name',
-    desc: 'PLACEHOLDER — replace with a real summary before publishing.', link: '#' },
-];
+const NEWS_ARTICLES = [];
 
-const SCHOLARLY_PUBLICATIONS = [
-  { date: '2026-03-09', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
-    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
-  { date: '2025-12-18', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
-    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
-  { date: '2025-09-25', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
-    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
-  { date: '2025-07-02', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
-    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
-  { date: '2025-04-16', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
-    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
-  { date: '2025-01-08', title: 'PLACEHOLDER — paper title', authors: 'PLACEHOLDER — author list', journal: 'PLACEHOLDER — journal / venue',
-    desc: 'PLACEHOLDER — replace with a real abstract snippet before publishing.', link: '#' },
-];
+const SCHOLARLY_PUBLICATIONS = [];
 
 
 /* ─────────────────────────────────────────────────────────────────────────

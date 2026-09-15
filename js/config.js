@@ -48,6 +48,34 @@ const SHOW_VIDEOS = false;
 
 
 /* ─────────────────────────────────────────────────────────────────────────
+   ①b PHASE FLAG · SHOW_NEWS
+─────────────────────────────────────────────────────────────────────────────
+   Same idea as SHOW_VIDEOS, for the News tab and its three directory
+   pages (seminar videos / news articles / scholarly publications).
+
+   WHAT IT CONTROLS
+     • Whether "News" appears in the top nav, the mobile menu, and both
+       footers.
+     • Whether the News pages are routable at all: with this false,
+       #news (and #news-videos / #news-articles / #news-publications)
+       redirect to the home page instead of rendering, so an old link or
+       a typed hash can't surface a hidden section.
+     • Whether news items are indexed by site search.
+     • Whether the feeds are fetched from Supabase at all — skipping that
+       request also avoids a pointless round trip.
+
+   TURNED OFF 2026-09-15 at the team's request: the seminar feed has three
+   real talks but the articles and publications feeds are empty, and a
+   section with two empty feeds looked unfinished ahead of a presentation.
+   NOTHING has been deleted — flip this back to `true` and the whole tab
+   returns exactly as it was.
+
+   EDIT HERE  →  change `false` to `true` when there's enough content.
+─────────────────────────────────────────────────────────────────────────── */
+const SHOW_NEWS = false;
+
+
+/* ─────────────────────────────────────────────────────────────────────────
    ② SIGN-UP · endpoint + fallback URL
 ─────────────────────────────────────────────────────────────────────────────
    SIGNUP_ENDPOINT is the Google Apps Script Web App URL that appends one

@@ -223,8 +223,15 @@ function updateFooterVisibility(name) {
   }
 }
 
+/* The News tab and its three directory pages, for the SHOW_NEWS gate. */
+const NEWS_PAGE_IDS = ['news', 'news-videos', 'news-articles', 'news-publications'];
+
 function goPage(name) {
   if (!PAGE_IDS.includes(name)) return;
+  /* With SHOW_NEWS off these pages still exist in the DOM but must not be
+     reachable — otherwise a stale link or a typed #news would surface a
+     section the team has deliberately taken down. */
+  if (!SHOW_NEWS && NEWS_PAGE_IDS.includes(name)) { goPage(DEFAULT_PAGE); return; }
   if (name === currentPage) { closeMobileMenu(); return; }
   history.pushState({page: name}, '', '#' + name);
   setActivePage(name);
@@ -233,7 +240,8 @@ function goPage(name) {
 /* Back/Forward: the browser has already changed location.hash for us —
    just apply it, without pushing a further history entry. */
 window.addEventListener('popstate', () => {
-  setActivePage(location.hash.slice(1) || DEFAULT_PAGE);
+  const target = location.hash.slice(1) || DEFAULT_PAGE;
+  setActivePage(!SHOW_NEWS && NEWS_PAGE_IDS.includes(target) ? DEFAULT_PAGE : target);
 });
 
 function renderNav() {
@@ -242,8 +250,9 @@ function renderNav() {
   center.innerHTML = '';
   mobile.innerHTML = '';
 
-  /* Filter NAV_ITEMS by the SHOW_VIDEOS phase flag. */
-  const items = NAV_ITEMS.filter(i => !(i.videoOnly && !SHOW_VIDEOS));
+  /* Filter NAV_ITEMS by the phase flags — see config.js. */
+  const items = NAV_ITEMS.filter(i =>
+    !(i.videoOnly && !SHOW_VIDEOS) && !(i.id === 'news' && !SHOW_NEWS));
 
   items.forEach(item => {
     /* Desktop tab */
@@ -291,6 +300,13 @@ function renderNav() {
   $$('footer [data-page]').forEach(a =>
     a.addEventListener('click', e => { e.preventDefault(); goPage(a.dataset.page); })
   );
+
+  /* With SHOW_NEWS off, remove the footers' News links outright. goPage()
+     already refuses to route there, but leaving the link visible would
+     mean a footer entry that silently bounces you to the home page. */
+  if (!SHOW_NEWS) {
+    $$('footer [data-page="news"]').forEach(a => a.remove());
+  }
 }
 
 function makeNavBtn(item) {
@@ -1931,6 +1947,8 @@ async function getPublicNewsItems() {
  *  page is already up — same "enhancement, not blocking" rule as the
  *  Toolkit resources uploads. */
 async function initNewsFeature() {
+  /* Nothing to render, and no reason to spend a request finding out. */
+  if (!SHOW_NEWS) return;
   const uploaded = await getPublicNewsItems();
   const seminar  = newsSorted([...SEMINAR_VIDEOS, ...uploaded.seminar_video]);
   const articles = newsSorted([...NEWS_ARTICLES, ...uploaded.news_article]);
@@ -2734,7 +2752,11 @@ function init() {
      instead of always resetting to Home. No history entry is pushed here —
      the browser already owns whatever entry brought us to this URL. */
   const initialPage = location.hash.slice(1);
-  if (initialPage) setActivePage(initialPage);
+  /* Same SHOW_NEWS gate as goPage() and popstate: a bookmarked or shared
+     #news URL must not open a section that's been taken down. */
+  if (initialPage) {
+    setActivePage(!SHOW_NEWS && NEWS_PAGE_IDS.includes(initialPage) ? DEFAULT_PAGE : initialPage);
+  }
   updateFooterVisibility(currentPage);   /* setActivePage() no-ops on the default (no-hash) load */
 
   /* Page-specific renderers */
