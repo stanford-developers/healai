@@ -593,6 +593,16 @@ const PLAYBOOK_SECTIONS = [
         body: 'Tips for coordinating with other teams in your AI governance process.' },
     ],
   },
+  {
+    id: 'ai-types',
+    n: '03',
+    h: 'Guide to AI Types',
+    summary: 'Common ethical issues that come up for specific kinds of AI tools, so a review of a familiar type does not start from zero.',
+    subitems: [
+      { h: 'Determining which type of AI tool you have',
+        body: 'What to consider from the ethics lens for each type.' },
+    ],
+  },
 ];
 
 
