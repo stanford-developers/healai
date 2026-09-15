@@ -1091,6 +1091,19 @@ function renderResourceCategoryBlock(cat, showSubheading, idx) {
  *  uploaded to yet) renders nothing rather than an empty spotlight card. */
 function resourceItemsHTML(items) {
   if (!items.length) return '';
+
+  /* Exactly two items get equal tiles side by side. The spotlight-plus-list
+     treatment below needs a list worth listing: with two items it renders
+     one large tinted card above a single thin row, which reads as a layout
+     mistake rather than as "featured, then the rest". One item still gets
+     the spotlight (there is nothing to list, so featuring it is right), and
+     three or more still get featured-plus-list. */
+  if (items.length === 2) {
+    return '<div class="res-pair">'
+      + items.map(item => resourceCardHTML(item, 'tile')).join('')
+      + '</div>';
+  }
+
   const [first, ...rest] = items;
   let html = '<div class="res-set">' + resourceCardHTML(first, 'spotlight');
   if (rest.length) {
@@ -1307,7 +1320,7 @@ function wireResourceCategoryPanel(panel) {
  */
 function resourceCardHTML(item, variant) {
   const isLink = item.state === 'ready' && item.href;
-  const wrapCls = variant === 'spotlight' ? 'res-spotlight' : 'res-row';
+  const wrapCls = { spotlight: 'res-spotlight', tile: 'res-tile' }[variant] || 'res-row';
   const classes = wrapCls + (isLink ? ' linked' : '') + (item.state === 'soon' ? ' soon' : '');
   const tagText = item.state === 'soon' ? '• Coming soon' : '• Available';
   const tagCls  = item.state === 'soon' ? 'res-tag soon' : 'res-tag';

@@ -1362,6 +1362,49 @@ nav.topnav {
 .res-spotlight .res-body p  { font-size: 14.5px; max-width: 620px; }
 .res-spotlight .res-arrow  { align-self: center; }
 
+/* ─── EQUAL PAIR ──────────────────────────────────────────────────────────
+   Two resources side by side, used when a section has exactly two items
+   (see resourceItemsHTML()). Deliberately NOT the cardinal-tinted
+   spotlight treatment: two tinted cards competing for the same emphasis
+   is louder than the section needs, and neither one is "featured" when
+   there are only two. Neutral cards, equal weight.
+
+   auto-fit collapses to a single column on narrow viewports without a
+   media query, and stretch keeps both cards the same height when one
+   description wraps to more lines than the other. */
+.res-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.res-tile {
+  position: relative;
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 26px 26px 22px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition: all .25s ease-in-out;
+}
+.res-tile.linked { cursor: pointer; }
+.res-tile.linked:hover {
+  border-color: var(--cardinal-tint);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+.res-tile.soon { background: var(--bg-soft); }
+.res-tile .res-icon { width: 46px; height: 46px; }
+.res-tile .res-icon svg { width: 21px; height: 21px; }
+.res-tile .res-body h4 { font-family: var(--serif); font-size: 19px; font-weight: 500; margin-bottom: 7px; }
+.res-tile .res-body p  { font-size: 14px; }
+/* margin-top:auto pins the tag to the bottom so the tags line up across
+   the pair regardless of description length. */
+.res-tile .res-tag { margin-top: auto; padding-top: 12px; }
+/* The open-in-new-tab arrow sits top-right rather than inline, since a
+   column layout has no trailing edge to hang it on. */
+.res-tile .res-arrow { position: absolute; top: 22px; right: 22px; }
+
 .res-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
 .res-row {
   position: relative;
