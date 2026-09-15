@@ -320,12 +320,12 @@ const RESOURCE_CATEGORIES = [
     icon: 'paper',
     label: 'Writing &amp; Delivering Your Report',
     intro: {
-      h: 'The Report, end-to-end.',
+      h: 'The Ethics Report, end-to-end.',
       p: 'A template plus sample reports from evaluations at Stanford Health Care.',
-      bullets: ['Use the template', 'Reference the sample reports', 'Pair with Video 05'],
+      bullets: ['Use the template', 'Reference the sample reports'],
     },
     items: [
-      { h: 'EOP template', icon: 'paper', state: 'ready', href: '#',
+      { h: 'Template for Report', icon: 'paper', state: 'ready', href: '#',
         sub: 'Blank Report Template' },
     ],
     /* ⚠ FALLBACK ONLY, like items[] above. The sample reports are

@@ -1070,8 +1070,9 @@ function renderResourceCategoryBlock(cat, showSubheading, idx) {
         <p class="eyebrow">Redacted sample reports</p>
         <h3 class="h3" style="margin-bottom:6px;font-size:22px">Real evaluations, redacted for public reference.</h3>
         <p style="font-size:13.5px;color:var(--ink-mid);max-width:640px;line-height:1.65;margin-bottom:8px">
-          Each report walks through intake, stakeholder findings, expert vetting, and the final recommendation.
-          Tool names and vendor specifics are redacted.
+          View HEAL-AI's ethics reports for Stanford Health Care. Each report walks through a description of
+          the use case, key ethics findings, and recommendations, and places where their values collide.
+          Tool and vendor names have been anonymized.
         </p>
 
         <!-- Master–detail: report names on the left, the selected report's
