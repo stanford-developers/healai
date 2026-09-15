@@ -321,7 +321,7 @@ const RESOURCE_CATEGORIES = [
     label: 'Writing &amp; Delivering Your Report',
     intro: {
       h: 'The Ethics Report, end-to-end.',
-      p: 'A template plus sample reports from evaluations at Stanford Health Care.',
+      p: 'The blank template we write every ethics report into.',
       bullets: ['Use the template', 'Reference the sample reports'],
     },
     items: [
