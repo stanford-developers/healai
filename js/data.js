@@ -293,8 +293,14 @@ const RESOURCE_CATEGORIES = [
     label: 'Running a Patient Partner Group',
     intro: {
       h: 'Bring patient voice into the room.',
-      p: 'How we recruit, train, and run our volunteer panel, and the facilitation artifacts you need to do the same.',
-      bullets: ["Read Stanford's model", "Use the moderator's guide", 'Pair with Video 04'],
+      p: 'How we recruit, train, and run our panel, and what you need to do the same.',
+      /* Bullets accept HTML — they're written with innerHTML in
+         renderResourceCategoryBlock() and renderPatientResources(). */
+      bullets: [
+        '<a href="https://bmjdigitalhealth.bmj.com/content/2/1/e000099" target="_blank" rel="noopener">Read about Stanford\'s model &#8599;</a>',
+        "Use the moderator's guide",
+        'Pair with video',
+      ],
     },
     items: [
       { h: "Moderator's guide",                icon: 'mic',   state: 'soon',

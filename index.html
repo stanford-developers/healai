@@ -468,8 +468,20 @@
          in app.js — so admin-uploaded items land here too. -->
     <section class="section" id="pp-resources-section" aria-labelledby="pp-res-h">
       <p class="eyebrow">Resources</p>
-      <h2 class="h2" id="pp-res-h"></h2>
-      <p class="tk-panel-lede" id="pp-res-lede"></p>
+      <!-- Reuses .rt-intro so this reads identically to the Toolkit's
+           resource sections: heading + lede on the left, the "How to use
+           this section" aside on the right. Both sides are filled from the
+           'panel' category's `intro` by renderPatientResources(). -->
+      <div class="rt-intro">
+        <div>
+          <h2 id="pp-res-h"></h2>
+          <p id="pp-res-lede"></p>
+        </div>
+        <aside id="pp-res-aside" hidden>
+          <h4>How to use this section</h4>
+          <ul id="pp-res-bullets"></ul>
+        </aside>
+      </div>
       <div id="pp-resources"></div>
     </section>
   </section>

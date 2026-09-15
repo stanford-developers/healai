@@ -1527,6 +1527,17 @@ function renderPatientResources() {
 
   byId('pp-res-h').innerHTML    = cat.intro.h;
   byId('pp-res-lede').innerHTML = cat.intro.p;
+
+  /* Same "How to use this section" aside the Toolkit sections get. Hidden
+     rather than rendered empty when a category has no bullets, matching
+     renderResourceCategoryBlock()'s behaviour. */
+  const aside = byId('pp-res-aside');
+  if (aside) {
+    const bullets = cat.intro.bullets || [];
+    aside.hidden = !bullets.length;
+    byId('pp-res-bullets').innerHTML = bullets.map(b => `<li>${b}</li>`).join('');
+  }
+
   mount.innerHTML = resourceItemsHTML(cat.items);
   wireResourceCategoryPanel(mount);
 
