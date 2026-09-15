@@ -29,7 +29,7 @@
    ⑧ RESOURCE_CATEGORIES .... tabbed library, includes the 8 sample reports
    ⑧b RESOURCE_GROUPS ....... Templates/Sample Reports Level-2 tabs
    ⑨ PP_STATS / PP_STANFORD / PP_EXTERNAL  ... patient partner panel content
-   ⑩ PLAYBOOK_SECTIONS ...... 2-part internal process accordion + considerations
+   ⑩ PLAYBOOK_SECTIONS ...... 2-part internal process accordion
    ⑪ (removed — team roster now lives entirely in Supabase's team_members table)
    ⑫ ABOUT_CARDS ............ "How we got here" / "What we believe"
    ⑬ PAPERS ................. hover content for the hero canvas research nodes
@@ -587,15 +587,6 @@ const PLAYBOOK_SECTIONS = [
         body: 'Tips for coordinating with other teams in your AI governance process.' },
     ],
   },
-];
-
-/* ⑩b PLAYBOOK_CONSIDERATIONS · guiding questions the team weighs during
-   every evaluation. Rendered as a bulleted callout, not an accordion. */
-const PLAYBOOK_CONSIDERATIONS = [
-  'Whose interests are represented in the room, and whose are missing?',
-  'What would change our recommendation, and have we actually tested for it?',
-  'What guardrails and review interval make turning on the model meaningful?',
-  'Question banks, scheduling templates, and thematic-analysis scaffolds to help with interviews and data evaluation.',
 ];
 
 

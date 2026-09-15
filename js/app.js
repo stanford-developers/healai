@@ -1564,9 +1564,8 @@ function toggleAccordionItem(item, head, body) {
 /* ═════════════════════════════════════════════════════════════════════════
    ⑩ TOOLKIT PAGE — Playbook tab renderer
    ─────────────────────────────────────────────────────────────────────────
-   Renders PLAYBOOK_SECTIONS as an expand/reveal accordion (reusing
-   toggleAccordionItem() above) and PLAYBOOK_CONSIDERATIONS as a plain
-   bulleted callout beneath it.
+   Renders PLAYBOOK_SECTIONS as an expand/reveal accordion, reusing
+   toggleAccordionItem() above.
    ════════════════════════════════════════════════════════════════════════ */
 function renderToolkitPlaybook() {
   const acc = byId('pb-acc');
@@ -1602,9 +1601,6 @@ function renderToolkitPlaybook() {
       });
     }
   });
-
-  byId('pb-considerations-list').innerHTML =
-    PLAYBOOK_CONSIDERATIONS.map(c => `<li>${c}</li>`).join('');
 }
 
 
