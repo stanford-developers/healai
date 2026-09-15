@@ -1328,8 +1328,14 @@ function wireReportBrowser(mount) {
 
 /** Wires up a Level-2 panel's clickable cards after renderResourceCategoryBlock() HTML lands in the DOM. */
 function wireResourceCategoryPanel(panel) {
-  /* Wire up clickable resource cards (set by data-href) */
-  panel.querySelectorAll('.res-spotlight.linked, .res-row.linked').forEach(c => {
+  /* Wire up clickable resource cards. Selected on [data-href] rather than
+     by variant class: resourceCardHTML() sets that attribute on exactly
+     the cards that are meant to be clickable, so a new card variant is
+     wired automatically. Listing the variants by hand is what broke the
+     two-item `.res-tile` pair — those cards got data-href, role="link"
+     and a pointer cursor, but no click listener, so they looked
+     interactive and did nothing. */
+  panel.querySelectorAll('[data-href]').forEach(c => {
     const href = c.dataset.href;
     const fire = () => window.open(href, '_blank', 'noopener');
     c.addEventListener('click', fire);
