@@ -1161,13 +1161,32 @@ function renderReportBrowser() {
   wireReportBrowser(mount);
 }
 
-/** The right-hand pane for one report. */
+/** The right-hand pane for one report, including the prev/next stepper. */
 function reportDetailHTML(r) {
   if (!r) return '';
   const hasFile = r.downloadHref && r.downloadHref !== '#';
   const download = hasFile
     ? `<a class="btn-cta" href="${r.downloadHref}" target="_blank" rel="noopener">Download Full Report &rarr;</a>`
     : `<span class="btn-cta is-unavailable" aria-disabled="true">Full report coming soon</span>`;
+
+  /* Stepper for reading straight through. Disabled at the ends rather than
+     wrapping — a "Next" that jumps back to the first report is disorienting
+     when the label implies forward motion. (The list's arrow keys DO wrap,
+     per the ARIA tablist convention, where the roving focus makes the wrap
+     obvious.) */
+  const i = ALL_REPORTS.findIndex(x => x.code === r.code);
+  const nav = `
+    <div class="rb-nav">
+      <button type="button" class="rb-nav-btn prev" data-step="-1"
+              ${i <= 0 ? 'disabled' : ''} aria-label="Previous report">
+        ${svgIcon('arrowR')}<span>Prev</span>
+      </button>
+      <span class="rb-nav-count">${r.code} / ${String(ALL_REPORTS.length).padStart(2, '0')}</span>
+      <button type="button" class="rb-nav-btn next" data-step="1"
+              ${i >= ALL_REPORTS.length - 1 ? 'disabled' : ''} aria-label="Next report">
+        <span>Next</span>${svgIcon('arrowR')}
+      </button>
+    </div>`;
 
   return `
     <div class="rb-detail-head">
@@ -1189,7 +1208,7 @@ function reportDetailHTML(r) {
       <h5>Key issues identified</h5>
       <ul>${(r.issues || []).map(i => `<li>${i}</li>`).join('')}</ul>
     </div>
-    <div class="rb-actions">${download}</div>`;
+    <div class="rb-actions">${download}${nav}</div>`;
 }
 
 /** Swaps the detail pane to `code` and moves the selected state. Only the
@@ -1217,6 +1236,31 @@ function selectReport(code, { focus = false } = {}) {
 
 function wireReportBrowser(mount) {
   const items = [...mount.querySelectorAll('.rb-item')];
+
+  /* The stepper lives inside the detail pane, which selectReport() replaces
+     wholesale — so delegate from the mount, which survives that.
+     Bound once: renderReportBrowser() only swaps this element's innerHTML,
+     so the element itself persists across renders and a listener added
+     per render would accumulate. Two handlers meant one click stepped two
+     reports. (The per-item listeners below are safe — those elements are
+     rebuilt each render.) */
+  if (!mount.dataset.navWired) {
+    mount.dataset.navWired = '1';
+    mount.addEventListener('click', e => {
+      const btn = e.target.closest('.rb-nav-btn');
+      if (!btn || btn.disabled) return;
+      const i = ALL_REPORTS.findIndex(x => x.code === selectedReportCode);
+      const next = ALL_REPORTS[i + Number(btn.dataset.step)];
+      if (!next) return;
+      selectReport(next.code);
+      /* Stepping happens from the foot of a long report, so land the reader
+         at the top of the next one rather than mid-way down it. */
+      const pane = byId('rb-detail');
+      if (pane && pane.getBoundingClientRect().top < 0) {
+        pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
 
   /* Only bind hover where hovering is real. On a touchscreen the browser
      fires mouseenter off a tap, which would double-handle the click. */

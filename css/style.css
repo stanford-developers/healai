@@ -1421,12 +1421,20 @@ nav.topnav {
   align-items: start;
 }
 
+/* No inner scroll here on purpose. A max-height + overflow on this column
+   clipped the first and last rows mid-height, which read as a rendering
+   bug rather than as a scroll area. Instead the column is sticky: it sits
+   at its natural height and stays pinned while a long report is read, so
+   switching reports never means scrolling back up.
+
+   Sticky works because .report-browser sets `align-items: start` — that
+   keeps this item at content height while its grid area still spans the
+   full row, giving the sticky element room to travel. Without it the item
+   would stretch to the row height and have nowhere to stick. */
 .rb-list {
   display: flex; flex-direction: column; gap: 6px;
-  /* Long lists scroll within the column rather than pushing the detail
-     pane down the page. Caps at roughly eight rows. */
-  max-height: 520px; overflow-y: auto;
-  padding-right: 4px;
+  position: sticky;
+  top: 88px;            /* 68px fixed nav + breathing room */
 }
 .rb-item {
   display: flex; align-items: flex-start; gap: 11px;
@@ -1483,8 +1491,39 @@ nav.topnav {
 .rb-section ul { padding-left: 18px; }
 .rb-section li { font-size: 14px; color: var(--ink-mid); line-height: 1.6; margin-bottom: 8px; }
 
-.rb-actions { margin-top: 4px; }
+/* Download on the left, report stepper on the right. Wraps to two rows on
+   a narrow pane rather than crushing either side. */
+.rb-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px;
+  margin-top: 28px; padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
 .rb-actions .btn-cta { display: inline-flex; }
+
+.rb-nav { display: flex; align-items: center; gap: 4px; }
+.rb-nav-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--ink-mid);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .25s ease-in-out;
+}
+.rb-nav-btn:hover:not(:disabled) { border-color: var(--cardinal); color: var(--cardinal); }
+.rb-nav-btn:disabled { opacity: .38; cursor: default; }
+.rb-nav-btn svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
+/* Mirrors the same chevron glyph for the "previous" direction. */
+.rb-nav-btn.prev svg { transform: rotate(180deg); }
+.rb-nav-count {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+  color: var(--ink-low);
+  padding: 0 10px;
+  white-space: nowrap;
+}
 .rb-empty { font-size: 13.5px; color: var(--ink-low); margin-top: 18px; }
 
 
@@ -2239,9 +2278,12 @@ footer {
   /* Side-by-side stops working once the detail pane is narrower than its
      own text; list on top, report below. max-height caps the list so the
      content it controls stays visible without a long scroll past it. */
+  /* Stacked, so the list is no longer a sidebar and must not be sticky —
+     pinning it would cover the report the reader just chose. */
   .report-browser    { grid-template-columns: 1fr; }
-  .rb-list           { max-height: 260px; }
+  .rb-list           { position: static; top: auto; }
   .rb-detail         { padding: 22px 20px; }
+  .rb-actions        { justify-content: flex-start; }
   nav.topnav         { padding: 0 18px; }
   .nav-center        { display: none; }
   .nav-toggle        { display: flex; }
