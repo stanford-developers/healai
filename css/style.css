@@ -1979,67 +1979,101 @@ body.motion-paused .partner-track { animation-play-state: paused; }
    search-filtered listings — see renderNewsDirectory() in app.js.
    ─────────────────────────────────────────────────────────────────────── */
 /* ─── NEWS · "IN THE NEWS" BROWSER ───────────────────────────────────────
-   Thumbnail grid on the left, detail pane on the right — the same
-   master-detail shape as the sample-report browser, so the two read as
-   one system. The pane is sticky for the same reason: scanning a long
-   grid shouldn't scroll the thing you just opened off the screen. */
-.nb-controls {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  flex-wrap: wrap; gap: 16px;
-  margin: 8px 0 22px;
+   Left column holds one section per type; the detail pane sits alongside,
+   sticky so scanning never scrolls the thing you just opened away. */
+.news-browser {
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 400px);
+  gap: 26px;
+  align-items: start;
 }
-.nb-filters { display: flex; flex-wrap: wrap; gap: 8px; }
-.nb-chip {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 8px 14px;
-  font-size: 13px; font-weight: 600;
+.nb-left { display: flex; flex-direction: column; gap: 34px; min-width: 0; }
+
+/* Type filter — link-styled rather than chips or a dropdown: cardinal
+   text, underlined when active, sitting on one line. */
+.nb-filters {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 4px 22px;
+  margin: 4px 0 26px;
+}
+.nb-filter {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  padding: 4px 0;
+  font-size: 15px; font-weight: 600;
+  color: var(--cardinal);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color var(--t-fast), opacity var(--t-fast);
+  opacity: .62;
+}
+.nb-filter:hover { opacity: 1; }
+.nb-filter.on { opacity: 1; border-bottom-color: var(--cardinal); }
+.nb-filter-n { font-family: var(--mono); font-size: 10.5px; opacity: .7; }
+
+.nb-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 14px;
+}
+.nb-section-title {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-low);
+}
+.nb-arrows { display: flex; gap: 6px; }
+.nb-arrow {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
   color: var(--ink-mid);
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 999px;
   cursor: pointer;
   transition: all .2s ease-in-out;
 }
-.nb-chip:hover { border-color: var(--cardinal-tint); color: var(--cardinal); }
-.nb-chip.on { background: var(--cardinal); border-color: var(--cardinal); color: #fff; }
-.nb-chip-n {
-  font-family: var(--mono); font-size: 10.5px;
-  opacity: .72;
-}
-.nb-sort { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-low); }
-.nb-sort select {
-  font-size: 13px; color: var(--ink);
-  padding: 7px 9px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-}
-.nb-sort select:focus { outline: none; border-color: var(--cardinal); }
+.nb-arrow:hover { border-color: var(--cardinal); color: var(--cardinal); }
+.nb-arrow svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
+.nb-arrow.prev svg { transform: rotate(180deg); }
 
-.news-browser {
+/* THE POINT OF THIS LAYOUT
+   `grid-auto-flow: column` with three fixed rows caps the block's height
+   no matter how many items a feed holds, and sends the overflow sideways.
+   A normal wrapping grid grows downward, so with a dozen videos the tile
+   you click ends up far below the sticky pane and its summary opens
+   somewhere off-screen. Three rows keeps the pane beside the tiles.
+   Native overflow does the scrolling, so trackpad and touch work without
+   JS; the arrows just page it for mouse users. */
+.nb-scroller {
   display: grid;
-  grid-template-columns: 1fr minmax(320px, 420px);
-  gap: 22px;
-  align-items: start;
-}
-
-/* auto-fill, not auto-fit: with one or two items the tiles should keep
-   their size rather than stretching across the whole column. */
-.nb-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  /* A FIXED width, not 1fr and not a minmax range. 1fr let a section with
+     three items stretch its tiles to twice the size of a busy section's;
+     a range still left them different, since one section lands on the min
+     and the other on the max. Identical tiles are what make the sections
+     scan as one set. */
+  grid-auto-columns: 190px;
   gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 8px;
+  /* Room for the focus ring on the first/last tile. */
+  scroll-padding: 2px;
 }
+.nb-scroller > .nb-tile { scroll-snap-align: start; }
+/* A restrained scrollbar — this is a content surface, not a code panel. */
+.nb-scroller::-webkit-scrollbar { height: 6px; }
+.nb-scroller::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+.nb-scroller::-webkit-scrollbar-track { background: transparent; }
+
 .nb-tile {
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: 9px;
   text-align: left;
-  padding: 0 0 12px;
+  padding: 0;
   background: none; border: none;
   cursor: pointer;
 }
 .nb-tile-media {
-  position: relative;
-  display: block;
+  position: relative; display: block;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: var(--radius);
@@ -2050,32 +2084,42 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 .nb-tile-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .nb-tile:hover .nb-tile-media { border-color: var(--cardinal-tint); box-shadow: var(--shadow-2); }
 .nb-tile.on .nb-tile-media { border-color: var(--cardinal); box-shadow: var(--shadow-2); }
-/* Placeholder when an item has no image — the type's icon, centred. */
 .nb-tile-icon {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   color: var(--cardinal);
 }
-.nb-tile-icon svg { width: 30px; height: 30px; stroke: currentColor; stroke-width: 1.6; fill: none; }
-/* Play badge, so a tile reads as something that plays. */
+.nb-tile-icon svg { width: 28px; height: 28px; stroke: currentColor; stroke-width: 1.6; fill: none; }
 .nb-tile-play {
-  position: absolute; bottom: 8px; left: 8px;
-  width: 30px; height: 30px; border-radius: 50%;
+  position: absolute; bottom: 7px; left: 7px;
+  width: 26px; height: 26px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(20,20,20,.62);
+  background: rgba(20,20,20,.6);
   backdrop-filter: blur(2px);
 }
-.nb-tile-play svg { width: 12px; height: 12px; fill: #fff; stroke: none; margin-left: 1px; }
-
+.nb-tile-play svg { width: 11px; height: 11px; fill: #fff; stroke: none; margin-left: 1px; }
 .nb-tile-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.nb-tile-kind {
-  font-family: var(--mono); font-size: 9.5px;
-  letter-spacing: .1em; text-transform: uppercase;
-  color: var(--cardinal);
-}
-.nb-tile-title { font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+.nb-tile-title { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35; }
 .nb-tile.on .nb-tile-title { color: var(--cardinal); }
-.nb-tile-date { font-family: var(--mono); font-size: 10.5px; color: var(--ink-low); }
+.nb-tile-date { font-family: var(--mono); font-size: 10px; color: var(--ink-low); }
+
+/* Articles as a list of headlines. */
+.nb-newslist { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.nb-newsrow {
+  display: flex; flex-direction: column; gap: 3px;
+  width: 100%; text-align: left;
+  padding: 14px 6px;
+  background: none;
+  border: none; border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all .2s ease-in-out;
+}
+.nb-newsrow:hover { background: var(--cardinal-soft); padding-left: 12px; }
+.nb-newsrow.on { background: var(--bg-soft); border-left-color: var(--cardinal); padding-left: 12px; }
+.nb-newsrow-title { font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.4; }
+.nb-newsrow.on .nb-newsrow-title, .nb-newsrow:hover .nb-newsrow-title { color: var(--cardinal); }
+.nb-newsrow-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-low); }
 
 .nb-pane {
   position: sticky; top: 88px;         /* 68px fixed nav + breathing room */
@@ -2097,26 +2141,20 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 .nb-pane-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
 .nb-pane-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.nb-pane-kind {
-  display: inline-block;
-  font-family: var(--mono); font-size: 10px;
-  letter-spacing: .1em; text-transform: uppercase;
-  color: var(--cardinal); background: var(--cardinal-tint);
-  padding: 3px 8px; border-radius: 4px;
-  margin-bottom: 10px;
-}
 .nb-pane-title {
   font-family: var(--serif); font-size: 21px; font-weight: 500;
   color: var(--ink); line-height: 1.25; margin-bottom: 6px;
 }
+/* An article's headline is its link to the piece. */
+.nb-pane-titlelink { color: var(--cardinal); transition: opacity var(--t-fast); }
+.nb-pane-titlelink:hover { opacity: .78; }
+.nb-pane-titlearrow { font-size: .7em; margin-left: 5px; vertical-align: super; }
 .nb-pane-meta { font-size: 12.5px; color: var(--ink-mid); font-weight: 500; margin-bottom: 14px; }
 .nb-pane-desc { font-size: 14px; color: var(--ink-mid); line-height: 1.65; margin-bottom: 18px; }
 .nb-pane-audio { width: 100%; margin-bottom: 16px; }
 .nb-pane-actions { margin-top: 4px; }
 .nb-pane-actions .btn-cta { display: inline-flex; }
 
-/* Collapsed by default — a transcript can run thousands of words, and
-   <details> gives keyboard-operable disclosure with no JS. */
 .nb-transcript { margin-bottom: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
 .nb-transcript summary {
   font-family: var(--mono); font-size: 11px;
@@ -2511,11 +2549,12 @@ footer {
 
 /* ─── BREAKPOINT · ≤900px (Phone / mobile activation) ─────────────────── */
 @media (max-width: 900px) {
-  /* Pane below the grid, and not sticky — pinned, it would cover the
-     tiles it belongs to. */
+  /* Pane below the sections, and not sticky — pinned, it would cover the
+     tiles it belongs to. Two rows rather than three, since a phone shows
+     roughly half as many columns at once. */
   .news-browser      { grid-template-columns: 1fr; }
   .nb-pane           { position: static; top: auto; }
-  .nb-grid           { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .nb-scroller       { grid-template-rows: repeat(2, auto); grid-auto-columns: 150px; }
   .news-community-frame { aspect-ratio: 16 / 9; }
   /* Side-by-side stops working once the detail pane is narrower than its
      own text; list on top, report below. max-height caps the list so the

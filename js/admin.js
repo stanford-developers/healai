@@ -804,7 +804,6 @@ async function loadNewsItems() {
 
   LIST_ROWS.news = data;
   syncNewsYearOptions();
-  syncFeaturedOptions();
   renderNewsList();
 }
 
@@ -825,7 +824,7 @@ function renderNewsList() {
   list.innerHTML = rows.map(r => `
     <div class="admin-resource-row" data-id="${r.id}">
       <div>
-        <span class="admin-resource-category">${NEWS_TYPE_LABEL[r.type] || r.type}</span>${r.featured ? '<span class="admin-featured-pill">Featured</span>' : ''}
+        <span class="admin-resource-category">${NEWS_TYPE_LABEL[r.type] || r.type}</span>
         <h4>${r.title}</h4>
         <p>${r.description || ''}</p>
         <span class="admin-resource-meta">${newsMetaLine(r)} · ${r.date}</span>
@@ -848,86 +847,6 @@ function renderNewsList() {
   list.querySelectorAll('.admin-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => handleNewsDelete(btn.dataset.id));
   });
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   FEATURED NEWS ITEM
-   ─────────────────────────────────────────────────────────────────────────
-   Which item the News tab's spotlight bar shows. Exactly one row may have
-   news_items.featured = true, enforced by a partial unique index (see
-   /supabase/news_featured_migration.sql) — so setting a new one means
-   clearing the old first, or the index rejects the write.
-
-   The picker lists the whole directory grouped by feed, rather than only
-   the newest few, because the point is to be able to rotate back to
-   something older.
-   ────────────────────────────────────────────────────────────────────── */
-
-/** Rebuilds the dropdown from LIST_ROWS.news, preserving which row is
- *  currently featured. Called by loadNewsItems(), so it stays in step with
- *  every publish, edit, and delete. */
-function syncFeaturedOptions() {
-  const sel = byId('news-featured-select');
-  if (!sel) return;
-
-  const rows = LIST_ROWS.news;
-  const current = rows.find(r => r.featured);
-
-  if (!rows.length) {
-    sel.innerHTML = '<option value="">Nothing published yet</option>';
-    sel.disabled = true;
-    return;
-  }
-  sel.disabled = false;
-
-  /* Grouped by feed so a long directory stays navigable, and labelled with
-     the date so two similarly-titled talks are tellable apart. */
-  const groups = ['seminar_video', 'podcast', 'news_article', 'scholarly_publication'].map(type => {
-    const items = rows.filter(r => r.type === type);
-    if (!items.length) return '';
-    const opts = items.map(r =>
-      `<option value="${r.id}"${r.id === current?.id ? ' selected' : ''}>${r.title} — ${r.date}</option>`
-    ).join('');
-    return `<optgroup label="${NEWS_TYPE_LABEL[type]}">${opts}</optgroup>`;
-  }).join('');
-
-  sel.innerHTML =
-    `<option value=""${current ? '' : ' selected'}>None — use the newest seminar</option>${groups}`;
-
-  byId('news-featured-status').textContent = current
-    ? `Featuring: ${current.title}`
-    : 'No explicit pick — the spotlight shows the newest seminar video.';
-}
-
-/** Moves the featured flag to `id` (or clears it when id is ''). */
-async function handleFeaturedChange(id) {
-  const status = byId('news-featured-status');
-  const sel = byId('news-featured-select');
-  sel.disabled = true;
-  status.textContent = 'Saving…';
-
-  /* Clear first: the partial unique index permits only one true row, so
-     setting before clearing would be rejected. */
-  const { error: clearError } = await sb
-    .from('news_items').update({ featured: false }).eq('featured', true);
-  if (clearError) {
-    sel.disabled = false;
-    status.textContent = 'Could not clear the previous pick: ' + clearError.message;
-    return;
-  }
-
-  if (id) {
-    const { error } = await sb.from('news_items').update({ featured: true }).eq('id', id);
-    if (error) {
-      sel.disabled = false;
-      status.textContent = 'Could not set the new pick: ' + error.message;
-      loadNewsItems();          /* resync — the clear above did land */
-      return;
-    }
-  }
-
-  sel.disabled = false;
-  loadNewsItems();              /* repopulates the picker and the list */
 }
 
 /** Shared by News/Reports/Team's priority inputs — all 3 tables have the
@@ -1252,7 +1171,6 @@ function initAdmin() {
     byId(PANEL_FORMS[panel].cancel).addEventListener('click', () => cancelEdit(panel));
   });
   initListFilters();
-  byId('news-featured-select').addEventListener('change', e => handleFeaturedChange(e.target.value));
 
   sb.auth.onAuthStateChange((_event, session) => syncViewToSession(session));
   sb.auth.getSession().then(({ data: { session } }) => syncViewToSession(session));

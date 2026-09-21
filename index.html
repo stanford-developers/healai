@@ -535,11 +535,6 @@
          the photo is dropped into /assets. -->
     <figure class="news-community" id="news-community" hidden></figure>
 
-    <!-- Spotlight card — rendered by renderNewsSpotlight() -->
-    <section class="section">
-      <div class="news-spotlight" id="news-spotlight"></div>
-    </section>
-
     <!-- ═══ IN THE NEWS ═══════════════════════════════════════════════
          Videos, podcasts, and press coverage in one browsable grid:
          filter by type, sort, click a thumbnail and its detail opens in
@@ -547,23 +542,12 @@
          separate directory pages. Rendered by renderNewsBrowser(). -->
     <section class="section news-block" aria-labelledby="news-browser-h">
       <div class="news-block-head">
-        <div>
-          <p class="eyebrow">In the news</p>
-          <h2 class="h2" id="news-browser-h">Talks, podcasts, and coverage.</h2>
-        </div>
+        <h2 class="h2" id="news-browser-h">In the News</h2>
       </div>
 
-      <div class="nb-controls">
-        <div class="nb-filters" role="tablist" aria-label="Filter by type" id="nb-filters"></div>
-        <label class="nb-sort">
-          <span>Sort</span>
-          <select id="nb-sort">
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="title">Title A–Z</option>
-          </select>
-        </label>
-      </div>
+      <!-- Type filter. Link-styled rather than chips or a dropdown; see
+           renderNewsFilters() in app.js. -->
+      <div class="nb-filters" role="tablist" aria-label="Filter by type" id="nb-filters"></div>
 
       <div class="news-browser" id="news-browser"></div>
     </section>
@@ -573,10 +557,7 @@
          by renderPublicationsList(). -->
     <section class="section news-block" aria-labelledby="news-pubs-h">
       <div class="news-block-head">
-        <div>
-          <p class="eyebrow">Recent publications</p>
-          <h2 class="h2" id="news-pubs-h">Peer-reviewed work from the lab.</h2>
-        </div>
+        <h2 class="h2" id="news-pubs-h">Recent Publications</h2>
       </div>
       <div class="news-pubs" id="news-publications-list"></div>
     </section>

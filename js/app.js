@@ -1828,42 +1828,14 @@ function newsSorted(items) {
 }
 
 function newsFormatDate(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const d = new Date(iso + 'T00:00:00');
+  /* '' rather than the string "Invalid Date" — the column is NOT NULL and
+     the admin field is a date input, so this shouldn't happen, but a bad
+     value should drop out of a meta line rather than be printed in it. */
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-/* How the spotlight presents each feed. The bar used to be seminar-only,
-   so it hardcoded "speaker · venue" and "Watch the talk"; any feed can be
-   featured now, and an article shown with a speaker line would render
-   "undefined · undefined". */
-const NEWS_SPOTLIGHT_SHAPE = {
-  seminar_video: {
-    cta: 'Watch the talk',
-    meta: i => [i.speaker, i.venue].filter(Boolean),
-  },
-  podcast: {
-    cta: 'Listen to the episode',
-    meta: i => [i.show, i.host].filter(Boolean),
-  },
-  news_article: {
-    cta: 'Read the article',
-    meta: i => [i.source].filter(Boolean),
-  },
-  scholarly_publication: {
-    cta: 'Read the paper',
-    meta: i => [i.authors, i.journal].filter(Boolean),
-  },
-};
-
-/**
- * The News tab's featured bar.
- *
- * `lists` is the three merged+sorted feeds keyed by type. The item an admin
- * marked featured wins, whichever feed it came from (see
- * /supabase/news_featured_migration.sql and the picker at the top of
- * /admin.html → News). With nothing featured it falls back to the top
- * seminar, which is what the bar did before the flag existed — so the
- * section is never empty just because no one has made a pick.
- */
 /**
  * The Patient Partner Panel photo at the top of the News tab.
  *
@@ -1899,27 +1871,6 @@ function renderNewsCommunityPhoto() {
   img.addEventListener('error', () => { fig.hidden = true; fig.innerHTML = ''; });
   img.src = photo.src;
   fig.querySelector('.news-community-frame').appendChild(img);
-}
-
-function renderNewsSpotlight(lists) {
-  const mount = byId('news-spotlight');
-  if (!mount) return;
-
-  const all = [lists.seminar_video, lists.podcast, lists.news_article, lists.scholarly_publication].flat();
-  const featured = all.find(i => i.featured) || lists.seminar_video[0];
-  if (!featured) { mount.innerHTML = ''; return; }
-
-  /* Static data.js entries carry no `type`; the only one that can be
-     featured there is a seminar, which is also the fallback's feed. */
-  const shape = NEWS_SPOTLIGHT_SHAPE[featured.type] || NEWS_SPOTLIGHT_SHAPE.seminar_video;
-  const meta = [...shape.meta(featured), newsFormatDate(featured.date)].join(' · ');
-
-  mount.innerHTML = `
-    <span class="news-spotlight-tag">Featured</span>
-    <h2 class="news-spotlight-title">${featured.title}</h2>
-    <p class="news-spotlight-meta">${meta}</p>
-    <p class="news-spotlight-desc">${featured.desc}</p>
-    <a class="btn-cta" href="${featured.link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>`;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════
@@ -1961,8 +1912,8 @@ const NEWS_TYPES = {
 
 const NEWS_BROWSER_TYPES = Object.keys(NEWS_TYPES);
 
-/* Filter + sort + selection, held here so a re-render keeps its place. */
-let newsBrowserState = { filter: 'all', sort: 'newest', selected: null, items: [] };
+/* Active filter + selection, held here so a re-render keeps its place. */
+let newsBrowserState = { filter: 'all', selected: null, items: [] };
 
 /** Public URL for something in the news-media bucket, or the value as-is
  *  when it's already an absolute URL. */
@@ -1974,60 +1925,62 @@ function newsMediaUrl(value) {
   return sb.storage.from('news-media').getPublicUrl(value).data.publicUrl;
 }
 
-/** YouTube/Vimeo id out of a watch, share, or embed URL — so a video that
- *  has no uploaded thumbnail can still show one. */
+/** YouTube id out of a watch, share, or embed URL — so a video with no
+ *  uploaded thumbnail can still show one. */
 function youTubeId(url) {
   const m = String(url || '').match(
     /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? m[1] : '';
 }
 
-/** The image for a tile: an explicit thumbnail if the item has one, else
- *  YouTube's own still, else '' so the caller draws an icon placeholder. */
+/** The image for a tile: an explicit thumbnail, else YouTube's own still,
+ *  else '' so the caller draws an icon placeholder. */
 function newsThumb(item) {
   if (item.thumb) return newsMediaUrl(item.thumb);
   const yt = youTubeId(item.embed || item.link);
   return yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : '';
 }
 
-function newsBrowserSorted(items) {
-  const byDate = (a, b) => new Date(b.date) - new Date(a.date);
-  if (newsBrowserState.sort === 'oldest') return [...items].sort((a, b) => -byDate(a, b));
-  if (newsBrowserState.sort === 'title')  return [...items].sort((a, b) =>
-    stripHTML(a.title).localeCompare(stripHTML(b.title)));
-  return [...items].sort(byDate);
+function newsOfType(type) {
+  return newsBrowserState.items.filter(i => i.type === type);
 }
 
-function newsBrowserVisible() {
-  const { filter, items } = newsBrowserState;
-  return newsBrowserSorted(filter === 'all' ? items : items.filter(i => i.type === filter));
+/** Which types the current filter shows, in the order they appear.
+ *  "All" deliberately leads with videos, then podcasts, then news. */
+function newsVisibleTypes() {
+  const f = newsBrowserState.filter;
+  return f === 'all' ? NEWS_BROWSER_TYPES : [f];
 }
 
-/** Filter chips, with a count each so an empty type is obvious before
- *  clicking it. */
+function newsVisibleItems() {
+  return newsVisibleTypes().flatMap(newsOfType);
+}
+
+/** The filter row: link-styled, not chips or a dropdown. */
 function renderNewsFilters() {
   const bar = byId('nb-filters');
   if (!bar) return;
   const { items, filter } = newsBrowserState;
   const counts = { all: items.length };
-  NEWS_BROWSER_TYPES.forEach(t => { counts[t] = items.filter(i => i.type === t).length; });
+  NEWS_BROWSER_TYPES.forEach(t => { counts[t] = newsOfType(t).length; });
 
-  const chip = (id, label) => {
+  const link = (id, label) => {
     const on = filter === id;
-    return `<button class="nb-chip${on ? ' on' : ''}" role="tab" aria-selected="${on}"
+    return `<button class="nb-filter${on ? ' on' : ''}" role="tab" aria-selected="${on}"
              data-filter="${id}" tabindex="${on ? 0 : -1}">${label}
-             <span class="nb-chip-n">${counts[id]}</span></button>`;
+             <span class="nb-filter-n">${counts[id]}</span></button>`;
   };
-  bar.innerHTML = chip('all', 'All')
-    + NEWS_BROWSER_TYPES.map(t => chip(t, NEWS_TYPES[t].label)).join('');
+  bar.innerHTML = link('all', 'All')
+    + NEWS_BROWSER_TYPES.map(t => link(t, NEWS_TYPES[t].label)).join('');
 
-  bar.querySelectorAll('.nb-chip').forEach(b => {
+  bar.querySelectorAll('.nb-filter').forEach(b => {
     b.addEventListener('click', () => {
       newsBrowserState.filter = b.dataset.filter;
-      /* Drop a selection the filter would hide, so the pane can't show an
-         item that isn't in the grid any more. */
-      const stillVisible = newsBrowserVisible().some(i => i.id === newsBrowserState.selected);
-      if (!stillVisible) newsBrowserState.selected = null;
+      /* Drop a selection the new filter would hide, so the pane can't
+         describe something that isn't on screen. */
+      if (!newsVisibleItems().some(i => i.id === newsBrowserState.selected)) {
+        newsBrowserState.selected = null;
+      }
       renderNewsFilters();
       renderNewsBrowserBody();
     });
@@ -2041,16 +1994,6 @@ function renderNewsBrowser(items) {
      Supabase) and only the DB rows have one of their own. */
   newsBrowserState.items = items.map((it, i) => ({ ...it, id: it.id || `n${i}` }));
   newsBrowserState.selected = null;
-
-  const sort = byId('nb-sort');
-  if (sort && !sort.dataset.wired) {
-    sort.dataset.wired = '1';
-    sort.addEventListener('change', () => {
-      newsBrowserState.sort = sort.value;
-      renderNewsBrowserBody();
-    });
-  }
-
   renderNewsFilters();
   renderNewsBrowserBody();
 }
@@ -2058,23 +2001,85 @@ function renderNewsBrowser(items) {
 function renderNewsBrowserBody() {
   const mount = byId('news-browser');
   if (!mount) return;
-  const visible = newsBrowserVisible();
 
-  if (!visible.length) {
-    mount.innerHTML = '<p class="news-empty">No entries yet — check back soon.</p>';
+  const types = newsVisibleTypes().filter(t => newsOfType(t).length);
+  if (!types.length) {
+    mount.innerHTML = '<p class="news-empty">Nothing here yet — check back soon.</p>';
     return;
   }
 
-  const sel = visible.find(i => i.id === newsBrowserState.selected);
+  const sel = newsVisibleItems().find(i => i.id === newsBrowserState.selected);
+  /* Articles read as a list, not as tiles: a headline is the thing you
+     scan, and a press photo is rarely ours to show. */
+  const section = t => t === 'news_article'
+    ? newsListSectionHTML(t, newsOfType(t))
+    : newsScrollerSectionHTML(t, newsOfType(t));
+
   mount.innerHTML = `
-    <div class="nb-grid" role="tablist" aria-label="Items">
-      ${visible.map(i => newsTileHTML(i, i.id === newsBrowserState.selected)).join('')}
-    </div>
+    <div class="nb-left">${types.map(section).join('')}</div>
     <div class="nb-pane" id="nb-pane" role="tabpanel" tabindex="0">
       ${sel ? newsPaneHTML(sel) : newsPanePlaceholderHTML()}
     </div>`;
 
   wireNewsBrowser(mount);
+}
+
+/**
+ * Tiles in a THREE-ROW grid that scrolls sideways.
+ *
+ * The obvious layout — one grid that wraps downward — breaks as a feed
+ * grows: with a dozen videos the tile you click sits far below the detail
+ * pane, which is pinned near the top, so the summary appears somewhere
+ * you aren't looking. Capping at three rows and flowing into columns
+ * instead keeps the whole block short enough that the pane is always
+ * beside the tiles, however many there are.
+ *
+ * `grid-auto-flow: column` does the flowing, native overflow does the
+ * scrolling (so a trackpad swipe or a phone drag works with no JS), and
+ * the arrows below page it by whole columns for mouse users.
+ */
+function newsScrollerSectionHTML(type, items) {
+  const shape = NEWS_TYPES[type];
+  const many = items.length > 3;   /* only then is there anywhere to page */
+  return `
+    <section class="nb-section">
+      <div class="nb-section-head">
+        <h3 class="nb-section-title">${shape.label}</h3>
+        ${many ? `
+        <div class="nb-arrows">
+          <button type="button" class="nb-arrow prev" data-scroll="${type}" data-dir="-1"
+                  aria-label="Scroll ${shape.label} left">${svgIcon('arrowR')}</button>
+          <button type="button" class="nb-arrow next" data-scroll="${type}" data-dir="1"
+                  aria-label="Scroll ${shape.label} right">${svgIcon('arrowR')}</button>
+        </div>` : ''}
+      </div>
+      <div class="nb-scroller" id="nb-scroll-${type}" role="tablist" aria-label="${shape.label}">
+        ${items.map(i => newsTileHTML(i, i.id === newsBrowserState.selected)).join('')}
+      </div>
+    </section>`;
+}
+
+/** Articles: a list of headlines. Clicking one opens its summary in the
+ *  pane, where the headline itself is the link out. */
+function newsListSectionHTML(type, items) {
+  const shape = NEWS_TYPES[type];
+  return `
+    <section class="nb-section">
+      <div class="nb-section-head">
+        <h3 class="nb-section-title">${shape.label}</h3>
+      </div>
+      <div class="nb-newslist" role="tablist" aria-label="${shape.label}">
+        ${items.map(i => {
+          const on = i.id === newsBrowserState.selected;
+          return `
+          <button class="nb-newsrow${on ? ' on' : ''}" role="tab" aria-selected="${on}"
+                  data-id="${i.id}" tabindex="${on ? 0 : -1}">
+            <span class="nb-newsrow-title">${i.title}</span>
+            <span class="nb-newsrow-meta">${[i.source, newsFormatDate(i.date)].filter(Boolean).join(' · ')}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </section>`;
 }
 
 function newsTileHTML(item, on) {
@@ -2083,19 +2088,14 @@ function newsTileHTML(item, on) {
   const media = img
     ? `<img src="${img}" alt="" loading="lazy" decoding="async">`
     : `<span class="nb-tile-icon">${svgIcon(shape.icon)}</span>`;
-  /* A play affordance on things that play, so a tile reads as media
-     rather than as a link. */
-  const playable = item.type === 'seminar_video' || item.type === 'podcast';
-
   return `
     <button class="nb-tile${on ? ' on' : ''}" role="tab" aria-selected="${on}"
             data-id="${item.id}" tabindex="${on ? 0 : -1}">
       <span class="nb-tile-media">
         ${media}
-        ${playable ? `<span class="nb-tile-play" aria-hidden="true">${svgIcon('play')}</span>` : ''}
+        <span class="nb-tile-play" aria-hidden="true">${svgIcon('play')}</span>
       </span>
       <span class="nb-tile-body">
-        <span class="nb-tile-kind">${shape.label}</span>
         <span class="nb-tile-title">${item.title}</span>
         <span class="nb-tile-date">${newsFormatDate(item.date)}</span>
       </span>
@@ -2104,17 +2104,18 @@ function newsTileHTML(item, on) {
 
 function newsPanePlaceholderHTML() {
   return `<div class="nb-pane-empty">
-      <p>Select anything on the left to read about it here.</p>
+      <p>Pick anything on the left and it opens here.</p>
     </div>`;
 }
 
-/** The detail pane. Shapes itself to the item: a video embeds its player,
- *  a podcast gets an audio element and its transcript, an article shows
- *  its image. */
+/** The detail pane, shaped to the item: a video embeds its player, a
+ *  podcast gets an audio element and its transcript, an article leads
+ *  with its headline as the link out. */
 function newsPaneHTML(item) {
   const shape = NEWS_TYPES[item.type] || NEWS_TYPES.news_article;
   const meta = [...shape.meta(item), newsFormatDate(item.date)].filter(Boolean).join(' · ');
   const img = newsThumb(item);
+  const linked = item.link && item.link !== '#';
 
   let media = '';
   if (item.type === 'seminar_video' && item.embed) {
@@ -2126,6 +2127,13 @@ function newsPaneHTML(item) {
   } else if (img) {
     media = `<div class="nb-pane-image"><img src="${img}" alt="" decoding="async"></div>`;
   }
+
+  /* An article's title IS its link — that was the ask: a red titled link
+     straight to the piece. Anything else keeps a plain heading and a
+     button underneath. */
+  const title = (item.type === 'news_article' && linked)
+    ? `<h3 class="nb-pane-title"><a class="nb-pane-titlelink" href="${item.link}" target="_blank" rel="noopener">${item.title}<span class="nb-pane-titlearrow" aria-hidden="true">↗</span></a></h3>`
+    : `<h3 class="nb-pane-title">${item.title}</h3>`;
 
   const audioUrl = item.type === 'podcast' ? newsMediaUrl(item.audio) : '';
   const audio = audioUrl
@@ -2141,35 +2149,36 @@ function newsPaneHTML(item) {
        </details>`
     : '';
 
-  const action = item.link && item.link !== '#'
-    ? `<a class="btn-cta" href="${item.link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>`
+  const action = (linked && item.type !== 'news_article')
+    ? `<div class="nb-pane-actions">
+         <a class="btn-cta" href="${item.link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>
+       </div>`
     : '';
 
   return `
     ${media}
-    <span class="nb-pane-kind">${shape.label}</span>
-    <h3 class="nb-pane-title">${item.title}</h3>
+    ${title}
     <p class="nb-pane-meta">${meta}</p>
     ${item.desc ? `<p class="nb-pane-desc">${item.desc}</p>` : ''}
     ${audio}
     ${transcript}
-    ${action ? `<div class="nb-pane-actions">${action}</div>` : ''}`;
+    ${action}`;
 }
 
-/** Swaps the pane to `id`. Only the pane and the tiles' selected state
- *  change — re-rendering the grid would move the tile out from under the
- *  pointer mid-click. */
+/** Swaps the pane to `id`. Only the pane and the selected states change —
+ *  re-rendering the tiles would move the one under the pointer and reset
+ *  the scroller's position. */
 function selectNewsItem(id, { focus = false } = {}) {
-  const item = newsBrowserVisible().find(i => i.id === id);
+  const item = newsVisibleItems().find(i => i.id === id);
   if (!item) return;
   newsBrowserState.selected = id;
 
-  $$('.nb-tile').forEach(t => {
-    const on = t.dataset.id === id;
-    t.classList.toggle('on', on);
-    t.setAttribute('aria-selected', on ? 'true' : 'false');
-    t.tabIndex = on ? 0 : -1;
-    if (on && focus) t.focus();
+  $$('.nb-tile, .nb-newsrow').forEach(el => {
+    const on = el.dataset.id === id;
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-selected', on ? 'true' : 'false');
+    el.tabIndex = on ? 0 : -1;
+    if (on && focus) el.focus();
   });
 
   const pane = byId('nb-pane');
@@ -2177,20 +2186,32 @@ function selectNewsItem(id, { focus = false } = {}) {
 }
 
 function wireNewsBrowser(mount) {
-  const tiles = [...mount.querySelectorAll('.nb-tile')];
-  tiles.forEach((t, i) => {
-    t.addEventListener('click', () => selectNewsItem(t.dataset.id));
-    t.addEventListener('keydown', e => {
+  const pickables = [...mount.querySelectorAll('.nb-tile, .nb-newsrow')];
+  pickables.forEach((el, i) => {
+    el.addEventListener('click', () => selectNewsItem(el.dataset.id));
+    el.addEventListener('keydown', e => {
       let target = -1;
       switch (e.key) {
-        case 'ArrowRight': case 'ArrowDown': target = (i + 1) % tiles.length;               break;
-        case 'ArrowLeft':  case 'ArrowUp':   target = (i - 1 + tiles.length) % tiles.length; break;
-        case 'Home':                         target = 0;                                     break;
-        case 'End':                          target = tiles.length - 1;                      break;
+        case 'ArrowRight': case 'ArrowDown': target = (i + 1) % pickables.length;               break;
+        case 'ArrowLeft':  case 'ArrowUp':   target = (i - 1 + pickables.length) % pickables.length; break;
+        case 'Home':                         target = 0;                                        break;
+        case 'End':                          target = pickables.length - 1;                     break;
         default: return;
       }
       e.preventDefault();
-      selectNewsItem(tiles[target].dataset.id, { focus: true });
+      selectNewsItem(pickables[target].dataset.id, { focus: true });
+    });
+  });
+
+  /* Page a scroller by whole columns, so a click never leaves a tile
+     half-visible at the edge. */
+  mount.querySelectorAll('.nb-arrow').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const track = byId('nb-scroll-' + btn.dataset.scroll);
+      if (!track) return;
+      const tile = track.querySelector('.nb-tile');
+      const step = tile ? tile.getBoundingClientRect().width + 16 : track.clientWidth;
+      track.scrollBy({ left: step * Number(btn.dataset.dir), behavior: 'smooth' });
     });
   });
 }
@@ -2253,9 +2274,11 @@ async function getPublicNewsItems() {
       if (!byType[r.type]) return;
       byType[r.type].push({
         date: r.date, title: r.title, desc: r.description || '', link: r.link || '#',
-        priority: r.priority, featured: !!r.featured,
-        /* `type` rides along so renderNewsSpotlight() can shape its meta
-           line and button for whichever feed the featured item came from. */
+        priority: r.priority,
+        /* `featured` is still a column (see news_featured_migration.sql)
+           but nothing reads it now that the spotlight is gone. Left out
+           of the mapped shape rather than carried as dead data. */
+        /* `type` rides along so the browser can group and filter on it. */
         type: r.type, ...(r.meta || {}),
       });
     });
@@ -2286,10 +2309,6 @@ async function initNewsFeature() {
                                ...uploaded.scholarly_publication]);
 
   renderNewsCommunityPhoto();
-  renderNewsSpotlight({
-    seminar_video: seminar, podcast: podcasts,
-    news_article: articles, scholarly_publication: pubs,
-  });
 
   /* Papers are excluded from the browser on purpose — they have no
      thumbnail worth showing, and get their own list below. */

@@ -694,30 +694,7 @@ const NEWS_COMMUNITY_PHOTO = {
 };
 
 
-const SEMINAR_VIDEOS = [
-  { date: '2026-05-14',
-    title: 'Grand Rounds: Ethical Review of Clinical AI at Scale',
-    speaker: 'Michelle Mello',
-    venue: 'Stanford Medicine Grand Rounds',
-    desc: "Michelle Mello presents HEAL-AI's ethics review process and what two years of evaluations have surfaced about deploying AI tools responsibly across a health system.",
-    link: '#', featured: true },
-  /* These 2 were originally in the Toolkit's "Case Studies & Talks"
-     category (since removed). Exact day-of-month wasn't recorded at the
-     source, only "June 2025" — the dates below are nominal placeholders
-     within that month; fix if you have the real dates. */
-  { date: '2025-06-12',
-    title: "Stanford's Ethical Assessment Process: What and Why",
-    speaker: 'Danton Char & Michelle Mello',
-    venue: "CHAI Leadership Summit",
-    desc: "Drs. Char and Mello's overview of HEAL-AI's ethical assessment process, presented at CHAI's Leadership Summit.",
-    link: 'https://drive.google.com/file/d/1rNubDnBNKaHNSnrBgoc2l4hLzn4YZ9LX/preview' },
-  { date: '2025-06-05',
-    title: 'Stanford HAI Health Policy Workshop talk',
-    speaker: 'Danton Char & Michelle Mello',
-    venue: "Stanford HAI Health Policy Workshop",
-    desc: "Presentation at the Stanford Institute for Human-Centered AI's Health Policy Workshop.",
-    link: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview' },
-];
+const SEMINAR_VIDEOS = [];
 
 /* Podcast episodes. Same shape as the others, plus the meta the browser
    uses: `show` / `host` for the meta line, `thumb` for the tile image,
