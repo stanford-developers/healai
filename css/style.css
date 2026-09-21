@@ -2188,21 +2188,27 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 .np-arrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; }
 .np-row.linked:hover .np-arrow { color: var(--cardinal); transform: translateX(3px); }
 
-/* ─── NEWS · COMMUNITY PHOTO ──────────────────────────────────────────────
-   The Patient Partner Panel photo between the News header and the featured
-   spotlight. A fixed aspect ratio with object-fit:cover means any crop the
-   team supplies fills the frame without distorting, and the box is sized
-   before the image arrives so the page doesn't jump as it loads.
+/* ─── NEWS / PUBLICATIONS SUBSECTION ─────────────────────────────────────
+   ONE SOURCE OF VERTICAL RHYTHM.
+   This block lives inside .tk-panel, which already supplies the gutters,
+   the max-width, and 56px of top padding. The sections inside it carry
+   `.section`, whose own clamp() gutters and 64px padding landed on top of
+   all three — double-inset horizontally, and 56 + 64 = 120px of stacked
+   space above the first heading while other joins had almost none. That
+   unevenness is what read as tacky. Their padding is stripped here and a
+   single flex `gap` is the whole rhythm, so every join matches. */
+#news-content { display: flex; flex-direction: column; gap: 52px; }
+#news-content > .section,
+#news-content > .news-community,
+#news-content > .nc-intro { padding: 0; margin: 0; max-width: none; }
+/* Their own bottom margins would otherwise fight the gap above. */
+#news-content .news-block-head { margin-bottom: 20px; }
 
-   3:1 on desktop reads as a banner; a phone gets 16:9 so faces don't end
-   up in a letterbox slit (see the 900px breakpoint). */
-/* Same gutters and max-width as .section / .page-header so the frame lines
-   up with the content column. Not using .section itself: its 96px vertical
-   padding would push the photo away from the header it belongs under. */
-.news-community {
-  padding: 40px clamp(24px, 5vw, 80px) 0;
-  max-width: 1320px; margin: 0 auto;
-}
+/* ─── The Patient Partner Panel photo, at the top of the subsection ─────
+   A fixed ratio with object-fit:cover means any crop fills the frame
+   without distorting, and the box is sized before the image arrives so
+   nothing jumps on load. 3:1 reads as a banner; a phone gets 16:9 so
+   faces aren't cropped into a letterbox slit (see the 900px breakpoint). */
 .news-community-frame {
   aspect-ratio: 3 / 1;
   overflow: hidden;
@@ -2213,7 +2219,16 @@ body.motion-paused .partner-track { animation-play-state: paused; }
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;
+  /* Revealed only once the image has actually decoded — see the load
+     handler in renderNewsCommunityPhoto(). A plain CSS animation would
+     fade in the empty frame while the photo was still downloading, which
+     is worse than no effect. The slight scale settles it into place
+     rather than just switching it on. */
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity .7s var(--ease), transform 1s var(--ease);
 }
+.news-community-frame img.is-loaded { opacity: 1; transform: none; }
 .news-community figcaption {
   margin-top: 12px;
   font-size: 13px; color: var(--ink-mid); line-height: 1.6;
@@ -2223,31 +2238,15 @@ body.motion-paused .partner-track { animation-play-state: paused; }
    [hidden]{display:none} — the same trap as .admin-field[hidden]. */
 .news-community[hidden] { display: none; }
 
-.news-spotlight {
-  padding: 40px 44px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--cardinal);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-2);
-}
-.news-spotlight-tag {
-  display: inline-block;
-  font-family: var(--mono); font-size: 10px;
-  letter-spacing: .2em; text-transform: uppercase;
-  color: var(--cardinal); font-weight: 600;
-  margin-bottom: 14px;
-}
-.news-spotlight-title {
+/* ─── The subsection's own title, under the photo ──────────────────────── */
+.nc-intro-title {
   font-family: var(--serif);
-  font-size: clamp(24px, 3vw, 34px);
-  font-weight: 500; line-height: 1.22;
-  color: var(--ink);
-  max-width: 820px;
-  margin-bottom: 10px;
+  font-size: clamp(28px, 3.4vw, 40px); font-weight: 500;
+  color: var(--ink); line-height: 1.15;
+  margin-bottom: 12px;
 }
-.news-spotlight-meta { font-size: 13.5px; color: var(--ink-mid); font-weight: 500; margin-bottom: 14px; }
-.news-spotlight-desc { font-size: 15px; color: var(--ink-mid); line-height: 1.65; max-width: 720px; margin-bottom: 24px; }
+.nc-intro-title em { color: var(--cardinal); font-style: italic; }
+.nc-intro-sub { font-size: 15px; color: var(--ink-mid); line-height: 1.7; max-width: 620px; }
 
 /* Divider between the 3 feed blocks — first one flush against the spotlight's section. */
 .news-block + .news-block { border-top: 1px solid var(--line); padding-top: 56px; }
@@ -2324,7 +2323,6 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 .news-dir-search input:focus { border-color: var(--cardinal); outline: none; }
 
 @media (max-width: 640px) {
-  .news-spotlight { padding: 28px 24px; }
   .news-block + .news-block { padding-top: 40px; }
   .news-item { flex-direction: column; gap: 6px; }
   .news-item-date { width: auto; }

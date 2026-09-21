@@ -1881,7 +1881,15 @@ function renderNewsCommunityPhoto() {
   /* If the file is missing or won't decode, drop the whole figure rather
      than leave an empty frame at the top of the page. */
   img.addEventListener('error', () => { fig.hidden = true; fig.innerHTML = ''; });
+  /* Fade + settle once the bytes are actually there. Doing this on `load`
+     rather than in CSS matters: a CSS animation starts when the element
+     is parsed, so it would play out against an empty frame while the
+     photo was still downloading. `complete` covers the cached case, where
+     `load` may already have fired before this listener existed. */
+  const reveal = () => img.classList.add('is-loaded');
+  img.addEventListener('load', reveal);
   img.src = photo.src;
+  if (img.complete && img.naturalWidth) reveal();
   fig.querySelector('.news-community-frame').appendChild(img);
 }
 
