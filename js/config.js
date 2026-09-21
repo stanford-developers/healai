@@ -56,9 +56,8 @@ const SHOW_VIDEOS = false;
    WHAT IT CONTROLS
      • Whether "News" appears in the top nav, the mobile menu, and both
        footers.
-     • Whether the News pages are routable at all: with this false,
-       #news (and #news-videos / #news-articles / #news-publications)
-       redirect to the home page instead of rendering, so an old link or
+     • Whether the News page is routable at all: with this false, #news
+       redirects to the home page instead of rendering, so an old link or
        a typed hash can't surface a hidden section.
      • Whether news items are indexed by site search.
      • Whether the feeds are fetched from Supabase at all — skipping that
@@ -115,8 +114,7 @@ const SIGN_UP_URL = 'https://docs.google.com/forms/d/e/REPLACE-WITH-FORM-ID/view
      3. Append 'XXX' to PAGE_IDS here.
 ─────────────────────────────────────────────────────────────────────────── */
 const PAGE_IDS = [
-  'home', 'toolkit', 'videos', 'patient', 'about',
-  'news', 'news-videos', 'news-articles', 'news-publications',
+  'home', 'toolkit', 'videos', 'patient', 'about', 'news',
 ];
 
 /* The page rendered on first load. */

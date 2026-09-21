@@ -223,8 +223,10 @@ function updateFooterVisibility(name) {
   }
 }
 
-/* The News tab and its three directory pages, for the SHOW_NEWS gate. */
-const NEWS_PAGE_IDS = ['news', 'news-videos', 'news-articles', 'news-publications'];
+/* The News pages covered by the SHOW_NEWS gate. Just the one now — the
+   three per-feed directory pages were replaced by the filter on the News
+   tab itself. */
+const NEWS_PAGE_IDS = ['news'];
 
 function goPage(name) {
   if (!PAGE_IDS.includes(name)) return;
@@ -1813,7 +1815,6 @@ function renderPartnerLogos() {
    • initNewsFeature()     → merges each feed's data.js array with its
                              Supabase rows, sorts, and renders the landing
                              page AND all 3 directory pages from that
-   • bindNewsNav()         → "View complete directory" / "Back to News"
 
    Every feed (SEMINAR_VIDEOS / NEWS_ARTICLES / SCHOLARLY_PUBLICATIONS,
    data.js — plus whatever's been published in the admin dashboard) sorts
@@ -1830,45 +1831,6 @@ function newsFormatDate(iso) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function newsVideoItem(v) {
-  return `
-    <article class="news-item">
-      <div class="news-item-date">${newsFormatDate(v.date)}</div>
-      <div class="news-item-body">
-        <span class="news-item-tag">Seminar</span>
-        <h3 class="news-item-title"><a href="${v.link}" target="_blank" rel="noopener">${v.title}<span class="news-item-arrow" aria-hidden="true">↗</span></a></h3>
-        <p class="news-item-sub">${v.speaker} · ${v.venue}</p>
-        <p class="news-item-desc">${v.desc}</p>
-      </div>
-    </article>`;
-}
-
-function newsArticleItem(a) {
-  return `
-    <article class="news-item">
-      <div class="news-item-date">${newsFormatDate(a.date)}</div>
-      <div class="news-item-body">
-        <span class="news-item-tag">Press</span>
-        <h3 class="news-item-title"><a href="${a.link}" target="_blank" rel="noopener">${a.title}<span class="news-item-arrow" aria-hidden="true">↗</span></a></h3>
-        <p class="news-item-sub">${a.source}</p>
-        <p class="news-item-desc">${a.desc}</p>
-      </div>
-    </article>`;
-}
-
-function newsPublicationItem(p) {
-  return `
-    <article class="news-item">
-      <div class="news-item-date">${newsFormatDate(p.date)}</div>
-      <div class="news-item-body">
-        <span class="news-item-tag">Publication</span>
-        <h3 class="news-item-title"><a href="${p.link}" target="_blank" rel="noopener">${p.title}<span class="news-item-arrow" aria-hidden="true">↗</span></a></h3>
-        <p class="news-item-sub">${p.authors} · ${p.journal}</p>
-        <p class="news-item-desc">${p.desc}</p>
-      </div>
-    </article>`;
-}
-
 /* How the spotlight presents each feed. The bar used to be seminar-only,
    so it hardcoded "speaker · venue" and "Watch the talk"; any feed can be
    featured now, and an article shown with a speaker line would render
@@ -1877,6 +1839,10 @@ const NEWS_SPOTLIGHT_SHAPE = {
   seminar_video: {
     cta: 'Watch the talk',
     meta: i => [i.speaker, i.venue].filter(Boolean),
+  },
+  podcast: {
+    cta: 'Listen to the episode',
+    meta: i => [i.show, i.host].filter(Boolean),
   },
   news_article: {
     cta: 'Read the article',
@@ -1939,7 +1905,7 @@ function renderNewsSpotlight(lists) {
   const mount = byId('news-spotlight');
   if (!mount) return;
 
-  const all = [lists.seminar_video, lists.news_article, lists.scholarly_publication].flat();
+  const all = [lists.seminar_video, lists.podcast, lists.news_article, lists.scholarly_publication].flat();
   const featured = all.find(i => i.featured) || lists.seminar_video[0];
   if (!featured) { mount.innerHTML = ''; return; }
 
@@ -1956,32 +1922,311 @@ function renderNewsSpotlight(lists) {
     <a class="btn-cta" href="${featured.link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>`;
 }
 
-function renderNewsList(mountId, items, template, limit) {
-  const mount = byId(mountId);
-  if (!mount) return;
-  const list = limit ? items.slice(0, limit) : items;
-  mount.innerHTML = list.length
-    ? list.map(template).join('')
-    : '<p class="news-empty">No entries yet — check back soon.</p>';
+/* ═════════════════════════════════════════════════════════════════════════
+   NEWS · "IN THE NEWS" BROWSER
+   ─────────────────────────────────────────────────────────────────────────
+   A thumbnail grid of talks, podcasts, and press coverage, with the
+   selected item's detail opening in the pane alongside — the same
+   master-detail shape as the sample-report browser, but keyed on images
+   rather than titles.
+
+   Nothing is selected on load, by design: the grid is meant to be
+   scannable as pictures first, with detail appearing only on a click.
+
+   Scholarly publications are deliberately NOT here. They get their own
+   list further down the page (renderPublicationsList) — a paper has no
+   meaningful thumbnail, and a grid of identical placeholders would be
+   worse than a list.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* One entry per browsable type: its filter label, the icon used when an
+   item has no thumbnail, how its meta line reads, and its pane action. */
+const NEWS_TYPES = {
+  seminar_video: {
+    label: 'Videos',   icon: 'video',
+    meta: i => [i.speaker, i.venue].filter(Boolean),
+    cta: 'Watch the talk',
+  },
+  podcast: {
+    label: 'Podcasts', icon: 'mic',
+    meta: i => [i.show, i.host].filter(Boolean),
+    cta: 'Listen elsewhere',
+  },
+  news_article: {
+    label: 'News',     icon: 'paper',
+    meta: i => [i.source].filter(Boolean),
+    cta: 'Read the article',
+  },
+};
+
+const NEWS_BROWSER_TYPES = Object.keys(NEWS_TYPES);
+
+/* Filter + sort + selection, held here so a re-render keeps its place. */
+let newsBrowserState = { filter: 'all', sort: 'newest', selected: null, items: [] };
+
+/** Public URL for something in the news-media bucket, or the value as-is
+ *  when it's already an absolute URL. */
+function newsMediaUrl(value) {
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  if (typeof SUPABASE_URL === 'undefined' || !window.supabase) return '';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return sb.storage.from('news-media').getPublicUrl(value).data.publicUrl;
 }
 
-/** One full directory page: renders the given (already-sorted) feed,
- *  live-filtered by its search input. */
-function renderNewsDirectory(mountId, searchId, items, template) {
-  const mount = byId(mountId);
-  const input = byId(searchId);
-  if (!mount || !input) return;
-  const apply = () => {
-    const q = input.value.trim().toLowerCase();
-    const filtered = q
-      ? items.filter(it => Object.values(it).join(' ').toLowerCase().includes(q))
-      : items;
-    mount.innerHTML = filtered.length
-      ? filtered.map(template).join('')
-      : '<p class="news-empty">No matches. Try a different term.</p>';
+/** YouTube/Vimeo id out of a watch, share, or embed URL — so a video that
+ *  has no uploaded thumbnail can still show one. */
+function youTubeId(url) {
+  const m = String(url || '').match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+/** The image for a tile: an explicit thumbnail if the item has one, else
+ *  YouTube's own still, else '' so the caller draws an icon placeholder. */
+function newsThumb(item) {
+  if (item.thumb) return newsMediaUrl(item.thumb);
+  const yt = youTubeId(item.embed || item.link);
+  return yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : '';
+}
+
+function newsBrowserSorted(items) {
+  const byDate = (a, b) => new Date(b.date) - new Date(a.date);
+  if (newsBrowserState.sort === 'oldest') return [...items].sort((a, b) => -byDate(a, b));
+  if (newsBrowserState.sort === 'title')  return [...items].sort((a, b) =>
+    stripHTML(a.title).localeCompare(stripHTML(b.title)));
+  return [...items].sort(byDate);
+}
+
+function newsBrowserVisible() {
+  const { filter, items } = newsBrowserState;
+  return newsBrowserSorted(filter === 'all' ? items : items.filter(i => i.type === filter));
+}
+
+/** Filter chips, with a count each so an empty type is obvious before
+ *  clicking it. */
+function renderNewsFilters() {
+  const bar = byId('nb-filters');
+  if (!bar) return;
+  const { items, filter } = newsBrowserState;
+  const counts = { all: items.length };
+  NEWS_BROWSER_TYPES.forEach(t => { counts[t] = items.filter(i => i.type === t).length; });
+
+  const chip = (id, label) => {
+    const on = filter === id;
+    return `<button class="nb-chip${on ? ' on' : ''}" role="tab" aria-selected="${on}"
+             data-filter="${id}" tabindex="${on ? 0 : -1}">${label}
+             <span class="nb-chip-n">${counts[id]}</span></button>`;
   };
-  input.addEventListener('input', apply);
-  apply();
+  bar.innerHTML = chip('all', 'All')
+    + NEWS_BROWSER_TYPES.map(t => chip(t, NEWS_TYPES[t].label)).join('');
+
+  bar.querySelectorAll('.nb-chip').forEach(b => {
+    b.addEventListener('click', () => {
+      newsBrowserState.filter = b.dataset.filter;
+      /* Drop a selection the filter would hide, so the pane can't show an
+         item that isn't in the grid any more. */
+      const stillVisible = newsBrowserVisible().some(i => i.id === newsBrowserState.selected);
+      if (!stillVisible) newsBrowserState.selected = null;
+      renderNewsFilters();
+      renderNewsBrowserBody();
+    });
+  });
+}
+
+function renderNewsBrowser(items) {
+  const mount = byId('news-browser');
+  if (!mount) return;
+  /* A stable id per item: these come from two sources (data.js and
+     Supabase) and only the DB rows have one of their own. */
+  newsBrowserState.items = items.map((it, i) => ({ ...it, id: it.id || `n${i}` }));
+  newsBrowserState.selected = null;
+
+  const sort = byId('nb-sort');
+  if (sort && !sort.dataset.wired) {
+    sort.dataset.wired = '1';
+    sort.addEventListener('change', () => {
+      newsBrowserState.sort = sort.value;
+      renderNewsBrowserBody();
+    });
+  }
+
+  renderNewsFilters();
+  renderNewsBrowserBody();
+}
+
+function renderNewsBrowserBody() {
+  const mount = byId('news-browser');
+  if (!mount) return;
+  const visible = newsBrowserVisible();
+
+  if (!visible.length) {
+    mount.innerHTML = '<p class="news-empty">No entries yet — check back soon.</p>';
+    return;
+  }
+
+  const sel = visible.find(i => i.id === newsBrowserState.selected);
+  mount.innerHTML = `
+    <div class="nb-grid" role="tablist" aria-label="Items">
+      ${visible.map(i => newsTileHTML(i, i.id === newsBrowserState.selected)).join('')}
+    </div>
+    <div class="nb-pane" id="nb-pane" role="tabpanel" tabindex="0">
+      ${sel ? newsPaneHTML(sel) : newsPanePlaceholderHTML()}
+    </div>`;
+
+  wireNewsBrowser(mount);
+}
+
+function newsTileHTML(item, on) {
+  const shape = NEWS_TYPES[item.type] || NEWS_TYPES.news_article;
+  const img = newsThumb(item);
+  const media = img
+    ? `<img src="${img}" alt="" loading="lazy" decoding="async">`
+    : `<span class="nb-tile-icon">${svgIcon(shape.icon)}</span>`;
+  /* A play affordance on things that play, so a tile reads as media
+     rather than as a link. */
+  const playable = item.type === 'seminar_video' || item.type === 'podcast';
+
+  return `
+    <button class="nb-tile${on ? ' on' : ''}" role="tab" aria-selected="${on}"
+            data-id="${item.id}" tabindex="${on ? 0 : -1}">
+      <span class="nb-tile-media">
+        ${media}
+        ${playable ? `<span class="nb-tile-play" aria-hidden="true">${svgIcon('play')}</span>` : ''}
+      </span>
+      <span class="nb-tile-body">
+        <span class="nb-tile-kind">${shape.label}</span>
+        <span class="nb-tile-title">${item.title}</span>
+        <span class="nb-tile-date">${newsFormatDate(item.date)}</span>
+      </span>
+    </button>`;
+}
+
+function newsPanePlaceholderHTML() {
+  return `<div class="nb-pane-empty">
+      <p>Select anything on the left to read about it here.</p>
+    </div>`;
+}
+
+/** The detail pane. Shapes itself to the item: a video embeds its player,
+ *  a podcast gets an audio element and its transcript, an article shows
+ *  its image. */
+function newsPaneHTML(item) {
+  const shape = NEWS_TYPES[item.type] || NEWS_TYPES.news_article;
+  const meta = [...shape.meta(item), newsFormatDate(item.date)].filter(Boolean).join(' · ');
+  const img = newsThumb(item);
+
+  let media = '';
+  if (item.type === 'seminar_video' && item.embed) {
+    media = `<div class="nb-pane-embed">
+        <iframe src="${item.embed}" title="${stripHTML(item.title)}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                allowfullscreen loading="lazy"></iframe>
+      </div>`;
+  } else if (img) {
+    media = `<div class="nb-pane-image"><img src="${img}" alt="" decoding="async"></div>`;
+  }
+
+  const audioUrl = item.type === 'podcast' ? newsMediaUrl(item.audio) : '';
+  const audio = audioUrl
+    ? `<audio class="nb-pane-audio" controls preload="none" src="${audioUrl}"></audio>`
+    : '';
+
+  /* A transcript can run thousands of words, so it ships collapsed —
+     <details> gives that for free, keyboard-operable, no JS. */
+  const transcript = item.type === 'podcast' && item.transcript
+    ? `<details class="nb-transcript">
+         <summary>Transcript</summary>
+         <div class="nb-transcript-body">${item.transcript}</div>
+       </details>`
+    : '';
+
+  const action = item.link && item.link !== '#'
+    ? `<a class="btn-cta" href="${item.link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>`
+    : '';
+
+  return `
+    ${media}
+    <span class="nb-pane-kind">${shape.label}</span>
+    <h3 class="nb-pane-title">${item.title}</h3>
+    <p class="nb-pane-meta">${meta}</p>
+    ${item.desc ? `<p class="nb-pane-desc">${item.desc}</p>` : ''}
+    ${audio}
+    ${transcript}
+    ${action ? `<div class="nb-pane-actions">${action}</div>` : ''}`;
+}
+
+/** Swaps the pane to `id`. Only the pane and the tiles' selected state
+ *  change — re-rendering the grid would move the tile out from under the
+ *  pointer mid-click. */
+function selectNewsItem(id, { focus = false } = {}) {
+  const item = newsBrowserVisible().find(i => i.id === id);
+  if (!item) return;
+  newsBrowserState.selected = id;
+
+  $$('.nb-tile').forEach(t => {
+    const on = t.dataset.id === id;
+    t.classList.toggle('on', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+    t.tabIndex = on ? 0 : -1;
+    if (on && focus) t.focus();
+  });
+
+  const pane = byId('nb-pane');
+  if (pane) pane.innerHTML = newsPaneHTML(item);
+}
+
+function wireNewsBrowser(mount) {
+  const tiles = [...mount.querySelectorAll('.nb-tile')];
+  tiles.forEach((t, i) => {
+    t.addEventListener('click', () => selectNewsItem(t.dataset.id));
+    t.addEventListener('keydown', e => {
+      let target = -1;
+      switch (e.key) {
+        case 'ArrowRight': case 'ArrowDown': target = (i + 1) % tiles.length;               break;
+        case 'ArrowLeft':  case 'ArrowUp':   target = (i - 1 + tiles.length) % tiles.length; break;
+        case 'Home':                         target = 0;                                     break;
+        case 'End':                          target = tiles.length - 1;                      break;
+        default: return;
+      }
+      e.preventDefault();
+      selectNewsItem(tiles[target].dataset.id, { focus: true });
+    });
+  });
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   NEWS · RECENT PUBLICATIONS
+   ─────────────────────────────────────────────────────────────────────────
+   A list rather than a grid, styled like the Toolkit's resource rows.
+   Everything, newest first — a 12-month window would quietly empty the
+   section as papers aged past it.
+   ════════════════════════════════════════════════════════════════════════ */
+function renderPublicationsList(items) {
+  const mount = byId('news-publications-list');
+  if (!mount) return;
+
+  if (!items.length) {
+    mount.innerHTML = '<p class="news-empty">No publications listed yet — check back soon.</p>';
+    return;
+  }
+
+  mount.innerHTML = items.map(p => {
+    const linked = p.link && p.link !== '#';
+    const meta = [p.authors, p.journal, newsFormatDate(p.date)].filter(Boolean).join(' · ');
+    const inner = `
+      <span class="np-body">
+        <span class="np-title">${p.title}</span>
+        <span class="np-meta">${meta}</span>
+        ${p.desc ? `<span class="np-desc">${p.desc}</span>` : ''}
+      </span>
+      ${linked ? `<span class="np-arrow" aria-hidden="true">${svgIcon('arrowOut', {sw:2})}</span>` : ''}`;
+
+    return linked
+      ? `<a class="np-row linked" href="${p.link}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="np-row">${inner}</div>`;
+  }).join('');
 }
 
 /**
@@ -1997,13 +2242,13 @@ function renderNewsDirectory(mountId, searchId, items, template) {
  * getPublicResources() above.
  */
 async function getPublicNewsItems() {
-  const empty = { seminar_video: [], news_article: [], scholarly_publication: [] };
+  const empty = { seminar_video: [], podcast: [], news_article: [], scholarly_publication: [] };
   if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('REPLACE-WITH') || !window.supabase) return empty;
   try {
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data, error } = await sb.from('news_items').select('*');
     if (error || !data) return empty;
-    const byType = { seminar_video: [], news_article: [], scholarly_publication: [] };
+    const byType = { seminar_video: [], podcast: [], news_article: [], scholarly_publication: [] };
     data.forEach(r => {
       if (!byType[r.type]) return;
       byType[r.type].push({
@@ -2031,28 +2276,25 @@ async function initNewsFeature() {
   /* Nothing to render, and no reason to spend a request finding out. */
   if (!SHOW_NEWS) return;
   const uploaded = await getPublicNewsItems();
-  const seminar  = newsSorted([...SEMINAR_VIDEOS, ...uploaded.seminar_video]);
-  const articles = newsSorted([...NEWS_ARTICLES, ...uploaded.news_article]);
-  const pubs     = newsSorted([...SCHOLARLY_PUBLICATIONS, ...uploaded.scholarly_publication]);
+  /* `type` is stamped onto the static entries too: the browser groups and
+     filters on it, and only the Supabase rows carry one of their own. */
+  const withType = (arr, type) => arr.map(i => ({ type, ...i }));
+  const seminar  = newsSorted([...withType(SEMINAR_VIDEOS, 'seminar_video'), ...uploaded.seminar_video]);
+  const podcasts = newsSorted([...withType(PODCASTS, 'podcast'), ...uploaded.podcast]);
+  const articles = newsSorted([...withType(NEWS_ARTICLES, 'news_article'), ...uploaded.news_article]);
+  const pubs     = newsSorted([...withType(SCHOLARLY_PUBLICATIONS, 'scholarly_publication'),
+                               ...uploaded.scholarly_publication]);
 
   renderNewsCommunityPhoto();
   renderNewsSpotlight({
-    seminar_video: seminar, news_article: articles, scholarly_publication: pubs,
+    seminar_video: seminar, podcast: podcasts,
+    news_article: articles, scholarly_publication: pubs,
   });
-  renderNewsList('news-videos-list',       seminar,  newsVideoItem,       5);
-  renderNewsList('news-articles-list',     articles, newsArticleItem,     5);
-  renderNewsList('news-publications-list', pubs,     newsPublicationItem, 5);
 
-  renderNewsDirectory('news-videos-full',       'news-videos-search',       seminar,  newsVideoItem);
-  renderNewsDirectory('news-articles-full',     'news-articles-search',     articles, newsArticleItem);
-  renderNewsDirectory('news-publications-full', 'news-publications-search', pubs,     newsPublicationItem);
-}
-
-/** "View complete directory" and "&larr; Back to News" both just carry a data-page target. */
-function bindNewsNav() {
-  $$('.news-viewall, .news-back').forEach(el =>
-    el.addEventListener('click', () => goPage(el.dataset.page))
-  );
+  /* Papers are excluded from the browser on purpose — they have no
+     thumbnail worth showing, and get their own list below. */
+  renderNewsBrowser(newsSorted([...seminar, ...podcasts, ...articles]));
+  renderPublicationsList(pubs);
 }
 
 
@@ -2859,7 +3101,6 @@ function init() {
 
   /* Document-level wiring */
   bindGlobalEvents();
-  bindNewsNav();
   initSignUpForms();
   initPauseMediaControl();
   initSiteSearch();

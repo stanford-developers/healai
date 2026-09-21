@@ -408,6 +408,14 @@ function fillNewsForm(r) {
   byId('news-source').value  = m.source  || '';
   byId('news-authors').value = m.authors || '';
   byId('news-journal').value = m.journal || '';
+  byId('news-show').value       = m.show       || '';
+  byId('news-host').value       = m.host       || '';
+  byId('news-embed').value      = m.embed      || '';
+  byId('news-transcript').value = m.transcript || '';
+  /* An absolute audio URL is editable; an uploaded path isn't shown here,
+     since the field is a URL input and the file is already attached. */
+  byId('news-audio-url').value =
+    /^https?:\/\//i.test(m.audio || '') ? m.audio : '';
 }
 
 
@@ -634,11 +642,26 @@ async function handleDelete(id, path) {
  *  selected type — same idea as setAuthMode() toggling login vs. signup. */
 function syncNewsFieldsToType() {
   const type = byId('news-type').value;
-  byId('news-field-speaker').hidden = type !== 'seminar_video';
-  byId('news-field-venue').hidden   = type !== 'seminar_video';
-  byId('news-field-source').hidden  = type !== 'news_article';
-  byId('news-field-authors').hidden = type !== 'scholarly_publication';
-  byId('news-field-journal').hidden = type !== 'scholarly_publication';
+  const show = (id, on) => { const el = byId(id); if (el) el.hidden = !on; };
+
+  show('news-field-speaker',    type === 'seminar_video');
+  show('news-field-venue',      type === 'seminar_video');
+  show('news-field-embed',      type === 'seminar_video');
+
+  show('news-field-show',       type === 'podcast');
+  show('news-field-host',       type === 'podcast');
+  show('news-field-audio',      type === 'podcast');
+  show('news-field-audio-url',  type === 'podcast');
+  show('news-field-transcript', type === 'podcast');
+
+  show('news-field-source',     type === 'news_article');
+
+  show('news-field-authors',    type === 'scholarly_publication');
+  show('news-field-journal',    type === 'scholarly_publication');
+
+  /* Publications render as a list, not a tile, so a thumbnail would never
+     be shown for one. */
+  show('news-field-thumb',      type !== 'scholarly_publication');
 }
 
 /** Reads only the meta fields relevant to `type` — an unselected type's
@@ -646,12 +669,33 @@ function syncNewsFieldsToType() {
  *  strings on a row they don't apply to. */
 function collectNewsMeta(type) {
   if (type === 'seminar_video') {
-    return { speaker: byId('news-speaker').value.trim(), venue: byId('news-venue').value.trim() };
+    return {
+      speaker: byId('news-speaker').value.trim(),
+      venue:   byId('news-venue').value.trim(),
+      embed:   byId('news-embed').value.trim(),
+    };
+  }
+  if (type === 'podcast') {
+    return {
+      show:       byId('news-show').value.trim(),
+      host:       byId('news-host').value.trim(),
+      transcript: byId('news-transcript').value.trim(),
+    };
   }
   if (type === 'news_article') {
     return { source: byId('news-source').value.trim() };
   }
   return { authors: byId('news-authors').value.trim(), journal: byId('news-journal').value.trim() };
+}
+
+/** Uploads a file to the news-media bucket and returns its storage path.
+ *  Same `<uuid>-<name>` scheme as the other buckets, so two episodes named
+ *  episode1.mp3 can't collide. */
+async function uploadNewsMedia(file) {
+  const path = `${crypto.randomUUID()}-${file.name}`;
+  const { error } = await sb.storage.from('news-media').upload(path, file);
+  if (error) throw new Error('Upload failed: ' + error.message);
+  return path;
 }
 
 async function handleNewsSubmit(e) {
@@ -670,11 +714,43 @@ async function handleNewsSubmit(e) {
   status.textContent = editing ? 'Saving…' : 'Publishing…';
 
   const { data: { session } } = await sb.auth.getSession();
+  const meta = collectNewsMeta(type);
+
+  /* Media goes into the news-media bucket and its path into `meta`, which
+     is where the public renderer looks (newsMediaUrl() in app.js resolves
+     a bare path against that bucket and passes an absolute URL through).
+     Uploads happen before the row write so a failure leaves nothing
+     half-saved. */
+  try {
+    const thumbFile = byId('news-thumb').files[0];
+    if (thumbFile) meta.thumb = await uploadNewsMedia(thumbFile);
+
+    if (type === 'podcast') {
+      const audioFile = byId('news-audio').files[0];
+      const audioUrl  = byId('news-audio-url').value.trim();
+      if (audioFile)     meta.audio = await uploadNewsMedia(audioFile);
+      else if (audioUrl) meta.audio = audioUrl;
+    }
+  } catch (err) {
+    submit.disabled = false;
+    status.textContent = err.message;
+    return;
+  }
+
+  /* Editing with the file inputs left empty must not wipe media already
+     attached — the inputs can't be pre-filled, so an absent file means
+     "keep what's there", not "remove it". */
+  if (editing) {
+    const prev = editing.meta || {};
+    if (!meta.thumb && prev.thumb) meta.thumb = prev.thumb;
+    if (type === 'podcast' && !meta.audio && prev.audio) meta.audio = prev.audio;
+  }
+
   const row = {
     type, title, description, date,
     link: link || null,
     priority: priorityRaw === '' ? null : Number(priorityRaw),
-    meta: collectNewsMeta(type),
+    meta,
   };
 
   const { error } = editing
@@ -694,13 +770,22 @@ async function handleNewsSubmit(e) {
   loadNewsItems();
 }
 
-const NEWS_TYPE_LABEL = { seminar_video: 'Seminar video', news_article: 'News article', scholarly_publication: 'Scholarly publication' };
+const NEWS_TYPE_LABEL = { seminar_video: 'Seminar video', podcast: 'Podcast episode',
+                          news_article: 'News article', scholarly_publication: 'Scholarly publication' };
 
 /** One line of type-specific meta, shown under the title — mirrors how
  *  the public News tab shows "speaker · venue" / "source" / "authors · journal". */
 function newsMetaLine(r) {
   const m = r.meta || {};
   if (r.type === 'seminar_video') return [m.speaker, m.venue].filter(Boolean).join(' · ');
+  if (r.type === 'podcast') {
+    /* Flag what media is attached — the one thing about a podcast row you
+       can't tell from its title. */
+    const bits = [m.show, m.host].filter(Boolean);
+    bits.push(m.audio ? 'audio attached' : 'no audio');
+    if (m.transcript) bits.push('transcript');
+    return bits.join(' · ');
+  }
   if (r.type === 'news_article') return m.source || '';
   return [m.authors, m.journal].filter(Boolean).join(' · ');
 }
@@ -797,7 +882,7 @@ function syncFeaturedOptions() {
 
   /* Grouped by feed so a long directory stays navigable, and labelled with
      the date so two similarly-titled talks are tellable apart. */
-  const groups = ['seminar_video', 'news_article', 'scholarly_publication'].map(type => {
+  const groups = ['seminar_video', 'podcast', 'news_article', 'scholarly_publication'].map(type => {
     const items = rows.filter(r => r.type === type);
     if (!items.length) return '';
     const opts = items.map(r =>

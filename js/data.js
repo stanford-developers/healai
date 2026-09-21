@@ -719,6 +719,12 @@ const SEMINAR_VIDEOS = [
     link: 'https://drive.google.com/file/d/1RIPwlS83wsf0T5k2dfznd4ie1ErsuvB4/preview' },
 ];
 
+/* Podcast episodes. Same shape as the others, plus the meta the browser
+   uses: `show` / `host` for the meta line, `thumb` for the tile image,
+   `audio` for the inline player (a news-media path or an absolute URL),
+   and `transcript`. Published through /admin.html → News. */
+const PODCASTS = [];
+
 const NEWS_ARTICLES = [];
 
 const SCHOLARLY_PUBLICATIONS = [];

@@ -359,6 +359,7 @@
             <span>Type</span>
             <select id="news-type" required>
               <option value="seminar_video">Seminar video</option>
+              <option value="podcast">Podcast episode</option>
               <option value="news_article">News article</option>
               <option value="scholarly_publication">Scholarly publication</option>
             </select>
@@ -401,6 +402,48 @@
             <input type="text" id="news-journal" maxlength="160">
           </label>
 
+          <!-- Podcast meta. Shown only for type=podcast; see
+               syncNewsFieldsToType() in admin.js. -->
+          <label class="admin-field" id="news-field-show" hidden>
+            <span>Show name</span>
+            <input type="text" id="news-show" maxlength="120" placeholder="e.g. The Health Tech Podcast">
+          </label>
+          <label class="admin-field" id="news-field-host" hidden>
+            <span>Host</span>
+            <input type="text" id="news-host" maxlength="120">
+          </label>
+
+          <!-- Video embed. A YouTube /embed/… or Vimeo player URL plays
+               inside the detail pane; the Link field above stays the
+               "watch elsewhere" button. -->
+          <label class="admin-field" id="news-field-embed" hidden>
+            <span>Video embed URL (optional — plays inside the pane)</span>
+            <input type="url" id="news-embed" placeholder="https://www.youtube.com/embed/VIDEO_ID">
+          </label>
+
+          <!-- Audio for the inline player: upload a file, or point at one
+               already hosted. An upload wins if both are given. -->
+          <label class="admin-field" id="news-field-audio" hidden>
+            <span>Audio file (optional — upload an mp3 for the inline player)</span>
+            <input type="file" id="news-audio" accept="audio/*">
+          </label>
+          <label class="admin-field" id="news-field-audio-url" hidden>
+            <span>Audio URL instead (optional)</span>
+            <input type="url" id="news-audio-url" placeholder="https://…/episode.mp3">
+          </label>
+          <label class="admin-field" id="news-field-transcript" hidden>
+            <span>Transcript (optional — shown collapsed in the pane)</span>
+            <textarea id="news-transcript" rows="4" placeholder="Paste the full transcript"></textarea>
+          </label>
+
+          <!-- Thumbnail for the grid tile. A video falls back to its
+               YouTube still when this is blank, so it matters most for
+               podcasts and articles. -->
+          <label class="admin-field" id="news-field-thumb">
+            <span>Thumbnail image (optional — a video falls back to its YouTube still)</span>
+            <input type="file" id="news-thumb" accept="image/*">
+          </label>
+
           <label class="admin-field">
             <span>Priority (optional — when a feed has more than 5 items, higher priority shows first on the News landing page; leave blank to just sort by date)</span>
             <input type="number" id="news-priority" step="1" placeholder="Leave blank to sort by date">
@@ -426,6 +469,7 @@
             <select id="news-filter-type">
               <option value="">All feeds</option>
               <option value="seminar_video">Seminar video</option>
+              <option value="podcast">Podcast episode</option>
               <option value="news_article">News article</option>
               <option value="scholarly_publication">Scholarly publication</option>
             </select>
