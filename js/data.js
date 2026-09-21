@@ -59,7 +59,6 @@ const NAV_ITEMS = [
   { id: 'videos',  label: 'Videos',    videoOnly: true },
   { id: 'patient', label: 'Patient Panel' },
   { id: 'about',   label: 'About' },
-  { id: 'news',    label: 'News' },
 ];
 
 
@@ -393,6 +392,11 @@ const RESOURCE_GROUPS = [
      it held ('understand' and 'adapt'). */
   { id: 'reports',   icon: 'paper', label: 'Sample Reports',
     categoryIds: ['reports'] },
+  /* Not a resource category — `custom: 'news'` tells
+     renderToolkitResources() to move the #news-content block into this
+     panel instead of rendering category blocks. Gated by SHOW_NEWS. */
+  { id: 'publications', icon: 'deck', label: 'Publications',
+    categoryIds: [], custom: 'news' },
 ];
 
 

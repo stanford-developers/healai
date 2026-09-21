@@ -223,17 +223,8 @@ function updateFooterVisibility(name) {
   }
 }
 
-/* The News pages covered by the SHOW_NEWS gate. Just the one now — the
-   three per-feed directory pages were replaced by the filter on the News
-   tab itself. */
-const NEWS_PAGE_IDS = ['news'];
-
 function goPage(name) {
   if (!PAGE_IDS.includes(name)) return;
-  /* With SHOW_NEWS off these pages still exist in the DOM but must not be
-     reachable — otherwise a stale link or a typed #news would surface a
-     section the team has deliberately taken down. */
-  if (!SHOW_NEWS && NEWS_PAGE_IDS.includes(name)) { goPage(DEFAULT_PAGE); return; }
   if (name === currentPage) { closeMobileMenu(); return; }
   history.pushState({page: name}, '', '#' + name);
   setActivePage(name);
@@ -242,8 +233,7 @@ function goPage(name) {
 /* Back/Forward: the browser has already changed location.hash for us —
    just apply it, without pushing a further history entry. */
 window.addEventListener('popstate', () => {
-  const target = location.hash.slice(1) || DEFAULT_PAGE;
-  setActivePage(!SHOW_NEWS && NEWS_PAGE_IDS.includes(target) ? DEFAULT_PAGE : target);
+  setActivePage(location.hash.slice(1) || DEFAULT_PAGE);
 });
 
 function renderNav() {
@@ -252,9 +242,9 @@ function renderNav() {
   center.innerHTML = '';
   mobile.innerHTML = '';
 
-  /* Filter NAV_ITEMS by the phase flags — see config.js. */
-  const items = NAV_ITEMS.filter(i =>
-    !(i.videoOnly && !SHOW_VIDEOS) && !(i.id === 'news' && !SHOW_NEWS));
+  /* Filter NAV_ITEMS by the phase flags — see config.js. News isn't a nav
+     item any more; it lives in Toolkit → Resources → Publications. */
+  const items = NAV_ITEMS.filter(i => !(i.videoOnly && !SHOW_VIDEOS));
 
   items.forEach(item => {
     /* Desktop tab */
@@ -303,12 +293,6 @@ function renderNav() {
     a.addEventListener('click', e => { e.preventDefault(); goPage(a.dataset.page); })
   );
 
-  /* With SHOW_NEWS off, remove the footers' News links outright. goPage()
-     already refuses to route there, but leaving the link visible would
-     mean a footer entry that silently bounces you to the home page. */
-  if (!SHOW_NEWS) {
-    $$('footer [data-page="news"]').forEach(a => a.remove());
-  }
 }
 
 function makeNavBtn(item) {
@@ -467,7 +451,9 @@ function routeAction(action) {
          way, so "Browse resources" was landing on whichever sub-tab was
          last open — Sample Reports, for anyone who had looked at one.
          Default to the first group, and allow an explicit target via a
-         fourth segment ("page:toolkit:resources:reports"). */
+         fourth segment — "page:toolkit:resources:reports", or
+         ":publications" for the News/Publications panel, which is where
+         anything that used to link to #news should point now. */
       if (tab === 'resources') {
         activateResourceGroupTab(rtGroup || RESOURCE_GROUPS[0].id, false);
       }
@@ -906,6 +892,16 @@ function setSignUpStatus(el, message, kind) {
 function renderToolkitResources() {
   const bar    = byId('rt-bar');
   const panels = byId('rt-panels');
+  /* #news-content is MOVED into the Publications panel further down, so
+     clearing `panels` would destroy it — and permanently, since the
+     adoption looks it up by id. Park it back on <body> BEFORE the clear,
+     which makes re-rendering safe rather than one-shot. */
+  const parked = byId('news-content');
+  if (parked && panels.contains(parked)) {
+    parked.hidden = true;
+    document.body.appendChild(parked);
+  }
+
   bar.innerHTML = '';
   panels.innerHTML = '';
   /*
@@ -925,7 +921,10 @@ function renderToolkitResources() {
   bar.setAttribute('role', 'tablist');
   bar.setAttribute('aria-label', 'Resource categories');
 
-  RESOURCE_GROUPS.forEach((group, i) => {
+  /* SHOW_NEWS gates the Publications tab now that the News page is gone. */
+  const groups = RESOURCE_GROUPS.filter(g => !(g.custom === 'news' && !SHOW_NEWS));
+
+  groups.forEach((group, i) => {
     /* ── Tab button ─────────────────────────────────────────────────── */
     const tab = document.createElement('button');
     const isFirst = i === 0;
@@ -949,6 +948,19 @@ function renderToolkitResources() {
     panel.id = 'rt-pan-' + group.id;
     panel.setAttribute('role', 'tabpanel');
     panel.setAttribute('aria-labelledby', 'rt-tab-' + group.id);
+
+    if (group.custom === 'news') {
+      /* Move the block rather than copy its HTML: the news renderers hold
+         no references to it, but they DO look up ids inside it, and two
+         copies in the document would make those lookups ambiguous. */
+      const content = byId('news-content');
+      if (content) {
+        content.hidden = false;
+        panel.appendChild(content);
+      }
+      panels.appendChild(panel);
+      return;                       /* no category blocks in this panel */
+    }
 
     const cats = group.categoryIds.map(id => RESOURCE_CATEGORIES.find(c => c.id === id));
     panel.innerHTML = cats.map((cat, ci) =>
@@ -3095,11 +3107,7 @@ function init() {
      instead of always resetting to Home. No history entry is pushed here —
      the browser already owns whatever entry brought us to this URL. */
   const initialPage = location.hash.slice(1);
-  /* Same SHOW_NEWS gate as goPage() and popstate: a bookmarked or shared
-     #news URL must not open a section that's been taken down. */
-  if (initialPage) {
-    setActivePage(!SHOW_NEWS && NEWS_PAGE_IDS.includes(initialPage) ? DEFAULT_PAGE : initialPage);
-  }
+  if (initialPage) setActivePage(initialPage);
   updateFooterVisibility(currentPage);   /* setActivePage() no-ops on the default (no-hash) load */
 
   /* Page-specific renderers */

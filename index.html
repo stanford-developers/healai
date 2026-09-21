@@ -522,13 +522,14 @@
        directory" button routes to its own full, searchable listing page
        filter on the News tab itself.
        ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page" id="page-news" aria-labelledby="news-h">
-    <header class="page-header">
-      <p class="page-eyebrow">News</p>
-      <h1 class="page-h1" id="news-h">What's new at <em>HEAL-AI.</em></h1>
-      <p class="page-sub">Seminar talks, press coverage, and scholarly publications from the HEAL-AI team, most recent first.</p>
-    </header>
-
+  <!-- ═══════════ NEWS / PUBLICATIONS CONTENT ════════════════════════════
+       Not a page of its own. renderToolkitResources() moves this whole
+       block into the Toolkit → Resources "Publications" sub-tab panel at
+       render time, which keeps the markup — and the ids the renderers
+       use — here in HTML rather than built from a template string in JS.
+       Hidden until then so it never flashes at the foot of the document.
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div id="news-content" hidden>
     <!-- Patient Partner Panel photo. Filled by renderNewsCommunityPhoto()
          from NEWS_COMMUNITY_PHOTO in data.js, and left hidden while that
          entry has no `src` — so this ships without a broken image until
@@ -561,7 +562,8 @@
       </div>
       <div class="news-pubs" id="news-publications-list"></div>
     </section>
-  </section>
+  </div>
+
 
 
 
@@ -594,7 +596,6 @@
       <h5>Programs</h5>
       <a href="#" data-page="patient">Patient Partner Panel</a>
       <a href="#" data-page="about">About / Team</a>
-      <a href="#" data-page="news">News</a>
       <a href="#" id="footer-signup" target="_blank" rel="noopener">Sign up for updates</a>
     </div>
     <div class="foot-col">
@@ -640,7 +641,6 @@
       <a href="#" data-page="toolkit">Toolkit</a>
       <a href="#" data-page="patient">Patient Partner Panel</a>
       <a href="#" data-page="about">About / Team</a>
-      <a href="#" data-page="news">News</a>
     </div>
     <div class="fg-nav-col">
       <h5>Participate</h5>

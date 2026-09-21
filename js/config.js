@@ -54,11 +54,9 @@ const SHOW_VIDEOS = false;
    pages (seminar videos / news articles / scholarly publications).
 
    WHAT IT CONTROLS
-     • Whether "News" appears in the top nav, the mobile menu, and both
-       footers.
-     • Whether the News page is routable at all: with this false, #news
-       redirects to the home page instead of rendering, so an old link or
-       a typed hash can't surface a hidden section.
+     • Whether the Publications sub-tab appears under Toolkit →
+       Resources. The News content is no longer a page of its own; it
+       lives in that panel, so hiding the tab hides all of it.
      • Whether news items are indexed by site search.
      • Whether the feeds are fetched from Supabase at all — skipping that
        request also avoids a pointless round trip.
@@ -114,7 +112,7 @@ const SIGN_UP_URL = 'https://docs.google.com/forms/d/e/REPLACE-WITH-FORM-ID/view
      3. Append 'XXX' to PAGE_IDS here.
 ─────────────────────────────────────────────────────────────────────────── */
 const PAGE_IDS = [
-  'home', 'toolkit', 'videos', 'patient', 'about', 'news',
+  'home', 'toolkit', 'videos', 'patient', 'about',
 ];
 
 /* The page rendered on first load. */
