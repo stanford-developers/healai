@@ -72,7 +72,7 @@ const SHOW_VIDEOS = false;
 
    EDIT HERE  →  change `false` to `true` when there's enough content.
 ─────────────────────────────────────────────────────────────────────────── */
-const SHOW_NEWS = false;
+const SHOW_NEWS = true;
 
 
 /* ─────────────────────────────────────────────────────────────────────────

@@ -668,6 +668,32 @@ const PARTNER_LOGOS = [
      still has content (3 real talks). Publish through the admin
      dashboard, then flip SHOW_NEWS back to true.
 ─────────────────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────
+   NEWS_COMMUNITY_PHOTO · the Patient Partner Panel photo at the top of
+   the News tab
+─────────────────────────────────────────────────────────────────────────────
+   Sits between the page header and the featured spotlight, to put the
+   people the lab works with at the top of the section.
+
+   `src` EMPTY = the block renders nothing at all. That's the shipped
+   state: pointing at a file that isn't in /assets yet would show a broken
+   image on a live page. To turn it on:
+
+     1. Drop the photo in /assets (a wide crop reads best — the frame is
+        3:1 on desktop and 16:9 on a phone).
+     2. Set `src` to its path, e.g. 'assets/patient-partner-panel.jpg'.
+
+   `alt` is not decorative — describe who is pictured, since this photo is
+   the section's statement about community. `caption` is optional and
+   renders under the frame; leave it '' to omit.
+─────────────────────────────────────────────────────────────────────────── */
+const NEWS_COMMUNITY_PHOTO = {
+  src: '',
+  alt: 'Members of the HEAL-AI Patient Partner Panel together at Stanford.',
+  caption: 'Our Patient Partner Panel — the volunteers who review every AI use case with us.',
+};
+
+
 const SEMINAR_VIDEOS = [
   { date: '2026-05-14',
     title: 'Grand Rounds: Ethical Review of Clinical AI at Scale',

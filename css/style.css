@@ -1978,6 +1978,41 @@ body.motion-paused .partner-track { animation-play-state: paused; }
    directory pages reuse the same .news-item row for their full,
    search-filtered listings — see renderNewsDirectory() in app.js.
    ─────────────────────────────────────────────────────────────────────── */
+/* ─── NEWS · COMMUNITY PHOTO ──────────────────────────────────────────────
+   The Patient Partner Panel photo between the News header and the featured
+   spotlight. A fixed aspect ratio with object-fit:cover means any crop the
+   team supplies fills the frame without distorting, and the box is sized
+   before the image arrives so the page doesn't jump as it loads.
+
+   3:1 on desktop reads as a banner; a phone gets 16:9 so faces don't end
+   up in a letterbox slit (see the 900px breakpoint). */
+/* Same gutters and max-width as .section / .page-header so the frame lines
+   up with the content column. Not using .section itself: its 96px vertical
+   padding would push the photo away from the header it belongs under. */
+.news-community {
+  padding: 40px clamp(24px, 5vw, 80px) 0;
+  max-width: 1320px; margin: 0 auto;
+}
+.news-community-frame {
+  aspect-ratio: 3 / 1;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--bg-soft);
+}
+.news-community-frame img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.news-community figcaption {
+  margin-top: 12px;
+  font-size: 13px; color: var(--ink-mid); line-height: 1.6;
+  max-width: 720px;
+}
+/* .news-community sets its own display, which would beat the UA's
+   [hidden]{display:none} — the same trap as .admin-field[hidden]. */
+.news-community[hidden] { display: none; }
+
 .news-spotlight {
   padding: 40px 44px;
   background: var(--bg);
@@ -2304,6 +2339,7 @@ footer {
 
 /* ─── BREAKPOINT · ≤900px (Phone / mobile activation) ─────────────────── */
 @media (max-width: 900px) {
+  .news-community-frame { aspect-ratio: 16 / 9; }
   /* Side-by-side stops working once the detail pane is narrower than its
      own text; list on top, report below. max-height caps the list so the
      content it controls stays visible without a long scroll past it. */

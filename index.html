@@ -529,6 +529,12 @@
       <p class="page-sub">Seminar talks, press coverage, and scholarly publications from the HEAL-AI team, most recent first.</p>
     </header>
 
+    <!-- Patient Partner Panel photo. Filled by renderNewsCommunityPhoto()
+         from NEWS_COMMUNITY_PHOTO in data.js, and left hidden while that
+         entry has no `src` — so this ships without a broken image until
+         the photo is dropped into /assets. -->
+    <figure class="news-community" id="news-community" hidden></figure>
+
     <!-- Spotlight card — rendered by renderNewsSpotlight() -->
     <section class="section">
       <div class="news-spotlight" id="news-spotlight"></div>

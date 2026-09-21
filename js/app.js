@@ -1898,6 +1898,43 @@ const NEWS_SPOTLIGHT_SHAPE = {
  * seminar, which is what the bar did before the flag existed — so the
  * section is never empty just because no one has made a pick.
  */
+/**
+ * The Patient Partner Panel photo at the top of the News tab.
+ *
+ * Renders nothing while NEWS_COMMUNITY_PHOTO.src is empty — the <figure>
+ * stays `hidden`, so shipping the slot before the photo exists costs a
+ * live page nothing. Setting the path in data.js turns it on.
+ */
+function renderNewsCommunityPhoto() {
+  const fig = byId('news-community');
+  if (!fig) return;
+
+  const photo = typeof NEWS_COMMUNITY_PHOTO !== 'undefined' ? NEWS_COMMUNITY_PHOTO : null;
+  if (!photo || !photo.src) { fig.hidden = true; return; }
+
+  fig.hidden = false;
+  fig.innerHTML = `
+    <div class="news-community-frame"></div>
+    ${photo.caption ? `<figcaption>${photo.caption}</figcaption>` : ''}`;
+
+  /* Built via the DOM, with the error listener attached BEFORE src is set:
+     assigning src is what starts the fetch, and a cached 404 can fire
+     `error` before a listener added afterwards would exist.
+
+     Not lazy-loaded. This banner is the first thing on the News tab, so
+     deferring it would delay the most visible image on the page — and a
+     lazy image that never scrolls into view never loads, which would also
+     leave the fallback below unable to fire. */
+  const img = document.createElement('img');
+  img.alt = photo.alt || '';
+  img.decoding = 'async';
+  /* If the file is missing or won't decode, drop the whole figure rather
+     than leave an empty frame at the top of the page. */
+  img.addEventListener('error', () => { fig.hidden = true; fig.innerHTML = ''; });
+  img.src = photo.src;
+  fig.querySelector('.news-community-frame').appendChild(img);
+}
+
 function renderNewsSpotlight(lists) {
   const mount = byId('news-spotlight');
   if (!mount) return;
@@ -1998,6 +2035,7 @@ async function initNewsFeature() {
   const articles = newsSorted([...NEWS_ARTICLES, ...uploaded.news_article]);
   const pubs     = newsSorted([...SCHOLARLY_PUBLICATIONS, ...uploaded.scholarly_publication]);
 
+  renderNewsCommunityPhoto();
   renderNewsSpotlight({
     seminar_video: seminar, news_article: articles, scholarly_publication: pubs,
   });
