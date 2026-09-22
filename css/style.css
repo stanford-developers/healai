@@ -1475,9 +1475,45 @@ nav.topnav {
    full row, giving the sticky element room to travel. Without it the item
    would stretch to the row height and have nowhere to stick. */
 .rb-list {
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 12px;
   position: sticky;
   top: 88px;            /* 68px fixed nav + breathing room */
+}
+/* Ten names at a time (REPORTS_PER_PAGE in app.js). Only the current page
+   is in the DOM, so this column's height tracks the page on screen and the
+   pager always sits directly under the last name — rendering both pages
+   side by side in a scroll-snap track would have sized this to the taller
+   one and left the pager stranded below a short final page.
+   The sideways slide is a Web Animations call in renderReportPage(); its
+   14px offset stays inside the grid gap, so it adds no scrollable
+   overflow and needs no clipping here (which would have cut focus rings
+   off the names). */
+.rb-pages { display: flex; flex-direction: column; gap: 6px; }
+
+.rb-pager {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+.rb-pager-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  color: var(--ink-mid);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast);
+}
+.rb-pager-btn:hover:not(:disabled) { border-color: var(--cardinal); color: var(--cardinal); }
+.rb-pager-btn:disabled { opacity: .35; cursor: default; }
+.rb-pager-btn svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
+/* One arrow glyph, mirrored — same trick as .rb-nav-btn.prev. */
+.rb-pager-btn.prev svg { transform: rotate(180deg); }
+.rb-pager-label {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em;
+  color: var(--ink-low); white-space: nowrap;
 }
 .rb-item {
   display: flex; align-items: flex-start; gap: 11px;
@@ -1508,13 +1544,44 @@ nav.topnav {
 .rb-item-sub  { font-size: 11.5px; color: var(--ink-mid); line-height: 1.4; }
 .rb-item.on .rb-item-name { color: var(--cardinal); }
 
+/* ─── A FIXED-HEIGHT FRAME, NOT A BOX THAT FITS ITS REPORT ───────────────
+   The 15 reports' content ranges from 820px to 1216px tall. Sized to its
+   content, this pane therefore changed height by up to ~400px between
+   reports — and because hovering a name selects it, running the pointer
+   down the list reflowed the whole page repeatedly under the cursor, and
+   the Download button and stepper jumped to a new place for every report.
+
+   So the frame is constant and the text inside it scrolls. The height
+   tracks the viewport (rather than being a magic pixel value) so the
+   entire browser — list, report, download, stepper — fits on screen
+   without page scrolling. The cap stops it becoming a very long column on
+   a tall monitor; the floor keeps it usable on a short laptop window. */
 .rb-detail {
+  display: flex; flex-direction: column;
+  height: clamp(560px, calc(100vh - 128px), 1040px);
   padding: 26px 28px;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
 }
-.rb-detail:focus-visible { outline: 2px solid var(--cardinal); outline-offset: 2px; }
+/* min-height:0 is what makes this scroll at all: a flex item's default
+   min-height is auto, i.e. it refuses to shrink below its content, so the
+   overflow would move to the pane and push the actions row out of it. */
+.rb-detail-body {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  /* Room for the scrollbar without narrowing the text: the padding holds
+     the gutter, the negative margin gives the width back. */
+  padding-right: 12px; margin-right: -12px;
+  overscroll-behavior: contain;
+}
+.rb-detail-body:focus-visible { outline: 2px solid var(--cardinal); outline-offset: 2px; }
+.rb-detail-body::-webkit-scrollbar { width: 6px; }
+.rb-detail-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+.rb-detail-body::-webkit-scrollbar-track { background: transparent; }
+/* The last section's own bottom margin would otherwise read as the pane
+   having stopped short of the rule above the actions. */
+.rb-detail-body > .rb-section:last-child { margin-bottom: 0; }
 .rb-detail-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 22px; }
 .rb-detail-pill {
   font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em;
@@ -1539,8 +1606,12 @@ nav.topnav {
 .rb-actions {
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 14px;
-  margin-top: 28px; padding-top: 22px;
+  margin-top: 22px; padding-top: 22px;
   border-top: 1px solid var(--line);
+  /* Pinned to the foot of the fixed-height pane: never shrinks, never
+     scrolls away, so Download and the stepper sit in the same place for
+     every report. */
+  flex-shrink: 0;
 }
 .rb-actions .btn-cta { display: inline-flex; }
 
@@ -2602,7 +2673,13 @@ footer {
      pinning it would cover the report the reader just chose. */
   .report-browser    { grid-template-columns: 1fr; }
   .rb-list           { position: static; top: auto; }
-  .rb-detail         { padding: 22px 20px; }
+  /* height:auto — back to natural height. Stacked, the pane starts below
+     the list rather than beside it, so there is no second column whose
+     height it has to hold still against; and a fixed-height inner
+     scroller inside the page's own scroll is the worst of both, trapping
+     a swipe in a box a screen tall. */
+  .rb-detail         { padding: 22px 20px; height: auto; }
+  .rb-detail-body    { overflow-y: visible; padding-right: 0; margin-right: 0; }
   .rb-actions        { justify-content: flex-start; }
   nav.topnav         { padding: 0 18px; }
   .nav-center        { display: none; }

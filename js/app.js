@@ -1199,6 +1199,34 @@ function resourceItemsHTML(items) {
 /** Code of the report currently shown in the detail pane. */
 let selectedReportCode = null;
 
+/* ─── PAGING THE LIST ────────────────────────────────────────────────────
+   The list used to render all of the reports at once. At 15 that column
+   grew taller than the detail pane beside it, so the page scrolled well
+   past the end of the report being read and the reader had to come back
+   up for the next name — the sticky column stopped helping because the
+   thing it was pinned against was shorter than it.
+
+   Ten at a time, paged sideways. The count is the whole point, so it is
+   not derived from anything: a page has to be short enough that the list
+   never outruns the pane. */
+const REPORTS_PER_PAGE = 10;
+
+/** Which page of the list is on screen. Follows the selection — see
+ *  selectReport() — so the stepper and the arrow keys can cross a page
+ *  boundary without the reader having to page across by hand. */
+let reportPageIndex = 0;
+
+function reportPageCount() {
+  return Math.max(1, Math.ceil(ALL_REPORTS.length / REPORTS_PER_PAGE));
+}
+function reportPageOf(code) {
+  const i = ALL_REPORTS.findIndex(r => r.code === code);
+  return i < 0 ? 0 : Math.floor(i / REPORTS_PER_PAGE);
+}
+function reportsOnPage(p) {
+  return ALL_REPORTS.slice(p * REPORTS_PER_PAGE, (p + 1) * REPORTS_PER_PAGE);
+}
+
 function renderReportBrowser() {
   const mount = byId('rt-report-browser');
   if (!mount) return;
@@ -1214,29 +1242,112 @@ function renderReportBrowser() {
   if (!ALL_REPORTS.some(r => r.code === selectedReportCode)) {
     selectedReportCode = ALL_REPORTS[0].code;
   }
+  /* Open on whichever page holds the selection rather than always page 1,
+     so a re-render can't leave the highlighted name off screen. */
+  reportPageIndex = reportPageOf(selectedReportCode);
 
+  /* role="tablist" sits on .rb-pages, not on .rb-list: the pager's arrows
+     are buttons, not tabs, and inside the tablist they would be announced
+     as part of the report list. */
   mount.innerHTML = `
-    <div class="rb-list" role="tablist" aria-orientation="vertical" aria-label="Sample reports">
-      ${ALL_REPORTS.map(r => {
-        const on = r.code === selectedReportCode;
-        return `
-        <button class="rb-item${on ? ' on' : ''}" role="tab" id="rb-tab-${r.code}"
-                data-code="${r.code}" aria-selected="${on}" aria-controls="rb-detail"
-                tabindex="${on ? 0 : -1}">
-          <span class="rb-item-pill">${r.code}</span>
-          <span class="rb-item-text">
-            <span class="rb-item-name">${r.name}</span>
-            <span class="rb-item-sub">${r.sub}</span>
-          </span>
-        </button>`;
-      }).join('')}
+    <div class="rb-list">
+      <div class="rb-pages" id="rb-pages" role="tablist" aria-orientation="vertical"
+           aria-label="Sample reports"></div>
+      ${reportPagerHTML()}
     </div>
-    <div class="rb-detail" id="rb-detail" role="tabpanel" tabindex="0"
+    <div class="rb-detail" id="rb-detail" role="tabpanel"
          aria-labelledby="rb-tab-${selectedReportCode}">
       ${reportDetailHTML(ALL_REPORTS.find(r => r.code === selectedReportCode))}
     </div>`;
 
+  renderReportPage();
   wireReportBrowser(mount);
+}
+
+/** The pager under the list. Omitted entirely when everything fits on one
+ *  page — two dead arrows and a "01–08 of 08" label are just noise. */
+function reportPagerHTML() {
+  if (reportPageCount() < 2) return '';
+  return `
+    <div class="rb-pager">
+      <button type="button" class="rb-pager-btn prev" data-page-step="-1"
+              aria-label="Previous ${REPORTS_PER_PAGE} reports" aria-controls="rb-pages">
+        ${svgIcon('arrowR')}
+      </button>
+      <span class="rb-pager-label" id="rb-pager-label" aria-live="polite"></span>
+      <button type="button" class="rb-pager-btn next" data-page-step="1"
+              aria-label="Next ${REPORTS_PER_PAGE} reports" aria-controls="rb-pages">
+        ${svgIcon('arrowR')}
+      </button>
+    </div>`;
+}
+
+/** Draws the current page's names and syncs the pager to it. Only this
+ *  element's contents change, so the detail pane and the pager's own
+ *  buttons survive — which is what lets the pager listener bind once. */
+function renderReportPage({ dir = 0 } = {}) {
+  const pages = byId('rb-pages');
+  if (!pages) return;
+
+  pages.innerHTML = reportsOnPage(reportPageIndex).map(r => {
+    const on = r.code === selectedReportCode;
+    return `
+      <button class="rb-item${on ? ' on' : ''}" role="tab" id="rb-tab-${r.code}"
+              data-code="${r.code}" aria-selected="${on}" aria-controls="rb-detail"
+              tabindex="${on ? 0 : -1}">
+        <span class="rb-item-pill">${r.code}</span>
+        <span class="rb-item-text">
+          <span class="rb-item-name">${r.name}</span>
+          <span class="rb-item-sub">${r.sub}</span>
+        </span>
+      </button>`;
+  }).join('');
+
+  const label = byId('rb-pager-label');
+  if (label) {
+    const page = reportsOnPage(reportPageIndex);
+    const total = String(ALL_REPORTS.length).padStart(2, '0');
+    /* Labelled with the codes on the page, not "page 2 of 2" — the codes
+       are the pills the reader is looking at. A final page holding one
+       report reads "15 of 15", not "15–15 of 15". */
+    const span = page.length === 1
+      ? page[0].code
+      : `${page[0].code}–${page[page.length - 1].code}`;
+    label.textContent = `${span} of ${total}`;
+  }
+  const prev = $('.rb-pager-btn.prev');
+  const next = $('.rb-pager-btn.next');
+  if (prev) prev.disabled = reportPageIndex <= 0;
+  if (next) next.disabled = reportPageIndex >= reportPageCount() - 1;
+
+  wireReportItems(pages);
+
+  /* Slide the new names in from the side the reader paged toward, so the
+     motion matches the arrow they pressed. Done here rather than in CSS
+     because the element persists across pages — a CSS animation would need
+     a class toggled off again, and a transition has nothing to transition
+     from. Skipped when the page didn't move sideways (first paint, a
+     re-render) and when the reader asked for less motion. */
+  if (dir && !prefersReducedMotion() && pages.animate) {
+    pages.animate(
+      [{ transform: `translateX(${dir * 14}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+      { duration: 240, easing: 'cubic-bezier(.22,.61,.36,1)' },
+    );
+  }
+}
+
+/** Moves the list by whole pages. Clamped, not wrapping: the arrows are
+ *  disabled at the ends, and a wrap would contradict that. */
+function goReportPage(p, { dir = 0 } = {}) {
+  const target = Math.max(0, Math.min(reportPageCount() - 1, p));
+  if (target === reportPageIndex) return;
+  const moved = target > reportPageIndex ? 1 : -1;
+  reportPageIndex = target;
+  renderReportPage({ dir: dir || moved });
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /** The right-hand pane for one report, including the prev/next stepper. */
@@ -1266,25 +1377,34 @@ function reportDetailHTML(r) {
       </button>
     </div>`;
 
+  /* Everything above the actions goes in one scrolling body so the pane
+     itself can be a fixed height — see .rb-detail in style.css. tabindex
+     is on the body rather than on .rb-detail because the body is the
+     scrollable region, and a scroll area that can't be reached from the
+     keyboard is unusable without a mouse. .rb-detail keeps role="tabpanel"
+     and its label, so the ARIA pattern is intact and Tab out of the list
+     still lands inside the panel. */
   return `
-    <div class="rb-detail-head">
-      <span class="rb-detail-pill">${r.code}</span>
-      <div>
-        <h4 class="rb-detail-name">${r.name}</h4>
-        <p class="rb-detail-sub">${r.sub}</p>
+    <div class="rb-detail-body" tabindex="0">
+      <div class="rb-detail-head">
+        <span class="rb-detail-pill">${r.code}</span>
+        <div>
+          <h4 class="rb-detail-name">${r.name}</h4>
+          <p class="rb-detail-sub">${r.sub}</p>
+        </div>
       </div>
-    </div>
-    <div class="rb-section">
-      <h5>Tool overview</h5>
-      <p>${r.overview}</p>
-    </div>
-    <div class="rb-section">
-      <h5>Report summary</h5>
-      <p>${r.summary}</p>
-    </div>
-    <div class="rb-section">
-      <h5>Key issues identified</h5>
-      <ul>${(r.issues || []).map(i => `<li>${i}</li>`).join('')}</ul>
+      <div class="rb-section">
+        <h5>Tool overview</h5>
+        <p>${r.overview}</p>
+      </div>
+      <div class="rb-section">
+        <h5>Report summary</h5>
+        <p>${r.summary}</p>
+      </div>
+      <div class="rb-section">
+        <h5>Key issues identified</h5>
+        <ul>${(r.issues || []).map(i => `<li>${i}</li>`).join('')}</ul>
+      </div>
     </div>
     <div class="rb-actions">${download}${nav}</div>`;
 }
@@ -1297,12 +1417,23 @@ function selectReport(code, { focus = false } = {}) {
   if (!r) return;
   selectedReportCode = code;
 
+  /* Page across first if the report lives on another page — otherwise its
+     button is not in the DOM, and the loop below would clear every `on`
+     state without setting one. This is what lets the detail pane's stepper
+     and the list's arrow keys run past report 10 on their own. A no-op
+     when the report is already on screen, so hovering down the list
+     doesn't re-render it under the pointer. */
+  goReportPage(reportPageOf(code));
+
   $$('.rb-item').forEach(btn => {
     const on = btn.dataset.code === code;
     btn.classList.toggle('on', on);
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
     btn.tabIndex = on ? 0 : -1;
-    if (on && focus) btn.focus();
+    /* preventScroll because the browser would otherwise scroll this
+       button into view vertically, dragging the page away from the report
+       the reader is reading — the list is sticky and already in view. */
+    if (on && focus) btn.focus({ preventScroll: true });
   });
 
   const pane = byId('rb-detail');
@@ -1313,18 +1444,27 @@ function selectReport(code, { focus = false } = {}) {
 }
 
 function wireReportBrowser(mount) {
-  const items = [...mount.querySelectorAll('.rb-item')];
-
-  /* The stepper lives inside the detail pane, which selectReport() replaces
-     wholesale — so delegate from the mount, which survives that.
+  /* The stepper lives inside the detail pane and the pager's arrows inside
+     the list, both of which get replaced wholesale — so delegate from the
+     mount, which survives that.
      Bound once: renderReportBrowser() only swaps this element's innerHTML,
      so the element itself persists across renders and a listener added
      per render would accumulate. Two handlers meant one click stepped two
-     reports. (The per-item listeners below are safe — those elements are
-     rebuilt each render.) */
+     reports. (The per-item listeners in wireReportItems() are safe — those
+     elements are rebuilt on every page change.) */
   if (!mount.dataset.navWired) {
     mount.dataset.navWired = '1';
     mount.addEventListener('click', e => {
+      const pageBtn = e.target.closest('.rb-pager-btn');
+      if (pageBtn) {
+        if (pageBtn.disabled) return;
+        /* Pages the list WITHOUT changing the selection: the reader is
+           looking for a report, and swapping the pane out from under them
+           mid-search would lose whatever they were reading. */
+        goReportPage(reportPageIndex + Number(pageBtn.dataset.pageStep));
+        return;
+      }
+
       const btn = e.target.closest('.rb-nav-btn');
       if (!btn || btn.disabled) return;
       const i = ALL_REPORTS.findIndex(x => x.code === selectedReportCode);
@@ -1339,26 +1479,40 @@ function wireReportBrowser(mount) {
       }
     });
   }
+  /* No wireReportItems() here on purpose: renderReportPage() already wires
+     the names it just drew, and renderReportBrowser() runs it before this.
+     Doing it in both places is how the stepper ended up firing twice per
+     click the first time around. */
+}
 
+/** Per-name listeners. Re-run on every page change, since those buttons
+ *  are rebuilt — see renderReportPage(). */
+function wireReportItems(scope) {
   /* Only bind hover where hovering is real. On a touchscreen the browser
      fires mouseenter off a tap, which would double-handle the click. */
   const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-  items.forEach((btn, i) => {
+  scope.querySelectorAll('.rb-item').forEach(btn => {
     btn.addEventListener('click', () => selectReport(btn.dataset.code));
     if (canHover) btn.addEventListener('mouseenter', () => selectReport(btn.dataset.code));
 
     btn.addEventListener('keydown', e => {
+      /* Indexed against ALL_REPORTS rather than the buttons on screen, so
+         Down on the last name of a page moves to the first of the next one
+         and pages the list to follow it. Indexing the DOM would have
+         wrapped back to the top of the same ten. */
+      const n = ALL_REPORTS.length;
+      const cur = ALL_REPORTS.findIndex(x => x.code === btn.dataset.code);
       let target = -1;
       switch (e.key) {
-        case 'ArrowDown': target = (i + 1) % items.length;                 break;
-        case 'ArrowUp':   target = (i - 1 + items.length) % items.length;  break;
-        case 'Home':      target = 0;                                      break;
-        case 'End':       target = items.length - 1;                       break;
+        case 'ArrowDown': target = (cur + 1) % n;     break;
+        case 'ArrowUp':   target = (cur - 1 + n) % n; break;
+        case 'Home':      target = 0;                 break;
+        case 'End':       target = n - 1;             break;
         default: return;
       }
       e.preventDefault();
-      selectReport(items[target].dataset.code, { focus: true });
+      selectReport(ALL_REPORTS[target].code, { focus: true });
     });
   });
 }
