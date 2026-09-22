@@ -65,7 +65,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- ─── Stylesheet ──────────────────────────────────────────────────────── -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=dev">
 </head>
 
 <body>
@@ -530,19 +530,25 @@
        Hidden until then so it never flashes at the foot of the document.
        ═══════════════════════════════════════════════════════════════════ -->
   <div id="news-content" hidden>
-    <!-- Patient Partner Panel photo. Filled by renderNewsCommunityPhoto()
-         from NEWS_COMMUNITY_PHOTO in data.js, and left hidden while that
-         entry has no `src` — so this ships without a broken image until
-         the photo is dropped into /assets. -->
-    <figure class="news-community" id="news-community" hidden></figure>
+    <!-- ═══ SUBSECTION HERO ════════════════════════════════════════════
+         The Patient Partner Panel photo and the subsection's own title,
+         side by side rather than stacked. Stacked, the title and its sub
+         ran only half the page width under a full-bleed banner, leaving
+         a large empty block to their right; paired, the photo fills that
+         space and the two read as one introduction.
+         renderNewsCommunityPhoto() adds .nc-hero-solo here when there is
+         no photo to show, which drops this back to a single column. -->
+    <div class="nc-hero">
+      <!-- Filled by renderNewsCommunityPhoto() from NEWS_COMMUNITY_PHOTO in
+           data.js, and left hidden while that entry has no `src` — so this
+           ships without a broken image until a photo is in /assets. -->
+      <figure class="news-community" id="news-community" hidden></figure>
 
-    <!-- The old News page's title, kept here so the subsection introduces
-         itself under the photo rather than opening straight onto a filter
-         row. -->
-    <header class="nc-intro">
-      <h2 class="nc-intro-title">What's new at <em>HEAL-AI.</em></h2>
-      <p class="nc-intro-sub">Seminar talks, press coverage, and scholarly publications from the HEAL-AI team, most recent first.</p>
-    </header>
+      <header class="nc-intro">
+        <h2 class="nc-intro-title">What's new at <em>HEAL-AI.</em></h2>
+        <p class="nc-intro-sub">Seminar talks, press coverage, and scholarly publications from the HEAL-AI team, most recent first.</p>
+      </header>
+    </div>
 
     <!-- ═══ IN THE NEWS ═══════════════════════════════════════════════
          Videos, podcasts, and press coverage in one browsable grid:
@@ -689,14 +695,14 @@
  `defer` keeps the page parse-and-paint quick while preserving order.
 ═════════════════════════════════════════════════════════════════════════════
 -->
-<script src="js/config.js" defer></script>
-<script src="js/data.js" defer></script>
+<script src="js/config.js?v=dev" defer></script>
+<script src="js/data.js?v=dev" defer></script>
 <!-- Read-only Supabase client: lets the Toolkit tab's Resources panel show
      admin-uploaded files (see admin.html) alongside the static content
      below. Public read is enforced by Row Level Security, not by this
      script being present, see /supabase/schema.sql. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
-<script src="js/app.js" defer></script>
+<script src="js/app.js?v=dev" defer></script>
 
 </body>
 </html>

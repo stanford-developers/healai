@@ -2170,13 +2170,18 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 /* ─── NEWS · RECENT PUBLICATIONS ─────────────────────────────────────────
    A list, not a grid: a paper has no thumbnail worth showing. Same row
    rhythm as the Toolkit's .res-row so the two feel related. */
-.news-pubs { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.news-pubs { display: flex; flex-direction: column; }
 .np-row {
   display: flex; align-items: flex-start; gap: 16px;
   padding: 18px 6px;
   border-bottom: 1px solid var(--line);
   transition: all .2s ease-in-out;
 }
+/* The list's top edge belongs to the first row, not to .news-pubs: the
+   empty state ("No publications listed yet") renders inside the same
+   container, and a border there drew a rule above that message with
+   nothing under it. */
+.np-row:first-child { border-top: 1px solid var(--line); }
 .np-row.linked { cursor: pointer; }
 .np-row.linked:hover { padding-left: 12px; background: var(--cardinal-soft); }
 .np-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
@@ -2199,25 +2204,42 @@ body.motion-paused .partner-track { animation-play-state: paused; }
    single flex `gap` is the whole rhythm, so every join matches. */
 #news-content { display: flex; flex-direction: column; gap: 52px; }
 #news-content > .section,
-#news-content > .news-community,
-#news-content > .nc-intro { padding: 0; margin: 0; max-width: none; }
+#news-content > .nc-hero { padding: 0; margin: 0; max-width: none; }
 /* Their own bottom margins would otherwise fight the gap above. */
 #news-content .news-block-head { margin-bottom: 20px; }
 
-/* ─── The Patient Partner Panel photo, at the top of the subsection ─────
+/* ─── The subsection hero: photo beside the title ───────────────────────
+   Two columns, photo slightly the wider of the two, vertically centred so
+   a short title still sits against the middle of the picture rather than
+   floating at its top edge. minmax(0, …) on both tracks because a grid
+   column defaults to min-content and the photo's own frame would
+   otherwise refuse to shrink below the image's intrinsic width. */
+.nc-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  gap: clamp(28px, 3.5vw, 52px);
+  align-items: center;
+}
+/* No photo to pair with (see renderNewsCommunityPhoto) — one column, so
+   the title does not sit in a half-width gutter with a hole beside it. */
+.nc-hero-solo { grid-template-columns: 1fr; }
+
+/* ─── The Patient Partner Panel photo ───────────────────────────────────
    A fixed ratio with object-fit:cover means the crop fills the frame
    without distorting, and the box is sized before the image arrives so
    nothing jumps on load.
 
-   16:9, NOT the 3:1 banner this started as. The photo is 1.36:1, so a 3:1
-   frame shows only the middle 45% of its height — and in this photo every
-   face, including the remote participant on the screen behind the group,
-   sits in the top 40%. A centred 3:1 crop would have shown 27%-72%: the
-   whole group decapitated. 16:9 keeps 77% of the height, and
-   `object-position: center top` spends all of the loss at the bottom, so
-   the crop lands around everyone's lower legs instead of their chins. */
+   4:3, NOT the 3:1 banner this started as nor the 16:9 that replaced it.
+   The photo is 1.36:1 and every face in it — including the remote
+   participant on the screen behind the group — sits in the top 40%, so a
+   wide frame crops heads off: 3:1 would have shown only the middle 45% of
+   the height, i.e. the group from chest to shin. Now that the photo sits
+   in a column rather than spanning the page, 4:3 fits it almost exactly
+   (1.333 vs 1.362 — about 2% off the sides and nothing off the top), so
+   the group is shown whole. `object-position: center top` keeps what
+   little loss there is at the bottom of the frame. */
 .news-community-frame {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   border-radius: var(--radius-lg);
   background: var(--bg-soft);
@@ -2237,27 +2259,36 @@ body.motion-paused .partner-track { animation-play-state: paused; }
   transition: opacity .7s var(--ease), transform 1s var(--ease);
 }
 .news-community-frame img.is-loaded { opacity: 1; transform: none; }
+/* Stays inside the <figure> rather than moving to the text column: it
+   describes the image, and figcaption only carries that meaning in place. */
 .news-community figcaption {
   margin-top: 12px;
-  font-size: 13px; color: var(--ink-mid); line-height: 1.6;
-  max-width: 720px;
+  font-size: 12.5px; color: var(--ink-low); line-height: 1.55;
 }
 /* .news-community sets its own display, which would beat the UA's
    [hidden]{display:none} — the same trap as .admin-field[hidden]. */
 .news-community[hidden] { display: none; }
 
-/* ─── The subsection's own title, under the photo ──────────────────────── */
+/* ─── The subsection's own title, beside the photo ─────────────────────── */
 .nc-intro-title {
   font-family: var(--serif);
-  font-size: clamp(28px, 3.4vw, 40px); font-weight: 500;
+  font-size: clamp(28px, 3vw, 38px); font-weight: 500;
   color: var(--ink); line-height: 1.15;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .nc-intro-title em { color: var(--cardinal); font-style: italic; }
-.nc-intro-sub { font-size: 15px; color: var(--ink-mid); line-height: 1.7; max-width: 620px; }
+/* No max-width: the hero's own column already sets the measure, and a
+   second cap would leave slack inside the column on a wide screen. */
+.nc-intro-sub { font-size: 15px; color: var(--ink-mid); line-height: 1.7; }
 
-/* Divider between the 3 feed blocks — first one flush against the spotlight's section. */
-.news-block + .news-block { border-top: 1px solid var(--line); padding-top: 56px; }
+/* NO divider rule between feed blocks. This used to be
+   `.news-block + .news-block { border-top; padding-top: 56px }`, which put
+   a hairline above "Recent Publications" but not above "In the News" —
+   and it landed directly above .news-pubs's own top border, so the heading
+   came out sandwiched between two nearly-touching rules. #news-content's
+   flex `gap` is the separation for every block equally; the list keeps the
+   one border that belongs to it. Its 56px also stacked on that gap, which
+   is where the extra space around the heading came from. */
 .news-block-head {
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 12px;
@@ -2331,7 +2362,6 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 .news-dir-search input:focus { border-color: var(--cardinal); outline: none; }
 
 @media (max-width: 640px) {
-  .news-block + .news-block { padding-top: 40px; }
   .news-item { flex-direction: column; gap: 6px; }
   .news-item-date { width: auto; }
 }
@@ -2561,6 +2591,10 @@ footer {
   .news-browser      { grid-template-columns: 1fr; }
   .nb-pane           { position: static; top: auto; }
   .nb-scroller       { grid-template-rows: repeat(2, auto); grid-auto-columns: 150px; }
+  /* Side by side, the two hero columns are each too narrow to hold their
+     own content — the title breaks to one word a line. Photo on top,
+     title under it, which is what this looked like before the pairing. */
+  .nc-hero           { grid-template-columns: 1fr; gap: 28px; }
   /* Side-by-side stops working once the detail pane is narrower than its
      own text; list on top, report below. max-height caps the list so the
      content it controls stays visible without a long scroll past it. */

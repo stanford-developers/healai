@@ -70,11 +70,40 @@ jobs:
             cp -R "$path" _site/
           done
 
+          # ─── CACHE BUSTING ─────────────────────────────────────────────
+          # Pages serves everything with `cache-control: max-age=600` and no
+          # way to configure it. With bare `js/data.js` URLs that meant a
+          # content edit could stay invisible for ten minutes after a green
+          # deploy — and browsers that revalidate lazily held the old file
+          # for longer, which looked exactly like a broken deploy.
+          #
+          # Each html file ships `?v=dev` on its own css/js. Stamping the
+          # commit sha in here makes every deploy's URLs new, so a browser
+          # cannot serve a stale script for the current html. `?v=dev` stays
+          # as-is when opening the files locally, where caching is not a
+          # problem and a fixed string keeps the working tree diff-free.
+          SHA_SHORT="${GITHUB_SHA:0:8}"
+          find _site -name '*.html' -print0 | xargs -0 sed -i "s/?v=dev/?v=$SHA_SHORT/g"
+
+          # Assert it took: a silent no-op here would restore the stale-asset
+          # bug while every other check still passed.
+          if grep -rq '?v=dev' _site --include='*.html'; then
+            echo "::error::'?v=dev' survived the cache-bust rewrite in _site"
+            exit 1
+          fi
+          if ! grep -rq "?v=$SHA_SHORT" _site/index.html; then
+            echo "::error::index.html has no ?v=$SHA_SHORT — asset refs lost their version marker"
+            exit 1
+          fi
+          echo "Assets versioned as ?v=$SHA_SHORT"
+
           # vercel.json used to provide cleanUrls, which is what made /admin
           # work. Pages has no rewrite support, so serve the same file at
           # /admin/ as a directory index to keep that URL alive.
+          # Copied from the REWRITTEN _site/admin.html, not the repo's, so
+          # /admin/ gets the versioned asset urls too.
           mkdir -p _site/admin
-          cp admin.html _site/admin/index.html
+          cp _site/admin.html _site/admin/index.html
 
           echo "Published tree:"
           find _site -type f | sort | sed 's/^/  /'

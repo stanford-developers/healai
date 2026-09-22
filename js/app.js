@@ -1859,10 +1859,18 @@ function renderNewsCommunityPhoto() {
   const fig = byId('news-community');
   if (!fig) return;
 
+  /* The figure is one of two columns in .nc-hero. Whenever it is dropped,
+     that grid has to collapse to a single column too, or the title is left
+     in a half-width track with an empty one beside it. Both exits below go
+     through this. */
+  const hero = fig.closest('.nc-hero');
+  const setSolo = solo => { if (hero) hero.classList.toggle('nc-hero-solo', solo); };
+
   const photo = typeof NEWS_COMMUNITY_PHOTO !== 'undefined' ? NEWS_COMMUNITY_PHOTO : null;
-  if (!photo || !photo.src) { fig.hidden = true; return; }
+  if (!photo || !photo.src) { fig.hidden = true; setSolo(true); return; }
 
   fig.hidden = false;
+  setSolo(false);
   fig.innerHTML = `
     <div class="news-community-frame"></div>
     ${photo.caption ? `<figcaption>${photo.caption}</figcaption>` : ''}`;
@@ -1880,7 +1888,7 @@ function renderNewsCommunityPhoto() {
   img.decoding = 'async';
   /* If the file is missing or won't decode, drop the whole figure rather
      than leave an empty frame at the top of the page. */
-  img.addEventListener('error', () => { fig.hidden = true; fig.innerHTML = ''; });
+  img.addEventListener('error', () => { fig.hidden = true; fig.innerHTML = ''; setSolo(true); });
   /* Fade + settle once the bytes are actually there. Doing this on `load`
      rather than in CSS matters: a CSS animation starts when the element
      is parsed, so it would play out against an empty frame while the
