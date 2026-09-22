@@ -679,20 +679,21 @@ const PARTNER_LOGOS = [
    Sits between the page header and the featured spotlight, to put the
    people the lab works with at the top of the section.
 
-   `src` EMPTY = the block renders nothing at all. That's the shipped
-   state: pointing at a file that isn't in /assets yet would show a broken
-   image on a live page. To turn it on:
+   Leaving `src` empty renders nothing at all, which is the safe state if
+   the file is ever moved — the <figure> stays hidden rather than showing
+   a broken image, and renderNewsCommunityPhoto() also drops it if the
+   file 404s.
 
-     1. Drop the photo in /assets (a wide crop reads best — the frame is
-        3:1 on desktop and 16:9 on a phone).
-     2. Set `src` to its path, e.g. 'assets/patient-partner-panel.jpg'.
+   The file here is a 1800px, ~540KB re-encode of the 5054px original the
+   team supplied, which was 3.2MB — far too heavy for a banner that
+   renders at most 1320px wide.
 
    `alt` is not decorative — describe who is pictured, since this photo is
    the section's statement about community. `caption` is optional and
    renders under the frame; leave it '' to omit.
 ─────────────────────────────────────────────────────────────────────────── */
 const NEWS_COMMUNITY_PHOTO = {
-  src: '',
+  src: 'assets/patient-partner-panel.jpg',
   alt: 'Members of the HEAL-AI Patient Partner Panel together at Stanford.',
   caption: 'Our Patient Partner Panel — the volunteers who review every AI use case with us.',
 };

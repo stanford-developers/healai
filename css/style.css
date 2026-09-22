@@ -2205,12 +2205,19 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 #news-content .news-block-head { margin-bottom: 20px; }
 
 /* ─── The Patient Partner Panel photo, at the top of the subsection ─────
-   A fixed ratio with object-fit:cover means any crop fills the frame
+   A fixed ratio with object-fit:cover means the crop fills the frame
    without distorting, and the box is sized before the image arrives so
-   nothing jumps on load. 3:1 reads as a banner; a phone gets 16:9 so
-   faces aren't cropped into a letterbox slit (see the 900px breakpoint). */
+   nothing jumps on load.
+
+   16:9, NOT the 3:1 banner this started as. The photo is 1.36:1, so a 3:1
+   frame shows only the middle 45% of its height — and in this photo every
+   face, including the remote participant on the screen behind the group,
+   sits in the top 40%. A centred 3:1 crop would have shown 27%-72%: the
+   whole group decapitated. 16:9 keeps 77% of the height, and
+   `object-position: center top` spends all of the loss at the bottom, so
+   the crop lands around everyone's lower legs instead of their chins. */
 .news-community-frame {
-  aspect-ratio: 3 / 1;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: var(--radius-lg);
   background: var(--bg-soft);
@@ -2218,6 +2225,7 @@ body.motion-paused .partner-track { animation-play-state: paused; }
 .news-community-frame img {
   width: 100%; height: 100%;
   object-fit: cover;
+  object-position: center top;
   display: block;
   /* Revealed only once the image has actually decoded — see the load
      handler in renderNewsCommunityPhoto(). A plain CSS animation would
@@ -2553,7 +2561,6 @@ footer {
   .news-browser      { grid-template-columns: 1fr; }
   .nb-pane           { position: static; top: auto; }
   .nb-scroller       { grid-template-rows: repeat(2, auto); grid-auto-columns: 150px; }
-  .news-community-frame { aspect-ratio: 16 / 9; }
   /* Side-by-side stops working once the detail pane is narrower than its
      own text; list on top, report below. max-height caps the list so the
      content it controls stays visible without a long scroll past it. */
