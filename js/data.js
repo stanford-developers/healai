@@ -34,7 +34,9 @@
    ⑫ ABOUT_CARDS ............ "How we got here" / "What we believe"
    ⑬ PAPERS ................. hover content for the hero canvas research nodes
    ⑭ ICONS .................. inline-SVG icon library
-   ⑮ SEMINAR_VIDEOS / NEWS_ARTICLES / SCHOLARLY_PUBLICATIONS ... News tab feeds
+   ⑮ SEMINAR_VIDEOS / PODCASTS / NEWS_ARTICLES / SCHOLARLY_PUBLICATIONS
+                              ... Publications sub-tab feeds (all empty —
+                                  published through /admin.html → News)
 
  ACCESSIBILITY (a11y) REMINDER
    • String values may contain <strong>, <em>, or HTML entities. They're
@@ -648,29 +650,32 @@ const PARTNER_LOGOS = [
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ⑮ NEWS · News tab — spotlight + 3 chronological feeds
+   ⑮ NEWS · the "Publications" sub-tab (Toolkit → Resources → Publications)
 ─────────────────────────────────────────────────────────────────────────────
-   Three independent, date-sorted arrays. renderNews() (app.js) shows the
-   5 most recent from each on the News tab with a "View complete directory"
-   link to a full, searchable listing page for that feed.
+   Four date-sorted feeds. The first three (seminar videos, podcasts, news
+   articles) are merged into the one "In the News" media browser; scholarly
+   publications get the plain list below it, since a paper has no thumbnail
+   worth showing. See initNewsFeature() in app.js.
 
    `date` must be an ISO string ('YYYY-MM-DD') — everything sorts and
    formats off of it.
 
-   WHICH ITEM IS FEATURED
-     The spotlight is chosen from the picker at the top of /admin.html →
-     News, which sets news_items.featured (see
-     /supabase/news_featured_migration.sql). `featured: true` on a
-     SEMINAR_VIDEOS entry below still works as a fallback for the static
-     data, and with no pick at all the spotlight shows the most recent
-     seminar.
+   ALL FOUR ARRAYS ARE EMPTY, AND THAT IS THE STEADY STATE
+     Everything here is now published through /admin.html → News, which
+     writes to the `news_items` table; getPublicNewsItems() maps those rows
+     into exactly the shape these arrays hold and concatenates the two, so
+     an entry in either place renders identically.
 
-   THE WHOLE TAB IS CURRENTLY HIDDEN
-     SHOW_NEWS is false in config.js — the 15 placeholder entries that
-     used to fill these three arrays were deleted on 2026-09-15, which
-     left the articles and publications feeds empty. Only SEMINAR_VIDEOS
-     still has content (3 real talks). Publish through the admin
-     dashboard, then flip SHOW_NEWS back to true.
+     The 15 placeholders were deleted on 2026-09-15 and the 3 real seminar
+     talks on 2026-09-21, both at the team's request — the talks because
+     they belong in the database where they can be edited without a
+     deploy, not in a source file.
+
+     So DO NOT add content here. These arrays are kept only because the
+     merge in initNewsFeature() reads them, and because they are the
+     offline fallback if Supabase is ever unreachable. Hard-coding an entry
+     puts it beyond the reach of the admin dashboard, which cannot edit or
+     delete it.
 ─────────────────────────────────────────────────────────────────────────── */
 /* ─────────────────────────────────────────────────────────────────────────
    NEWS_COMMUNITY_PHOTO · the Patient Partner Panel photo at the top of
