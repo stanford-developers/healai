@@ -73,6 +73,69 @@ const SHOW_NEWS = true;
 
 
 /* ─────────────────────────────────────────────────────────────────────────
+   ①c PHASE FLAG · SHOW_ASSISTANT  —  Stage 2, Volume 1
+─────────────────────────────────────────────────────────────────────────────
+   The chat assistant: a question box that answers ONLY from HEAL-AI's
+   published material and shows its sources. It is built in a separate
+   repository (stanford-developers/Heal-ai-bot); this site is only where
+   the panel appears.
+
+   WHAT IT CONTROLS
+     • Whether "Ask" appears in the top + mobile nav.
+     • Whether the /assistant page renders the panel at all.
+     • Whether css/heal-ai-assistant.css and js/heal-ai-assistant.js are
+       requested. They are NOT in index.html — renderAssistant() in app.js
+       injects them, and only when this is true. So with the flag off the
+       feature costs a visitor nothing: no extra request, no dead markup.
+
+   CURRENT STATE — false, and it must stay false until there is a server.
+     The widget and the endpoint are both written and tested upstream, but
+     the endpoint is deployed nowhere. Turning this on without a working
+     ASSISTANT_ENDPOINT shows an honest "not available yet" notice rather
+     than a broken box — but it would still advertise a feature that does
+     not answer, so leave it off.
+
+   TO LAUNCH, in this order:
+     1. Stand the server up somewhere with a permanent HTTPS address.
+     2. Set HEALAI_ALLOWED_ORIGINS=https://heal-ai.stanford.edu on it, or
+        the browser blocks every call (see ASSISTANT_ENDPOINT below).
+     3. Put that address in ASSISTANT_ENDPOINT.
+     4. Flip this to true.
+─────────────────────────────────────────────────────────────────────────── */
+const SHOW_ASSISTANT = false;
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ①d ASSISTANT_ENDPOINT · where the question is sent
+─────────────────────────────────────────────────────────────────────────────
+   The full URL of the assistant server's /api/ask, e.g.
+   'https://heal-ai-assistant.stanford.edu/api/ask'. Empty = not yet hosted.
+
+   WHY THIS MUST BE AN ABSOLUTE, CROSS-ORIGIN URL
+     The assistant's own demo page uses a relative '/api/ask', because
+     there the page and the server are the same process. This site is not
+     that. heal-ai.stanford.edu is GitHub Pages: it serves static files and
+     cannot run code, so there is no '/api/ask' here to post to — a
+     relative path would hit Pages' 404 page and the widget would report
+     the assistant as unavailable, which is true but for the wrong reason
+     and impossible to debug from the symptom.
+
+     Being cross-origin has a consequence that is easy to discover the hard
+     way: the browser will refuse the call unless the server names this
+     site in its own allowlist. That is HEALAI_ALLOWED_ORIGINS on the
+     server, and it is set there, not here. A correct value in this file
+     with an unset allowlist fails with a CORS error in the console and a
+     bare "unavailable" on the page.
+
+   NOT A SECRET. It is deliberately safe to publish: the whole reason the
+   server exists is that the browser never holds a model key or a model
+   address. If a key ever needs to appear in this file, something upstream
+   has been built wrong — see the guide's "Serving" section.
+─────────────────────────────────────────────────────────────────────────── */
+const ASSISTANT_ENDPOINT = '';
+
+
+/* ─────────────────────────────────────────────────────────────────────────
    ② SIGN-UP · endpoint + fallback URL
 ─────────────────────────────────────────────────────────────────────────────
    SIGNUP_ENDPOINT is the Google Apps Script Web App URL that appends one
@@ -112,7 +175,13 @@ const SIGN_UP_URL = 'https://docs.google.com/forms/d/e/REPLACE-WITH-FORM-ID/view
      3. Append 'XXX' to PAGE_IDS here.
 ─────────────────────────────────────────────────────────────────────────── */
 const PAGE_IDS = [
-  'home', 'toolkit', 'videos', 'patient', 'about',
+  /* 'assistant' is listed even though SHOW_ASSISTANT is false. The flag
+     hides the nav item; this list is what makes #assistant a valid route
+     at all, and renderAssistant() is what decides there is nothing on it.
+     Keeping the route live means a direct link lands on an empty page
+     rather than silently redirecting to Home, which is the behaviour you
+     want while the feature is being previewed. */
+  'home', 'toolkit', 'videos', 'patient', 'assistant', 'about',
 ];
 
 /* The page rendered on first load. */

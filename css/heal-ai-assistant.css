@@ -1,0 +1,225 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   VENDORED FILE — DO NOT EDIT HERE
+─────────────────────────────────────────────────────────────────────────────
+   Copied from the assistant repo, which is where it is developed and
+   tested:
+
+     repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
+     path    widget/heal-ai-assistant.css
+     commit  211bad5f
+     copied  2026-11-09
+
+   It lives here because the website is a static GitHub Pages site and can
+   only serve files that are in this repository. Edits belong upstream; a
+   fix made here is lost the next time the file is re-copied.
+
+   To see whether this copy has drifted from upstream:
+     git -C ~/Desktop/heal-ai-assistant show 211bad5f:widget/heal-ai-assistant.css \
+       | diff - css/heal-ai-assistant.css
+─────────────────────────────────────────────────────────────────────────── */
+/*
+═════════════════════════════════════════════════════════════════════════
+ HEAL-AI · widget/heal-ai-assistant.css
+─────────────────────────────────────────────────────────────────────────
+ The assistant panel. Written to drop into the existing site: every
+ colour, font, radius and easing below is a var() from css/style.css §1.
+ There is not one hard-coded brand value here, so re-skinning the site
+ re-skins this with it.
+
+ The fallbacks in each var() are only for the standalone demo page,
+ which loads this file without the site stylesheet.
+═════════════════════════════════════════════════════════════════════════
+*/
+
+.ha-assistant {
+  --ha-cardinal:  var(--cardinal, #8C1515);
+  --ha-tint:      var(--cardinal-tint, rgba(140,21,21,.08));
+  --ha-bg:        var(--bg, #fff);
+  --ha-soft:      var(--bg-soft, #F9F9F9);
+  --ha-ink:       var(--ink, #2E2D29);
+  --ha-ink-mid:   var(--ink-mid, #4D4F53);
+  --ha-ink-low:   var(--ink-low, #6B6D71);
+  --ha-line:      var(--line, rgba(46,45,41,.10));
+  --ha-sans:      var(--sans, 'Inter', system-ui, sans-serif);
+  --ha-serif:     var(--serif, 'Source Serif Pro', Georgia, serif);
+  --ha-mono:      var(--mono, 'JetBrains Mono', ui-monospace, monospace);
+  --ha-radius:    var(--radius, 10px);
+  --ha-radius-lg: var(--radius-lg, 14px);
+  --ha-ease:      var(--ease, cubic-bezier(.2,.6,.2,1));
+  --ha-t:         var(--t-fast, .18s);
+
+  font-family: var(--ha-sans);
+  color: var(--ha-ink);
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+/* The widget sets its own box model rather than inheriting the host
+   page's reset. Without this it renders one size inside the site, which
+   resets globally, and another on any page that does not — and the
+   textarea's auto-resize compounds the difference on every keystroke. */
+.ha-assistant,
+.ha-assistant *,
+.ha-assistant *::before,
+.ha-assistant *::after { box-sizing: border-box; }
+
+/* Visible to a screen reader, not to the eye. The input needs a real
+   label; the placeholder is not one, because it disappears on focus. */
+.ha-sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ── the ask box ──────────────────────────────────────────────────── */
+.ha-form { display: flex; gap: 10px; align-items: flex-start; }
+
+.ha-input {
+  flex: 1;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ha-ink);
+  background: var(--ha-bg);
+  border: 1px solid var(--ha-line);
+  border-radius: var(--ha-radius);
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 48px;
+  transition: border-color var(--ha-t) var(--ha-ease);
+}
+.ha-input::placeholder { color: var(--ha-ink-low); }
+.ha-input:hover  { border-color: var(--line-strong, rgba(46,45,41,.18)); }
+.ha-input:focus  { outline: none; border-color: var(--ha-cardinal); }
+
+.ha-send {
+  font: inherit; font-size: 14px; font-weight: 600;
+  color: #fff; background: var(--ha-cardinal);
+  border: 1px solid var(--ha-cardinal);
+  border-radius: var(--ha-radius);
+  padding: 13px 20px;
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--ha-t) var(--ha-ease);
+}
+.ha-send:hover:not(:disabled) { background: var(--cardinal-dark, #6D1010); }
+.ha-send:disabled { opacity: .5; cursor: default; }
+
+.ha-count {
+  margin-top: 6px; text-align: right;
+  font-family: var(--ha-mono); font-size: 11px; color: var(--ha-ink-low);
+}
+.ha-count[data-over="true"] { color: var(--ha-cardinal); }
+
+/* ── the answer ───────────────────────────────────────────────────── */
+.ha-panel {
+  margin-top: 20px;
+  border: 1px solid var(--ha-line);
+  border-radius: var(--ha-radius-lg);
+  background: var(--ha-bg);
+  overflow: hidden;
+}
+.ha-panel[hidden] { display: none; }
+
+.ha-answer {
+  font-family: var(--ha-serif);
+  font-size: 17px; line-height: 1.65;
+  color: var(--ha-ink);
+  padding: 22px 24px;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.ha-answer:empty { display: none; }
+
+/* A citation marker. A button, not a span, because it is operable: it
+   scrolls to and highlights the source it points at. */
+.ha-cite {
+  font-family: var(--ha-mono); font-size: 11px; font-weight: 600;
+  vertical-align: super; line-height: 0;
+  color: var(--ha-cardinal); background: var(--ha-tint);
+  border: 0; border-radius: 4px;
+  padding: 2px 4px; margin-left: 1px;
+  cursor: pointer;
+  transition: background var(--ha-t) var(--ha-ease);
+}
+.ha-cite:hover { background: var(--cardinal-light, #B83A3A); color: #fff; }
+
+.ha-source-list { list-style: none; margin: 0; padding: 0; }
+
+.ha-sources {
+  border-top: 1px solid var(--ha-line);
+  background: var(--ha-soft);
+  padding: 16px 24px 18px;
+  margin: 0; list-style: none;
+}
+.ha-sources-label {
+  font-family: var(--ha-mono); font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ha-ink-low);
+  margin-bottom: 10px;
+}
+.ha-source {
+  display: flex; gap: 10px; align-items: baseline;
+  font-size: 13.5px; line-height: 1.55; color: var(--ha-ink-mid);
+  padding: 5px 8px; margin: 0 -8px;
+  border-radius: var(--radius-sm, 6px);
+  transition: background var(--ha-t) var(--ha-ease);
+}
+.ha-source-n {
+  flex: none;
+  font-family: var(--ha-mono); font-size: 11px; font-weight: 600;
+  color: var(--ha-cardinal);
+}
+/* Sources the answer did not actually use are shown, but quieter. The
+   visitor should be able to see what was consulted and ignored. */
+.ha-source[data-cited="false"] { opacity: .55; }
+.ha-source[data-cited="false"] .ha-source-n { color: var(--ha-ink-low); }
+.ha-source.is-target { background: var(--ha-tint); }
+
+/* ── states ───────────────────────────────────────────────────────── */
+.ha-status {
+  display: flex; align-items: center; gap: 9px;
+  padding: 18px 24px;
+  font-size: 14px; color: var(--ha-ink-low);
+}
+.ha-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ha-cardinal);
+  animation: ha-pulse 1.1s var(--ha-ease) infinite;
+}
+@keyframes ha-pulse { 0%,100% { opacity:.25 } 50% { opacity:1 } }
+
+.ha-error {
+  padding: 16px 24px;
+  font-size: 14px; color: var(--ha-cardinal);
+  background: var(--cardinal-soft, rgba(140,21,21,.04));
+}
+
+.ha-warn {
+  padding: 10px 24px;
+  border-top: 1px solid var(--ha-line);
+  font-family: var(--ha-mono); font-size: 11px;
+  color: var(--ha-cardinal);
+}
+
+/* ── the standing disclaimer ──────────────────────────────────────── */
+.ha-note {
+  margin-top: 14px;
+  font-size: 12.5px; line-height: 1.6; color: var(--ha-ink-low);
+}
+
+/* ── responsive ───────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  /* Stacked, the form is a column, and `flex: 1` on the textarea then
+     grows its HEIGHT from a zero basis — which silently overrides the
+     height the auto-resize just set, so a two-line question scrolls
+     inside a one-line box. Pin it to its own height instead. */
+  .ha-form { flex-direction: column; align-items: stretch; }
+  .ha-input { flex: 0 0 auto; width: 100%; }
+  .ha-send { width: 100%; }
+  .ha-answer { font-size: 16px; padding: 18px 18px; }
+  .ha-sources { padding: 14px 18px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ha-assistant * { animation: none !important; transition: none !important; }
+}

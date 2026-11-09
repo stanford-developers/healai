@@ -244,7 +244,9 @@ function renderNav() {
 
   /* Filter NAV_ITEMS by the phase flags — see config.js. News isn't a nav
      item any more; it lives in Toolkit → Resources → Publications. */
-  const items = NAV_ITEMS.filter(i => !(i.videoOnly && !SHOW_VIDEOS));
+  const items = NAV_ITEMS.filter(i =>
+    !(i.videoOnly && !SHOW_VIDEOS) &&
+    !(i.assistantOnly && !SHOW_ASSISTANT));
 
   items.forEach(item => {
     /* Desktop tab */
@@ -1853,6 +1855,152 @@ function renderToolkitPlaybook() {
 
 
 /* ═════════════════════════════════════════════════════════════════════════
+   ⑩.5 ASK PAGE · the chat assistant panel
+   ─────────────────────────────────────────────────────────────────────────
+   Stage 2, Volume 1. The question box itself is NOT written here: it is
+   developed and tested in the assistant repository
+   (stanford-developers/Heal-ai-bot) and vendored into this one as
+   js/heal-ai-assistant.js + css/heal-ai-assistant.css. This function's
+   whole job is to decide whether to put it on the page, give it an
+   endpoint, and wrap it in the framing text from ASSISTANT_COPY.
+
+   THREE STATES, and the middle one is the one worth having:
+     SHOW_ASSISTANT false  → nothing. No nav item, no assets fetched, the
+                             page left empty. The flag is off today.
+     true, no endpoint     → the framing text and an honest notice. This
+                             is what you see while the server is still
+                             being stood up, instead of a box that posts
+                             into the void and reports "unavailable".
+     true, with endpoint   → the panel.
+
+   WHY THE ASSETS LOAD HERE RATHER THAN FROM index.html
+     A <link> and a <script> in the document are fetched by every visitor
+     on every page, for a feature that is switched off and may stay off
+     for months. Injected here they cost nothing until the flag flips.
+     The price is that the panel cannot render before this function runs,
+     which is fine — it is below the fold of a page nobody can reach yet.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/** Idempotent: inject the vendored widget's stylesheet and script once.
+ *  Resolves when the script has run, so the caller knows the widget's
+ *  own initialiser has had its chance to find the mount point. */
+function loadAssistantAssets() {
+  if (loadAssistantAssets._p) return loadAssistantAssets._p;
+
+  loadAssistantAssets._p = new Promise((resolve, reject) => {
+    if (!byId('ha-css')) {
+      const link = document.createElement('link');
+      link.id = 'ha-css';
+      link.rel = 'stylesheet';
+      link.href = 'css/heal-ai-assistant.css';
+      document.head.appendChild(link);
+    }
+    const s = document.createElement('script');
+    s.src = 'js/heal-ai-assistant.js';
+    s.onload = () => resolve(true);
+    /* A failed asset must not look like a failed assistant. Rejecting
+       lets the caller say the panel could not load, rather than leaving
+       an inert <div> that looks like the feature is simply broken. */
+    s.onerror = () => reject(new Error('assistant widget failed to load'));
+    document.body.appendChild(s);
+  });
+  return loadAssistantAssets._p;
+}
+
+function renderAssistant() {
+  const body = byId('assistant-body');
+  if (!body) return;
+
+  /* Off: leave the page completely empty. Not a "coming soon" notice —
+     the nav item is hidden too, so the only way here is a typed URL, and
+     the right thing to show someone who guessed a URL is nothing. */
+  if (!SHOW_ASSISTANT) { body.innerHTML = ''; return; }
+
+  const c = ASSISTANT_COPY;
+  byId('assistant-eyebrow').textContent = c.eyebrow;
+  byId('assistant-h').innerHTML = c.headline;
+  byId('assistant-lede').textContent = c.lede;
+
+  const limitsHTML = `
+    <aside class="assist-limits">
+      <h4>${c.limitsTitle}</h4>
+      <ul>${c.limits.map(l => `<li>${l}</li>`).join('')}</ul>
+    </aside>`;
+
+  /* On, but nowhere to ask. Say that plainly. The alternative — showing
+     the box anyway — produces a question, a spinner and then a generic
+     failure, which reads as a broken site rather than an unfinished
+     feature. */
+  if (!ASSISTANT_ENDPOINT) {
+    body.innerHTML = `
+      <div class="assist-pending">
+        <div class="badge">Stage 2 · Coming soon</div>
+        <h3>${c.unavailableTitle}</h3>
+        <p>${c.unavailableBody}</p>
+        <div style="margin-top:24px">
+          <a href="${SIGN_UP_URL}" target="_blank" rel="noopener"
+             class="btn-prime" id="assist-notify-btn">Notify me &rarr;</a>
+        </div>
+      </div>
+      ${limitsHTML}`;
+    /* Same treatment as the other CTAs: our own form when we have an
+       endpoint for it, otherwise the href falls through to SIGN_UP_URL. */
+    byId('assist-notify-btn').addEventListener('click', e => {
+      if (!hasSignUpEndpoint()) return;
+      e.preventDefault();
+      openSignUp();
+    });
+    return;
+  }
+
+  body.innerHTML = `
+    <div data-heal-ai-assistant data-endpoint="${ASSISTANT_ENDPOINT}"></div>
+    <div class="assist-examples">
+      <p class="assist-examples-label">Try one of these</p>
+      <div class="assist-example-row">
+        ${c.examples.map(q =>
+          `<button type="button" class="assist-example">${q}</button>`).join('')}
+      </div>
+    </div>
+    ${limitsHTML}`;
+
+  loadAssistantAssets()
+    .then(() => wireAssistantExamples(body))
+    .catch(() => {
+      body.innerHTML = `
+        <div class="assist-pending">
+          <h3>${c.unavailableTitle}</h3>
+          <p>${c.unavailableBody}</p>
+        </div>
+        ${limitsHTML}`;
+    });
+}
+
+/** Makes the example questions fill the box and send. Wired only after
+ *  the widget has mounted, since its textarea does not exist before
+ *  that — the examples are inert for the few ms in between, which is
+ *  better than a click that silently does nothing afterwards. */
+function wireAssistantExamples(scope) {
+  const input = scope.querySelector('.ha-input');
+  const form  = scope.querySelector('.ha-form');
+  if (!input || !form) return;
+
+  scope.querySelectorAll('.assist-example').forEach(btn => {
+    btn.addEventListener('click', () => {
+      input.value = btn.textContent.trim();
+      /* The widget sizes its textarea on `input`, which a programmatic
+         value assignment does not fire — without this the question is
+         there but the box stays one line tall. */
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.focus();
+      form.requestSubmit ? form.requestSubmit()
+                         : form.dispatchEvent(new Event('submit', { cancelable: true }));
+    });
+  });
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
    ⑪ ABOUT PAGE renderers
    ════════════════════════════════════════════════════════════════════════ */
 function renderAboutCards() {
@@ -3291,6 +3439,7 @@ function init() {
   renderToolkitResources();
   renderPatientPanel();
   renderToolkitPlaybook();
+  renderAssistant();
   renderAboutCards();
   initTeamFeature();
   renderPartnerLogos();

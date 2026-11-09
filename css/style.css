@@ -1188,23 +1188,27 @@ nav.topnav {
 
 
 /* Phase-1 fallback notice (SHOW_VIDEOS = false) */
-.videos-hidden-notice {
+.videos-hidden-notice,
+.assist-pending {
   padding: 56px;
   text-align: center;
   background: var(--bg-warm);
   border: 1.5px dashed var(--cardinal-light);
   border-radius: var(--radius-lg);
 }
-.videos-hidden-notice h3 {
+.videos-hidden-notice h3,
+.assist-pending h3 {
   font-family: var(--serif); font-size: 26px; font-weight: 500;
   margin-bottom: 10px; color: var(--ink);
 }
-.videos-hidden-notice p {
+.videos-hidden-notice p,
+.assist-pending p {
   font-size: 14px; color: var(--ink-mid);
   line-height: 1.7;
   max-width: 560px; margin: 0 auto;
 }
-.videos-hidden-notice .badge {
+.videos-hidden-notice .badge,
+.assist-pending .badge {
   display: inline-block;
   font-family: var(--mono); font-size: 10px;
   letter-spacing: .16em; font-weight: 600;
@@ -1214,6 +1218,84 @@ nav.topnav {
   border-radius: 4px;
   text-transform: uppercase;
   margin-bottom: 18px;
+}
+
+
+/* ─── ASK PAGE · framing around the vendored assistant panel ─────────────
+   The panel itself is styled by css/heal-ai-assistant.css, which is
+   vendored from the assistant repository and whose classes are all
+   `.ha-`-prefixed. Nothing here touches those: this is only the page
+   around it — the example questions and the limits box. Keeping the two
+   stylesheets disjoint is what lets the widget be re-copied from
+   upstream without re-testing this page.
+
+   .assist-pending reuses the .videos-hidden-notice rules above rather
+   than restating them; the two say the same thing ("this part of the
+   site is not switched on yet") and should not drift apart. */
+/* ONE COLUMN, ONE LEFT EDGE.
+   The vendored widget centres itself in a 720px column, which is right
+   for its own standalone demo page (that page is nothing but the widget)
+   and wrong here: the site's page content starts at the page gutter, so
+   a self-centring panel sat ~230px to the right of the heading above it
+   and the limits box below it, with three different left edges on one
+   screen. The widget is not edited for this — its layout assumption is
+   reasonable and this is the host page's business. Instead the column is
+   defined here and the panel is told to fill it.
+   760px is a reading measure, not the full page width: an answer
+   paragraph set across 1176px is hard to track back to the next line. */
+#assistant-body { max-width: 760px; }
+#assistant-body .ha-assistant { max-width: none; margin-inline: 0; }
+
+.assist-examples { margin-top: 26px; }
+.assist-examples-label {
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-low);
+  margin-bottom: 10px;
+}
+.assist-example-row { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Deliberately quiet: these are a hint about scope, not the primary
+   action. A row of filled buttons would out-shout the question box. */
+.assist-example {
+  font-size: 13px; color: var(--ink-mid); text-align: left;
+  padding: 8px 13px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+.assist-example:hover {
+  color: var(--cardinal);
+  border-color: var(--cardinal);
+  background: var(--cardinal-soft);
+}
+
+.assist-limits {
+  margin-top: 34px;
+  padding: 20px 22px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.assist-limits h4 {
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--cardinal);
+  margin-bottom: 10px;
+}
+.assist-limits ul { padding-left: 18px; margin: 0; }
+.assist-limits li {
+  font-size: 13.5px; color: var(--ink-mid); line-height: 1.65;
+  margin-bottom: 7px;
+}
+.assist-limits li:last-child { margin-bottom: 0; }
+
+@media (max-width: 640px) {
+  /* Full-width pills: at phone width a wrapped row of three long
+     questions fragments into ragged half-lines. */
+  .assist-example-row { flex-direction: column; }
+  .assist-example { width: 100%; border-radius: var(--radius); }
 }
 
 
