@@ -34,6 +34,11 @@
   -->
 
   <meta charset="UTF-8">
+  <!-- Content-Security-Policy — see index.html for what each part is for.
+       Tighter here: this page holds an editor's login session, embeds no
+       video, calls no assistant or signup service, and has no inline
+       styles, so 'unsafe-inline' is not needed and frames are refused. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://plqcpxurgusluqapksru.supabase.co; connect-src 'self' https://plqcpxurgusluqapksru.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>HEAL-AI · Admin</title>
@@ -477,7 +482,13 @@
   </main>
 
   <script src="js/config.js?v=dev" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+  <script src="js/safe-html.js?v=dev" defer></script>
+  <!-- Pinned to one version with an integrity hash, same as index.html —
+       see the note there for why and for how to upgrade. This page holds
+       an editor's login session, so it matters most here. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"
+          integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O"
+          crossorigin="anonymous" defer></script>
   <script src="js/admin.js?v=dev" defer></script>
 </body>
 </html>

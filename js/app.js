@@ -29,9 +29,16 @@
    • All DOM IDs referenced here are mount points declared in index.html.
      If you rename an ID in the HTML, change it here too — or, better,
      don't rename it.
-   • innerHTML is used freely with our own data. We DO NOT accept
-     user-submitted strings anywhere on this page, so XSS isn't a vector.
-     If that changes later, switch to textContent + DOM construction.
+   • innerHTML is used freely with our own data.js strings, which are
+     written as HTML on purpose. Text that comes from the database is
+     NOT ours in the same way: editors type it into the admin dashboard,
+     and an editor account can be stolen. So every database field goes
+     through escapeHTML() where its row is reshaped (getPublicResources(),
+     getPublicReports(), getPublicTeamMembers(), getPublicNewsItems()),
+     and every URL goes through safeURL() where it is written into an
+     attribute. Both live in js/safe-html.js, which explains the rule.
+     A new database field needs the same treatment, or it is a way to
+     run code on this site.
 
  ACCESSIBILITY (a11y) NOTES SCATTERED THROUGH THIS FILE
    • Tab buttons (resources, nav) get aria-selected / role="tab".
@@ -1055,10 +1062,14 @@ function getPublicResources() {
         const href = r.link_url
           || storedFileUrl(sb, 'resource-files', r.file_path, r.file_name);
         (byCategory[r.category] ??= []).push({
-          h: r.title,
-          sub: r.description || '',
+          /* Escaped here, once: the card template treats h/sub as HTML,
+             which is right for data.js and wrong for typed-in text. */
+          h: escapeHTML(r.title),
+          sub: escapeHTML(r.description),
           icon: r.icon || 'paper',
-          state: href ? 'ready' : 'soon',
+          /* A link we refuse to render (javascript: and the like) shows
+             as "Coming soon" rather than as a card that goes nowhere. */
+          state: safeURL(href) ? 'ready' : 'soon',
           href,
         });
       });
@@ -1356,9 +1367,10 @@ function prefersReducedMotion() {
 /** The right-hand pane for one report, including the prev/next stepper. */
 function reportDetailHTML(r) {
   if (!r) return '';
-  const hasFile = r.downloadHref && r.downloadHref !== '#';
+  const fileHref = safeURL(r.downloadHref);
+  const hasFile = fileHref && fileHref !== '#';
   const download = hasFile
-    ? `<a class="btn-cta" href="${r.downloadHref}" target="_blank" rel="noopener">Download Full Report &rarr;</a>`
+    ? `<a class="btn-cta" href="${fileHref}" target="_blank" rel="noopener">Download Full Report &rarr;</a>`
     : `<span class="btn-cta is-unavailable" aria-disabled="true">Full report coming soon</span>`;
 
   /* Stepper for reading straight through. Disabled at the ends rather than
@@ -1546,14 +1558,17 @@ function wireResourceCategoryPanel(panel) {
  * the item is actionable so screen readers don't announce a non-link as one.
  */
 function resourceCardHTML(item, variant) {
-  const isLink = item.state === 'ready' && item.href;
+  /* safeURL() even for data.js hrefs: this one attribute is later handed
+     to window.open(), where a javascript: link would run as the site. */
+  const href    = safeURL(item.href);
+  const isLink  = item.state === 'ready' && href;
   const wrapCls = { spotlight: 'res-spotlight', tile: 'res-tile' }[variant] || 'res-row';
   const classes = wrapCls + (isLink ? ' linked' : '') + (item.state === 'soon' ? ' soon' : '');
   const tagText = item.state === 'soon' ? '• Coming soon' : '• Available';
   const tagCls  = item.state === 'soon' ? 'res-tag soon' : 'res-tag';
   const arrow   = isLink ? `<div class="res-arrow">${svgIcon('arrowOut', {sw:2})}</div>` : '';
   const linkAttrs = isLink
-    ? ` data-href="${item.href}" tabindex="0" role="link" aria-label="${stripHTML(item.h)} (opens in new tab)"`
+    ? ` data-href="${href}" tabindex="0" role="link" aria-label="${stripHTML(item.h)} (opens in new tab)"`
     : '';
   return `
     <div class="${classes}"${linkAttrs}>
@@ -1606,10 +1621,14 @@ async function getPublicReports() {
       authoritative: true,
       reports: data.map(r => ({
         /* Kept so an assistant citation (#reports?open=<id>) can open
-           this exact report — see resolveSiteLink(). */
+           this exact report — see resolveSiteLink(). Compared, never
+           rendered, so it is left as the database sent it. */
         id: r.id,
-        name: r.name, sub: r.sub, priority: r.priority,
-        overview: r.overview, summary: r.summary, issues: r.issues || [],
+        /* Every text field escaped here, once — reportDetailHTML() and the
+           list treat them as HTML, which is only right for data.js. */
+        name: escapeHTML(r.name), sub: escapeHTML(r.sub), priority: r.priority,
+        overview: escapeHTML(r.overview), summary: escapeHTML(r.summary),
+        issues: (r.issues || []).map(escapeHTML),
         /* '' rather than '#' — the detail pane reads an empty href as
            "no file yet" and shows an inert button instead of a link. */
         downloadHref: storedFileUrl(sb, 'report-files', r.file_path, r.file_name),
@@ -1630,10 +1649,47 @@ async function getPublicReports() {
  *  ('01', '02', …) no matter what was added or removed. */
 async function enhanceReportsWithUploads() {
   const { reports, authoritative } = await getPublicReports();
-  if (!authoritative) return;
+  if (!authoritative) { pendingReportId = null; return; }
   ALL_REPORTS = prioritySort(reports)
     .map((r, i) => ({ ...r, code: String(i + 1).padStart(2, '0') }));
   renderReportBrowser();
+  openPendingReport();
+}
+
+/* ─── A CITATION THAT ARRIVES BEFORE THE REPORTS DO ─────────────────────
+   An assistant source link names a database report by id:
+   #reports?open=<id>. On a fresh tab or a reload, resolveSiteLink() runs
+   during init(), while ALL_REPORTS still holds the static fallback list,
+   which has no ids — the database rows are still on their way. The id
+   used to be dropped right there, so the reader landed on the first
+   report instead of the one the assistant cited (finding W7).
+
+   Now the id waits here until enhanceReportsWithUploads() has the rows,
+   and is applied then. A newer link replaces it (resolveSiteLink() resets
+   it every time), so a slow fetch can never override what the reader
+   clicked afterwards. */
+let pendingReportId = null;
+
+/** Opens the waiting citation, if any, once the database reports exist.
+ *  Skipped if the reader has already moved off the Toolkit page: pulling
+ *  them back to a report they have since left would be worse than not
+ *  opening it. */
+function openPendingReport() {
+  const id = pendingReportId;
+  pendingReportId = null;
+  if (!id || currentPage !== 'toolkit') return;
+  const report = ALL_REPORTS.find(r => r.id === id);
+  if (report) showReport(report);
+}
+
+/** Selects a report and scrolls it into view — shared by a citation that
+ *  resolves at once and one that had to wait for the database. */
+function showReport(report) {
+  selectReport(report.code);
+  /* The report sits below the Toolkit intro; bring it into view so the
+     click visibly went somewhere. After layout, since the tab was
+     display:none a moment ago. */
+  requestAnimationFrame(() => byId('rb-detail')?.scrollIntoView({ block: 'start' }));
 }
 
 
@@ -2072,13 +2128,11 @@ function resolveSiteLink(hash) {
   const id = new URLSearchParams(query).get('open');
   const report = id ? ALL_REPORTS.find(r => r.id === id)
                : target.code ? ALL_REPORTS.find(r => r.code === target.code) : null;
-  if (report) {
-    selectReport(report.code);
-    /* The report sits below the Toolkit intro; bring it into view so the
-       click visibly went somewhere. After layout, since the tab was
-       display:none a moment ago. */
-    requestAnimationFrame(() => byId('rb-detail')?.scrollIntoView({ block: 'start' }));
-  }
+  /* This link replaces whatever an earlier one was waiting for. If the id
+     is not loaded yet, keep it for when the database rows arrive — see
+     openPendingReport(). */
+  pendingReportId = (id && !report) ? id : null;
+  if (report) showReport(report);
   return true;
 }
 
@@ -2117,15 +2171,19 @@ function renderAboutCards() {
  *  getPublicTeamMembers() — see initTeamFeature()) into #about-team. */
 function renderTeam(list) {
   byId('about-team').innerHTML = list.map(m => {
-    const initials = (m.init || m.name.split(' ').map(s => s[0]).join('')).slice(0, 2);
-    const media = m.photo
-      ? `<img src="${m.photo}" alt="Portrait of ${m.name}" loading="lazy">`
-      : `<div class="tc-fallback" aria-hidden="true">${initials}</div>`;
+    /* Photo and profile go through safeURL() here, at the attribute.
+       Every other field, initials included, was escaped by
+       getPublicTeamMembers(). */
+    const photo = safeURL(m.photo);
+    const profile = safeURL(m.profile);
+    const media = photo
+      ? `<img src="${photo}" alt="Portrait of ${m.name}" loading="lazy">`
+      : `<div class="tc-fallback" aria-hidden="true">${m.init}</div>`;
     /* Name renders as an external <a> when a `profile` field is set;
        falls back to a plain <span> otherwise. Only the name is the
        click target — the surrounding card is decorative. */
-    const nameEl = m.profile
-      ? `<a class="tc-name tc-name-link" href="${m.profile}" target="_blank" rel="noopener noreferrer">${m.name}<span class="tc-name-arrow" aria-hidden="true">↗</span></a>`
+    const nameEl = profile
+      ? `<a class="tc-name tc-name-link" href="${profile}" target="_blank" rel="noopener noreferrer">${m.name}<span class="tc-name-arrow" aria-hidden="true">↗</span></a>`
       : `<span class="tc-name">${m.name}</span>`;
     return `
       <article class="team-card">
@@ -2154,12 +2212,18 @@ async function getPublicTeamMembers() {
     const { data, error } = await sb.from('team_members').select('*').order('created_at', { ascending: false });
     if (error || !data) return [];
     return data.map(m => ({
-      name: m.name, role: m.role, badge: m.badge, priority: m.priority,
+      /* Text escaped here, once — renderTeam() writes these as HTML.
+         Initials are taken from the name BEFORE escaping, so a name that
+         starts with "&" can't be cut in the middle of "&amp;". */
+      name: escapeHTML(m.name), role: escapeHTML(m.role), badge: escapeHTML(m.badge),
+      init: escapeHTML(String(m.name || '').split(' ').map(s => s[0]).join('').slice(0, 2)),
+      priority: m.priority,
+      /* Left raw: renderTeam() checks it with safeURL() at the href. */
       profile: m.profile_url || '',
       /* Empty means "use DEFAULT_AFFILIATION" — see the team card markup
          in renderTeamGrid(). Only set on members who aren't at the lab's
          default institution. */
-      affiliation: m.affiliation || '',
+      affiliation: escapeHTML(m.affiliation),
       /* `photo_url` (a plain URL/relative path — used by the original 7,
          see /supabase/team_migration.sql) wins over `photo_path` (a file
          actually uploaded to the team-photos Storage bucket via the
@@ -2346,6 +2410,23 @@ function youTubeId(url) {
   return m ? m[1] : '';
 }
 
+/* Video players a seminar may embed. An <iframe> pointing anywhere else is
+   not drawn: the pane falls back to the thumbnail and the "Watch the talk"
+   link, so nothing is lost but the inline player. Keep this list in step
+   with frame-src in index.html's Content-Security-Policy. */
+const VIDEO_EMBED_HOSTS = ['www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com'];
+
+/** An embed URL ready for the iframe's src, or '' if it is not an https
+ *  link to one of VIDEO_EMBED_HOSTS. */
+function videoEmbedURL(value) {
+  const src = safeURL(value);
+  if (!src) return '';
+  try {
+    const u = new URL(String(value).trim());
+    return u.protocol === 'https:' && VIDEO_EMBED_HOSTS.includes(u.hostname) ? src : '';
+  } catch { return ''; }
+}
+
 /** The image for a tile: an explicit thumbnail, else YouTube's own still,
  *  else '' so the caller draws an icon placeholder. */
 function newsThumb(item) {
@@ -2497,7 +2578,7 @@ function newsListSectionHTML(type, items) {
 
 function newsTileHTML(item, on) {
   const shape = NEWS_TYPES[item.type] || NEWS_TYPES.news_article;
-  const img = newsThumb(item);
+  const img = safeURL(newsThumb(item));
   const media = img
     ? `<img src="${img}" alt="" loading="lazy" decoding="async">`
     : `<span class="nb-tile-icon">${svgIcon(shape.icon)}</span>`;
@@ -2527,13 +2608,15 @@ function newsPanePlaceholderHTML() {
 function newsPaneHTML(item) {
   const shape = NEWS_TYPES[item.type] || NEWS_TYPES.news_article;
   const meta = [...shape.meta(item), newsFormatDate(item.date)].filter(Boolean).join(' · ');
-  const img = newsThumb(item);
-  const linked = item.link && item.link !== '#';
+  const img = safeURL(newsThumb(item));
+  const link = safeURL(item.link);
+  const linked = link && link !== '#';
+  const embed = videoEmbedURL(item.embed);
 
   let media = '';
-  if (item.type === 'seminar_video' && item.embed) {
+  if (item.type === 'seminar_video' && embed) {
     media = `<div class="nb-pane-embed">
-        <iframe src="${item.embed}" title="${stripHTML(item.title)}"
+        <iframe src="${embed}" title="${stripHTML(item.title)}"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
                 allowfullscreen loading="lazy"></iframe>
       </div>`;
@@ -2545,10 +2628,10 @@ function newsPaneHTML(item) {
      straight to the piece. Anything else keeps a plain heading and a
      button underneath. */
   const title = (item.type === 'news_article' && linked)
-    ? `<h3 class="nb-pane-title"><a class="nb-pane-titlelink" href="${item.link}" target="_blank" rel="noopener">${item.title}<span class="nb-pane-titlearrow" aria-hidden="true">↗</span></a></h3>`
+    ? `<h3 class="nb-pane-title"><a class="nb-pane-titlelink" href="${link}" target="_blank" rel="noopener">${item.title}<span class="nb-pane-titlearrow" aria-hidden="true">↗</span></a></h3>`
     : `<h3 class="nb-pane-title">${item.title}</h3>`;
 
-  const audioUrl = item.type === 'podcast' ? newsMediaUrl(item.audio) : '';
+  const audioUrl = item.type === 'podcast' ? safeURL(newsMediaUrl(item.audio)) : '';
   const audio = audioUrl
     ? `<audio class="nb-pane-audio" controls preload="none" src="${audioUrl}"></audio>`
     : '';
@@ -2564,7 +2647,7 @@ function newsPaneHTML(item) {
 
   const action = (linked && item.type !== 'news_article')
     ? `<div class="nb-pane-actions">
-         <a class="btn-cta" href="${item.link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>
+         <a class="btn-cta" href="${link}" target="_blank" rel="noopener">${shape.cta} <span aria-hidden="true">→</span></a>
        </div>`
     : '';
 
@@ -2647,7 +2730,8 @@ function renderPublicationsList(items) {
   }
 
   mount.innerHTML = items.map(p => {
-    const linked = p.link && p.link !== '#';
+    const link = safeURL(p.link);
+    const linked = link && link !== '#';
     const meta = [p.authors, p.journal, newsFormatDate(p.date)].filter(Boolean).join(' · ');
     const inner = `
       <span class="np-body">
@@ -2658,7 +2742,7 @@ function renderPublicationsList(items) {
       ${linked ? `<span class="np-arrow" aria-hidden="true">${svgIcon('arrowOut', {sw:2})}</span>` : ''}`;
 
     return linked
-      ? `<a class="np-row linked" href="${p.link}" target="_blank" rel="noopener">${inner}</a>`
+      ? `<a class="np-row linked" href="${link}" target="_blank" rel="noopener">${inner}</a>`
       : `<div class="np-row">${inner}</div>`;
   }).join('');
 }
@@ -2685,14 +2769,29 @@ async function getPublicNewsItems() {
     const byType = { seminar_video: [], podcast: [], news_article: [], scholarly_publication: [] };
     data.forEach(r => {
       if (!byType[r.type]) return;
+      const m = r.meta || {};
       byType[r.type].push({
-        date: r.date, title: r.title, desc: r.description || '', link: r.link || '#',
+        /* Text escaped here, once — the news templates write these as
+           HTML. `link` and the media fields below stay raw: each is
+           checked with safeURL() where it becomes an href or src. */
+        date: r.date, title: escapeHTML(r.title), desc: escapeHTML(r.description),
+        link: r.link || '#',
         priority: r.priority,
         /* `featured` is still a column (see news_featured_migration.sql)
            but nothing reads it now that the spotlight is gone. Left out
            of the mapped shape rather than carried as dead data. */
         /* `type` rides along so the browser can group and filter on it. */
-        type: r.type, ...(r.meta || {}),
+        type: r.type,
+        /* The meta fields the admin form writes (see collectNewsMeta() in
+           admin.js), named one by one. Spreading `meta` wholesale let any
+           key in that JSON — `title`, `type`, `id` — overwrite the fields
+           above without being escaped. */
+        speaker: escapeHTML(m.speaker), venue: escapeHTML(m.venue),
+        show: escapeHTML(m.show), host: escapeHTML(m.host),
+        source: escapeHTML(m.source),
+        authors: escapeHTML(m.authors), journal: escapeHTML(m.journal),
+        transcript: escapeHTML(m.transcript),
+        embed: m.embed || '', thumb: m.thumb || '', audio: m.audio || '',
       });
     });
     return byType;
