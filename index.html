@@ -487,6 +487,35 @@
   </section>
 
 
+  <!-- ═══════════ 4.65 · ASK (the chat assistant) ═══════════════════════
+       Stage 2, Volume 1. Gated by SHOW_ASSISTANT in js/config.js, which
+       is false — with the flag off this page is unreachable (no nav item,
+       no route) and renderAssistant() leaves it empty.
+
+       Deliberately bare markup. The widget that fills #assistant-mount is
+       developed in another repository and vendored in, so the less this
+       file says about its internals the less there is to keep in step —
+       everything here is built by renderAssistant() in app.js from
+       ASSISTANT_COPY in data.js.
+
+       The widget's stylesheet and script are NOT linked from this
+       document. They are injected on demand, so a visitor downloads
+       nothing for a feature that is switched off. -->
+  <section class="page" id="page-assistant" aria-labelledby="assistant-h">
+    <header class="page-header">
+      <p class="page-eyebrow" id="assistant-eyebrow"></p>
+      <h1 class="page-h1" id="assistant-h"></h1>
+      <p class="page-sub" id="assistant-lede"></p>
+    </header>
+
+    <section class="section">
+      <!-- Filled by renderAssistant(): either the widget's mount point
+           and the example questions, or the "not switched on" notice. -->
+      <div id="assistant-body"></div>
+    </section>
+  </section>
+
+
   <!-- ═══════════ 4.7 · ABOUT ═══════════════════════════════════════════ -->
   <section class="page" id="page-about" aria-labelledby="about-page-h">
     <header class="page-header">
