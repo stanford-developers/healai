@@ -233,6 +233,7 @@ function goPage(name) {
 /* Back/Forward: the browser has already changed location.hash for us —
    just apply it, without pushing a further history entry. */
 window.addEventListener('popstate', () => {
+  if (resolveSiteLink(location.hash)) return;
   setActivePage(location.hash.slice(1) || DEFAULT_PAGE);
 });
 
@@ -244,7 +245,9 @@ function renderNav() {
 
   /* Filter NAV_ITEMS by the phase flags — see config.js. News isn't a nav
      item any more; it lives in Toolkit → Resources → Publications. */
-  const items = NAV_ITEMS.filter(i => !(i.videoOnly && !SHOW_VIDEOS));
+  const items = NAV_ITEMS.filter(i =>
+    !(i.videoOnly && !SHOW_VIDEOS) &&
+    !(i.assistantOnly && !ASSISTANT_ON));
 
   items.forEach(item => {
     /* Desktop tab */
@@ -1602,6 +1605,9 @@ async function getPublicReports() {
     return {
       authoritative: true,
       reports: data.map(r => ({
+        /* Kept so an assistant citation (#reports?open=<id>) can open
+           this exact report — see resolveSiteLink(). */
+        id: r.id,
         name: r.name, sub: r.sub, priority: r.priority,
         overview: r.overview, summary: r.summary, issues: r.issues || [],
         /* '' rather than '#' — the detail pane reads an empty href as
@@ -1849,6 +1855,231 @@ function renderToolkitPlaybook() {
       });
     }
   });
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ⑩.5 ASK PAGE · the chat assistant panel
+   ─────────────────────────────────────────────────────────────────────────
+   Stage 2, Volume 1. The question box itself is NOT written here: it is
+   developed and tested in the assistant repository
+   (stanford-developers/Heal-ai-bot) and vendored into this one as
+   js/heal-ai-assistant.js + css/heal-ai-assistant.css. This function's
+   whole job is to decide whether to put it on the page, give it an
+   endpoint, and wrap it in the framing text from ASSISTANT_COPY.
+
+   THREE STATES, and the middle one is the one worth having:
+     SHOW_ASSISTANT false  → nothing. No nav item, no assets fetched, the
+                             page left empty. The flag is off today.
+     true, no endpoint     → the framing text and an honest notice. This
+                             is what you see while the server is still
+                             being stood up, instead of a box that posts
+                             into the void and reports "unavailable".
+     true, with endpoint   → the panel.
+
+   WHY THE ASSETS LOAD HERE RATHER THAN FROM index.html
+     A <link> and a <script> in the document are fetched by every visitor
+     on every page, for a feature that is switched off and may stay off
+     for months. Injected here they cost nothing until the flag flips.
+     The price is that the panel cannot render before this function runs,
+     which is fine — it is below the fold of a page nobody can reach yet.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/** Idempotent: inject the vendored widget's stylesheet and script once.
+ *  Resolves when the script has run, so the caller knows the widget's
+ *  own initialiser has had its chance to find the mount point. */
+function loadAssistantAssets() {
+  if (loadAssistantAssets._p) return loadAssistantAssets._p;
+
+  loadAssistantAssets._p = new Promise((resolve, reject) => {
+    if (!byId('ha-css')) {
+      const link = document.createElement('link');
+      link.id = 'ha-css';
+      link.rel = 'stylesheet';
+      link.href = 'css/heal-ai-assistant.css?v=beta-20261117';
+      document.head.appendChild(link);
+    }
+    const s = document.createElement('script');
+    s.src = 'js/heal-ai-assistant.js?v=beta-20261117';
+    s.onload = () => resolve(true);
+    /* A failed asset must not look like a failed assistant. Rejecting
+       lets the caller say the panel could not load, rather than leaving
+       an inert <div> that looks like the feature is simply broken. */
+    s.onerror = () => reject(new Error('assistant widget failed to load'));
+    document.body.appendChild(s);
+  });
+  return loadAssistantAssets._p;
+}
+
+/** The floating panel, on every page.
+ *
+ *  The assistant used to be a box inside the Ask page, so it was only
+ *  where a visitor had navigated to. It is now a launcher in the
+ *  bottom-right corner of the whole site that opens a panel over the
+ *  current page — asking about a report while reading it, rather than
+ *  leaving it to ask. The widget owns the launcher and the panel; this
+ *  only decides whether to mount it and where it posts.
+ *
+ *  Mounted on <body>, outside every .page, so changing page does not
+ *  unmount it and a minimised conversation survives navigation. */
+function mountAssistantPanel() {
+  if (!ASSISTANT_ON || !ASSISTANT_URL) return Promise.resolve(false);
+  if (!document.querySelector('[data-heal-ai-assistant]')) {
+    const el = document.createElement('div');
+    el.setAttribute('data-heal-ai-assistant', '');
+    el.setAttribute('data-endpoint', ASSISTANT_URL);
+    document.body.appendChild(el);
+    document.body.classList.add('has-assistant');
+  }
+  return loadAssistantAssets().then(() => true);
+}
+
+function renderAssistant() {
+  const body = byId('assistant-body');
+  if (!body) return;
+
+  /* Off: leave the page completely empty. Not a "coming soon" notice —
+     the nav item is hidden too, so the only way here is a typed URL, and
+     the right thing to show someone who guessed a URL is nothing. */
+  if (!ASSISTANT_ON) { body.innerHTML = ''; return; }
+
+  const c = ASSISTANT_COPY;
+  byId('assistant-eyebrow').textContent = c.eyebrow;
+  byId('assistant-h').innerHTML = c.headline;
+  byId('assistant-lede').textContent = c.lede;
+
+  const limitsHTML = `
+    <aside class="assist-limits">
+      <h4>${c.limitsTitle}</h4>
+      <ul>${c.limits.map(l => `<li>${l}</li>`).join('')}</ul>
+    </aside>`;
+
+  /* On, but nowhere to ask. Say that plainly. The alternative — showing
+     the box anyway — produces a question, a spinner and then a generic
+     failure, which reads as a broken site rather than an unfinished
+     feature. */
+  if (!ASSISTANT_URL) {
+    body.innerHTML = `
+      <div class="assist-pending">
+        <div class="badge">Stage 2 · Coming soon</div>
+        <h3>${c.unavailableTitle}</h3>
+        <p>${c.unavailableBody}</p>
+        <div style="margin-top:24px">
+          <a href="${SIGN_UP_URL}" target="_blank" rel="noopener"
+             class="btn-prime" id="assist-notify-btn">Notify me &rarr;</a>
+        </div>
+      </div>
+      ${limitsHTML}`;
+    /* Same treatment as the other CTAs: our own form when we have an
+       endpoint for it, otherwise the href falls through to SIGN_UP_URL. */
+    byId('assist-notify-btn').addEventListener('click', e => {
+      if (!hasSignUpEndpoint()) return;
+      e.preventDefault();
+      openSignUp();
+    });
+    return;
+  }
+
+  /* The page explains the assistant and opens the panel; it no longer
+     holds a second copy of it. One conversation, wherever it was started. */
+  body.innerHTML = `
+    <div class="assist-open">
+      <button type="button" class="btn-prime" id="assist-open-btn" disabled>Open the assistant</button>
+      <p class="assist-open-note">It opens in the corner of the page, and stays with you as you browse.</p>
+    </div>
+    <div class="assist-examples">
+      <p class="assist-examples-label">Try one of these</p>
+      <div class="assist-example-row">
+        ${c.examples.map(q =>
+          `<button type="button" class="assist-example" disabled>${q}</button>`).join('')}
+      </div>
+    </div>
+    ${limitsHTML}`;
+
+  mountAssistantPanel()
+    .then(() => wireAssistantPage(body))
+    .catch(() => {
+      body.innerHTML = `
+        <div class="assist-pending">
+          <h3>${c.unavailableTitle}</h3>
+          <p>${c.unavailableBody}</p>
+        </div>
+        ${limitsHTML}`;
+    });
+}
+
+/** The Ask page's button and example questions drive the panel. They are
+ *  disabled until the widget has loaded, so a click can never silently do
+ *  nothing. */
+function wireAssistantPage(scope) {
+  const api = window.HealAIAssistant;
+  if (!api) return;
+  const openBtn = scope.querySelector('#assist-open-btn');
+  if (openBtn) { openBtn.disabled = false; openBtn.addEventListener('click', () => api.open()); }
+  scope.querySelectorAll('.assist-example').forEach(btn => {
+    btn.disabled = false;
+    btn.addEventListener('click', () => api.ask(btn.textContent.trim()));
+  });
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ⑩.6 SOURCE LINKS · where an assistant citation lands
+   ─────────────────────────────────────────────────────────────────────────
+   The assistant links each source to a place on this site, by anchor:
+   #reports?open=<id>, #playbook-ai-types, #patient-panel, #furm …
+
+   None of those were routes. The router knows six page names and sends
+   anything else to Home, so before this, nearly every source link in an
+   answer — 258 of the 261 passages in the corpus — took the reader to the
+   home page. Found in the 2026-11-16 audit.
+
+   This maps each anchor to the page, tab and (for a database report) the
+   report itself, and then rewrites the URL to the plain page name, so Back
+   and a reload behave like any other page. An anchor it does not know is
+   left to the normal router. */
+const SITE_LINK_TARGETS = {
+  'reports':               { page: 'toolkit', tab: 'resources', group: 'reports' },
+  'resources-reports':     { page: 'toolkit', tab: 'resources', group: 'reports' },
+  'resources-interviews':  { page: 'toolkit', tab: 'resources', group: 'templates' },
+  'playbook':              { page: 'toolkit', tab: 'playbook' },
+  'furm':                  { page: 'toolkit', tab: 'process' },
+  'patient-panel':         { page: 'patient' },
+  'get-started':           { page: 'home' },
+  'hero':                  { page: 'home' },
+};
+
+function resolveSiteLink(hash) {
+  const raw = String(hash || '').replace(/^#/, '');
+  if (!raw) return false;
+  const [name, query = ''] = raw.split('?');
+  if (PAGE_IDS.includes(name) && !query) return false;   // an ordinary page
+
+  const target = SITE_LINK_TARGETS[name] ||
+    (/^playbook-/.test(name) ? SITE_LINK_TARGETS.playbook : null) ||
+    (/^reports-\d+$/.test(name) ? { ...SITE_LINK_TARGETS.reports, code: name.split('-')[1] } : null) ||
+    (PAGE_IDS.includes(name) ? { page: name } : null);
+  if (!target) return false;
+
+  history.replaceState({ page: target.page }, '', '#' + target.page);
+  setActivePage(target.page);
+  if (target.page === 'toolkit' && target.tab) {
+    activateToolkitTab(target.tab, false);
+    if (target.tab === 'resources' && target.group) activateResourceGroupTab(target.group, false);
+  }
+  /* A database report carries its row id. Codes are positional and
+     change when a report is added, so the id is the only stable key. */
+  const id = new URLSearchParams(query).get('open');
+  const report = id ? ALL_REPORTS.find(r => r.id === id)
+               : target.code ? ALL_REPORTS.find(r => r.code === target.code) : null;
+  if (report) {
+    selectReport(report.code);
+    /* The report sits below the Toolkit intro; bring it into view so the
+       click visibly went somewhere. After layout, since the tab was
+       display:none a moment ago. */
+    requestAnimationFrame(() => byId('rb-detail')?.scrollIntoView({ block: 'start' }));
+  }
+  return true;
 }
 
 
@@ -3277,7 +3508,7 @@ function init() {
      instead of always resetting to Home. No history entry is pushed here —
      the browser already owns whatever entry brought us to this URL. */
   const initialPage = location.hash.slice(1);
-  if (initialPage) setActivePage(initialPage);
+  if (initialPage) setActivePage(initialPage.split('?')[0]);
   updateFooterVisibility(currentPage);   /* setActivePage() no-ops on the default (no-hash) load */
 
   /* Page-specific renderers */
@@ -3291,6 +3522,10 @@ function init() {
   renderToolkitResources();
   renderPatientPanel();
   renderToolkitPlaybook();
+  renderAssistant();
+  /* A source link opened in a new tab, or reloaded: resolve it now that
+     the Toolkit tabs it may need to switch exist. */
+  if (location.hash) resolveSiteLink(location.hash);
   renderAboutCards();
   initTeamFeature();
   renderPartnerLogos();

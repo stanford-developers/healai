@@ -51,7 +51,8 @@
    ① NAV_ITEMS · order and labels for the top navigation
 ─────────────────────────────────────────────────────────────────────────────
    `id` must match a <section class="page" id="page-XXX">.
-   `videoOnly: true` makes the item appear ONLY when SHOW_VIDEOS is true.
+   `videoOnly: true`     makes the item appear ONLY when SHOW_VIDEOS is true.
+   `assistantOnly: true` makes the item appear ONLY when SHOW_ASSISTANT is.
 
    EDIT HERE  →  rename labels or reorder items by editing this array.
 ─────────────────────────────────────────────────────────────────────────── */
@@ -60,8 +61,51 @@ const NAV_ITEMS = [
   { id: 'toolkit', label: 'Toolkit' },
   { id: 'videos',  label: 'Videos',    videoOnly: true },
   { id: 'patient', label: 'Patient Panel' },
+  /* "Ask", not "Assistant" or "Chat": it names what a visitor does rather
+     than what the thing is, and it does not promise a conversation — the
+     panel answers one question at a time and keeps no history. */
+  { id: 'assistant', label: 'Ask',     assistantOnly: true },
   { id: 'about',   label: 'About' },
 ];
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ①b ASSISTANT_COPY · the Ask page's framing text
+─────────────────────────────────────────────────────────────────────────────
+   Everything on the page except the panel itself, which is rendered by the
+   vendored widget (js/heal-ai-assistant.js) and carries its own standing
+   note about sources and advice.
+
+   `examples` are not decoration. An empty box invites "what should I do
+   about my diagnosis?", which this cannot and must not answer; three
+   questions it answers well are the cheapest way to set the scope before
+   someone is disappointed by a refusal. They are clickable — see
+   renderAssistant() in app.js.
+
+   `limits` is deliberately on the page rather than in a tooltip. A tool
+   that answers from a fixed corpus has real edges, and a visitor who
+   cannot see them reads a refusal as a malfunction.
+─────────────────────────────────────────────────────────────────────────── */
+const ASSISTANT_COPY = {
+  eyebrow: 'Ask · Beta',
+  headline: 'Ask about <em>our published work.</em>',
+  lede: 'Explore HEAL-AI\'s published work with this experimental assistant. AI-generated answers can be inaccurate; check the linked original documents.',
+  examples: [
+    'Who reviews an AI tool before it is deployed?',
+    'What does a FURM ethics assessment actually look at?',
+    'How are patient partners recruited and trained?',
+  ],
+  limitsTitle: 'What it will not do',
+  limits: [
+    'It is not intended for medical, legal or clinical advice, or decisions about an individual case.',
+    'It searches published HEAL-AI material. Answers may be incomplete or inaccurate; verify them against the original sources.',
+    'It is not a person from the lab. For anything that needs one, use the contact details on the About page.',
+  ],
+  /* Shown in place of the panel when SHOW_ASSISTANT is on but no endpoint
+     is configured. Honest about the state rather than silently broken. */
+  unavailableTitle: 'The assistant is not switched on yet.',
+  unavailableBody: 'The question box is built and tested, but it has no server to answer from yet. Sign up for updates and we will say when it goes live.',
+};
 
 
 /* ─────────────────────────────────────────────────────────────────────────
