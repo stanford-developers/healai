@@ -6,8 +6,8 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.js
-     commit  06db793 (branch audit-and-floating-panel)
-     copied  2026-11-16
+     commit  2cc78fd (public-beta release)
+     copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
    only serve files that are in this repository. Edits belong upstream; a
@@ -73,12 +73,11 @@
   ];
 
   var TITLE = 'Ask about HEAL-AI’s work';
-  var SUBTITLE = 'Answers from published material, with sources';
+  var SUBTITLE = 'Beta · Answers from published material';
 
   var NOTE =
-    'Answers come only from HEAL-AI’s published material. This is not ' +
-    'medical, legal or clinical advice, and it cannot speak to an ' +
-    'individual case.';
+    'Beta: AI-generated answers can be inaccurate. Check the linked original sources. ' +
+    'Not medical, legal or clinical advice.';
 
   /* Shown until the server says otherwise, and kept if it cannot be
      asked. The notice is a disclosure, so it fails towards saying more:
@@ -291,8 +290,8 @@
         .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
         .then(function (h) {
           service.hidden = true;
-          if (h && h.logging_questions === false) privacy.textContent = PRIVACY_OFF;
-          else if (h && h.notice) privacy.textContent = h.notice;
+          if (h && h.notice) privacy.textContent = h.notice;
+          else if (h && h.logging_questions === false) privacy.textContent = PRIVACY_OFF;
           // anything else: keep the conservative wording
         })
         .catch(function () {

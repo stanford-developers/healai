@@ -88,12 +88,9 @@ const SHOW_NEWS = true;
        injects them, and only when this is true. So with the flag off the
        feature costs a visitor nothing: no extra request, no dead markup.
 
-   CURRENT STATE — false, and it must stay false until there is a server.
-     The widget and the endpoint are both written and tested upstream, but
-     the endpoint is deployed nowhere. Turning this on without a working
-     ASSISTANT_ENDPOINT shows an honest "not available yet" notice rather
-     than a broken box — but it would still advertise a feature that does
-     not answer, so leave it off.
+   CURRENT STATE — public beta, backed by AWS Lambda in Ohio.
+     Set SHOW_ASSISTANT=false to hide the feature immediately on the next
+     website deployment. No AWS credentials belong in this file.
 
    TO LAUNCH, in this order:
      1. Stand the server up somewhere with a permanent HTTPS address.
@@ -102,7 +99,7 @@ const SHOW_NEWS = true;
      3. Put that address in ASSISTANT_ENDPOINT.
      4. Flip this to true.
 ─────────────────────────────────────────────────────────────────────────── */
-const SHOW_ASSISTANT = false;
+const SHOW_ASSISTANT = true;
 
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -132,7 +129,7 @@ const SHOW_ASSISTANT = false;
    address. If a key ever needs to appear in this file, something upstream
    has been built wrong — see the guide's "Serving" section.
 ─────────────────────────────────────────────────────────────────────────── */
-const ASSISTANT_ENDPOINT = '';
+const ASSISTANT_ENDPOINT = 'https://l6dt0fqr00.execute-api.us-east-2.amazonaws.com/api/ask';
 
 
 /* ─────────────────────────────────────────────────────────────────────────

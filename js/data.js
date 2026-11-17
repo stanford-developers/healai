@@ -87,9 +87,9 @@ const NAV_ITEMS = [
    cannot see them reads a refusal as a malfunction.
 ─────────────────────────────────────────────────────────────────────────── */
 const ASSISTANT_COPY = {
-  eyebrow: 'Ask',
+  eyebrow: 'Ask · Beta',
   headline: 'Ask about <em>our published work.</em>',
-  lede: 'A question box that answers only from HEAL-AI\'s own material — the playbook, the ethics assessments, the templates and the patient panel guidance — and shows you which document each part of the answer came from.',
+  lede: 'Explore HEAL-AI\'s published work with this experimental assistant. AI-generated answers can be inaccurate; check the linked original documents.',
   examples: [
     'Who reviews an AI tool before it is deployed?',
     'What does a FURM ethics assessment actually look at?',
@@ -97,8 +97,8 @@ const ASSISTANT_COPY = {
   ],
   limitsTitle: 'What it will not do',
   limits: [
-    'It cannot give medical, legal or clinical advice, or speak to anyone\'s individual case.',
-    'It answers from published HEAL-AI material only. Asked anything else, it says so rather than guessing.',
+    'It is not intended for medical, legal or clinical advice, or decisions about an individual case.',
+    'It searches published HEAL-AI material. Answers may be incomplete or inaccurate; verify them against the original sources.',
     'It is not a person from the lab. For anything that needs one, use the contact details on the About page.',
   ],
   /* Shown in place of the panel when SHOW_ASSISTANT is on but no endpoint
