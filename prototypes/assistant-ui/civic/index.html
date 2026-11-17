@@ -1,0 +1,1266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Civic Clarity · HEAL-AI</title>
+<meta name="description" content="Prototype of the HEAL-AI assistant in the Civic Clarity direction: plain language, big type, accessible patterns. Mock replies only.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   CIVIC CLARITY · HEAL-AI assistant prototype
+   Plain language, big readable type, unmistakable focus, one brand accent.
+   PROTOTYPE ONLY — replies come from ../fixtures.js, not a model.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  --cardinal:       #8C1515;   /* white on this: 8.6:1 */
+  --cardinal-dark:  #6D1010;
+  --cardinal-deep:  #4A0B0B;
+  --cardinal-tint:  #F6E8E8;
+
+  --ink:            #161615;   /* body text · ~18:1 on white */
+  --ink-2:          #4D4F53;   /* secondary text · ~8:1 on white, ~7:1 on --warm */
+  --ink-ui:         #6B6D71;   /* borders of controls · ~5:1 on white */
+  --rule:           #D9D6D0;   /* decorative dividers only */
+  --warm:           #F4F2EE;
+  --warm-2:         #ECE9E3;
+  --white:          #FFFFFF;
+
+  --focus:          #FFDD00;   /* yellow fill … */
+  --focus-ink:      #0B0C0C;   /* … with a near-black bar: ≥3:1 on any background */
+  --error:          #B3261E;   /* ~6.4:1 on white */
+  --highlight:      #FFF6C2;
+
+  --serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+  --sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --pbar-h: 48px;              /* set from the real bar height by script */
+  --ease: cubic-bezier(.2, .6, .2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 18px;
+  line-height: 1.55;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p, ul, ol, dl, dd { margin: 0; }
+img, svg { display: block; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--cardinal); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
+a:hover { color: var(--cardinal-dark); text-decoration-thickness: 3px; }
+
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── THE FOCUS STATE ─────────────────────────────────────────────────
+   Yellow fill, near-black text, near-black bar underneath. The yellow
+   makes it impossible to miss; the dark bar gives the 3:1 contrast on
+   white, on warm grey and on cardinal alike. */
+a:focus-visible {
+  outline: 3px solid transparent;
+  color: var(--focus-ink) !important;
+  background: var(--focus);
+  box-shadow: 0 -2px var(--focus), 0 4px var(--focus-ink);
+  text-decoration: none;
+}
+button:focus-visible, select:focus-visible, .btn:focus-visible {
+  outline: 3px solid transparent;
+  outline-offset: 0;
+  color: var(--focus-ink) !important;
+  background: var(--focus) !important;
+  border-color: var(--focus-ink) !important;
+  box-shadow: 0 4px 0 var(--focus-ink) !important;
+}
+button:focus-visible svg { color: var(--focus-ink); }
+textarea:focus, input:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 2px var(--focus-ink);
+}
+
+.skip {
+  position: absolute; left: 12px; top: -60px; z-index: 200;
+  padding: 10px 14px; background: var(--focus); color: var(--focus-ink);
+  font-weight: 700;
+}
+.skip:focus { top: 12px; }
+
+/* ── PROTOTYPE BAR ───────────────────────────────────────────────── */
+.pbar {
+  position: sticky; top: 0; z-index: 70;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px; line-height: 1.35;
+}
+.pbar-in {
+  max-width: 1240px; margin: 0 auto;
+  padding: 7px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px;
+}
+.pbar a { color: #fff; font-weight: 600; }
+.pbar-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+.pbar-name strong { font-weight: 800; letter-spacing: .01em; }
+.pbar-name span { color: #D8D6D2; }  /* ~12:1 on --ink */
+.pbar-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
+.pbar label { color: #D8D6D2; }
+.pbar select, .pbar button {
+  height: 32px; padding: 0 10px;
+  border: 1px solid #8F8C86; border-radius: 4px;
+  background: #2A2A28; color: #fff;
+  font-size: 14px;
+}
+.pbar select { max-width: 190px; }
+.pbar button { font-weight: 600; }
+.pbar button:hover { background: #3A3A37; }
+.pbar button:disabled { opacity: .55; cursor: default; }
+.pb-short { display: none; }
+
+/* ── SITE HEADER (mock) ──────────────────────────────────────────── */
+.site-head { background: var(--cardinal); color: #fff; }
+.site-head-in {
+  max-width: 1240px; margin: 0 auto; padding: 0 24px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 24px;
+  min-height: 68px;
+}
+.wordmark {
+  display: inline-flex; align-items: baseline; gap: 12px;
+  color: #fff; text-decoration: none;
+}
+.wordmark b { font-family: var(--serif); font-weight: 700; font-size: 27px; letter-spacing: .01em; }
+.wordmark span { font-size: 15px; color: #F7E3E3; font-weight: 500; }  /* ~7:1 on cardinal */
+.wordmark:hover { color: #fff; text-decoration: none; }
+.site-nav ul { display: flex; flex-wrap: wrap; gap: 0 4px; list-style: none; padding: 0; }
+.site-nav a {
+  display: inline-flex; align-items: center; min-height: 68px; padding: 0 12px;
+  color: #fff; font-weight: 600; font-size: 16px; text-decoration: none;
+  border-bottom: 5px solid transparent; border-top: 5px solid transparent;
+}
+.site-nav a:hover { text-decoration: underline; text-decoration-thickness: 2px; color: #fff; }
+.site-nav a[aria-current="page"] { border-bottom-color: #fff; }
+.site-nav a:focus-visible { box-shadow: none; border-bottom-color: var(--focus-ink); }
+
+/* ── HERO ────────────────────────────────────────────────────────── */
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+.hero { padding: 64px 0 72px; border-bottom: 1px solid var(--rule); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 64px; align-items: start; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--cardinal);
+}
+.eyebrow::before { content: ''; width: 28px; height: 4px; background: var(--cardinal); }
+.hero h1 {
+  margin-top: 18px;
+  font-size: clamp(38px, 5.4vw, 66px);
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -.028em;
+  max-width: 15ch;
+}
+.lede { margin-top: 22px; font-size: 22px; line-height: 1.5; color: var(--ink-2); max-width: 36em; }
+.hero-actions { margin-top: 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 52px; padding: 12px 22px 11px;
+  border: 2px solid transparent; border-radius: 4px;
+  background: var(--cardinal); color: #fff;
+  font-size: 19px; font-weight: 700; line-height: 1.2; text-decoration: none;
+  box-shadow: 0 3px 0 var(--cardinal-deep);
+  transition: background-color .15s var(--ease);
+}
+.btn:hover { background: var(--cardinal-dark); color: #fff; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em; }
+.btn:active { transform: translateY(2px); box-shadow: none; }
+.btn svg { width: 20px; height: 20px; }
+.hero-note { font-size: 16px; color: var(--ink-2); }
+
+.try { margin-top: 44px; }
+.try h2 { font-size: 19px; font-weight: 800; }
+.try-list { margin-top: 14px; list-style: none; padding: 0; display: grid; grid-template-columns: 1fr; gap: 0; border-top: 2px solid var(--ink); max-width: 640px; }
+.try-btn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  min-height: 60px; padding: 14px 4px 14px 0;
+  border: 0; border-bottom: 1px solid var(--rule); background: none;
+  text-align: left; font-size: 19px; font-weight: 600; color: var(--cardinal);
+}
+.try-btn span { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+.try-btn:hover span { text-decoration-thickness: 3px; }
+.try-btn .arrow {
+  flex: none; width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--cardinal); color: #fff;
+  transition: transform .15s var(--ease);
+}
+.try-btn:hover .arrow { transform: translateX(3px); }
+.try-btn .arrow svg { width: 18px; height: 18px; }
+.try-btn:focus-visible .arrow { background: var(--focus-ink); color: var(--focus); }
+.try-btn:focus-visible span { text-decoration: none; }
+
+.how { background: var(--warm); border-top: 6px solid var(--cardinal); padding: 28px 28px 30px; }
+.how h2 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+.how ol { list-style: none; padding: 0; margin-top: 20px; display: grid; gap: 22px; counter-reset: step; }
+.how li { display: grid; grid-template-columns: 44px 1fr; gap: 14px; counter-increment: step; }
+.how li::before {
+  content: counter(step);
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border: 3px solid var(--ink); border-radius: 50%;
+  font-weight: 800; font-size: 19px; background: var(--white);
+}
+.how h3 { font-size: 18px; font-weight: 700; line-height: 1.35; }
+.how p { margin-top: 4px; font-size: 16px; color: var(--ink-2); line-height: 1.5; }
+
+/* ── INSPIRED BY ─────────────────────────────────────────────────── */
+.inspired { padding: 64px 0 72px; background: var(--white); }
+.inspired h2 { font-size: clamp(28px, 3.2vw, 38px); font-weight: 800; letter-spacing: -.02em; }
+.inspired .sub { margin-top: 10px; font-size: 19px; color: var(--ink-2); max-width: 46em; }
+.insp-list { list-style: none; padding: 0; margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.insp-list li { border: 1px solid var(--rule); border-top: 6px solid var(--ink); padding: 22px 22px 24px; background: var(--white); min-width: 0; }
+.insp-list a { font-size: 20px; font-weight: 800; display: inline; }
+.insp-list a svg { display: inline-block; width: 16px; height: 16px; margin-left: 6px; vertical-align: -1px; }
+.insp-url { margin-top: 6px; font-family: var(--mono); font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
+.insp-what { margin-top: 14px; font-size: 17px; line-height: 1.5; }
+.insp-what b { font-weight: 700; }
+.insp-note {
+  margin-top: 24px; padding: 14px 18px;
+  border-left: 6px solid var(--rule); background: var(--warm);
+  font-size: 17px; font-weight: 600;
+}
+
+/* ── FOOTER (mock; gives #toolkit and #about something to land on) ── */
+.site-foot { background: var(--ink); color: #fff; padding: 48px 0 120px; }
+.foot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.site-foot h2 { font-size: 18px; font-weight: 800; }
+.site-foot p { margin-top: 8px; font-size: 16px; color: #D8D6D2; }
+.site-foot a { color: #fff; }
+.site-foot .wordmark b { font-size: 24px; }
+:target { scroll-margin-top: calc(var(--pbar-h) + 16px); }
+.site-foot section:target { outline: 3px solid var(--focus); outline-offset: 8px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   THE ASSISTANT
+   ═══════════════════════════════════════════════════════════════════ */
+.ca-launcher {
+  position: fixed; z-index: 50;
+  right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom));
+  display: inline-flex; align-items: center; gap: 10px;
+  min-height: 56px; padding: 0 22px 0 18px;
+  border: 2px solid var(--cardinal-deep); border-radius: 6px;
+  background: var(--cardinal); color: #fff;
+  font-size: 18px; font-weight: 700;
+  box-shadow: 0 4px 0 var(--cardinal-deep), 0 14px 32px rgba(40, 8, 8, .28);
+  transition: background-color .15s var(--ease);
+}
+.ca-launcher svg { width: 22px; height: 22px; }
+.ca-launcher:hover { background: var(--cardinal-dark); }
+.ca-launcher:hover .ca-launcher-text { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .22em; }
+.ca-launcher:active { transform: translateY(2px); }
+.ca-unread {
+  position: absolute; top: -7px; right: -7px;
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+  background: var(--focus); color: var(--focus-ink); border: 2px solid var(--focus-ink);
+  font-size: 13px; font-weight: 800; line-height: 18px; text-align: center;
+}
+.ca-unread[hidden] { display: none; }
+.ca[data-open="true"] .ca-launcher { visibility: hidden; }
+
+.ca-panel {
+  position: fixed; z-index: 50;
+  right: max(24px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom));
+  width: 460px; max-width: calc(100vw - 32px);
+  height: min(840px, calc(100vh - var(--pbar-h) - 40px));
+  height: min(840px, calc(100dvh - var(--pbar-h) - 40px));
+  display: flex; flex-direction: column;
+  background: var(--white);
+  border: 1px solid #BEBAB3;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(20, 10, 10, .22), 0 6px 18px rgba(0, 0, 0, .08);
+  opacity: 0; transform: translateY(16px);
+  transition: opacity .2s var(--ease), transform .2s var(--ease);
+}
+.ca-panel[hidden] { display: none; }
+.ca[data-open="true"] .ca-panel { opacity: 1; transform: none; }
+
+/* header: the brand bar */
+.ca-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 10px 12px 20px;
+  background: var(--cardinal); color: #fff;
+}
+.ca-kicker { font-family: var(--serif); font-weight: 700; font-size: 15px; letter-spacing: .02em; color: #F7E3E3; }
+.ca-title { font-size: 20px; font-weight: 800; line-height: 1.2; letter-spacing: -.01em; }
+.ca-head-actions { display: flex; gap: 4px; flex: none; }
+.ca-icon {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border: 2px solid transparent; border-radius: 4px; background: transparent; color: #fff;
+}
+.ca-icon svg { width: 22px; height: 22px; }
+.ca-icon:hover { background: var(--cardinal-dark); border-color: rgba(255,255,255,.55); }
+
+/* phase banner */
+.ca-phase {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--white);
+  font-size: 15px; line-height: 1.4;
+}
+.ca-tag {
+  flex: none;
+  padding: 3px 9px 2px;
+  background: var(--cardinal-tint); color: var(--cardinal-dark);
+  border: 1px solid #D9B4B4;
+  font-size: 15px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+}
+
+/* the conversation */
+.ca-log {
+  position: relative;
+  flex: 1; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 22px 24px 28px;
+  font-size: 18px; line-height: 1.6;
+  scroll-behavior: smooth;
+}
+.ca-log:focus-visible { outline: 3px solid var(--focus-ink); outline-offset: -3px; box-shadow: inset 0 0 0 7px var(--focus); }
+
+.intro-h { font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.25; }
+.intro-lede { margin-top: 8px; color: var(--ink-2); }
+.starters { margin-top: 18px; display: grid; gap: 10px; }
+.starter {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  width: 100%; min-height: 56px; padding: 12px 14px 12px 16px;
+  border: 2px solid var(--ink-ui); border-radius: 4px; background: var(--white);
+  text-align: left; font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink);
+}
+.starter:hover { border-color: var(--cardinal); box-shadow: inset 5px 0 0 var(--cardinal); }
+.starter svg { width: 20px; height: 20px; flex: none; color: var(--cardinal); }
+.inset {
+  margin-top: 20px; padding: 6px 0 6px 16px;
+  border-left: 5px solid #B9B5AE;
+  font-size: 16px; color: var(--ink-2); line-height: 1.5;
+}
+.intro.is-compact .intro-h, .intro.is-compact .intro-lede, .intro.is-compact .starters { display: none; }
+.intro.is-compact .inset { margin-top: 0; }
+
+.msg { animation: rise .24s var(--ease) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.m-user { margin-top: 30px; padding-top: 22px; border-top: 2px solid var(--ink); }
+.m-user:first-of-type { }
+.m-you { font-size: 15px; font-weight: 700; color: var(--ink-2); letter-spacing: .02em; }
+.m-q { margin-top: 2px; font-size: 20px; font-weight: 700; line-height: 1.35; letter-spacing: -.01em; overflow-wrap: anywhere; }
+
+.m-bot { margin-top: 18px; }
+.pending { display: flex; align-items: center; gap: 12px; color: var(--ink-2); font-size: 17px; }
+.pending .bar { position: relative; width: 44px; height: 6px; background: var(--warm-2); overflow: hidden; flex: none; }
+.pending .bar::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--cardinal); animation: slide 1s var(--ease) infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* an answer: In short / Details / Where this comes from */
+.a-sec + .a-sec { margin-top: 20px; }
+.a-h {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink);
+}
+.a-h::before { content: ''; width: 14px; height: 4px; background: var(--cardinal); flex: none; }
+.a-lead { margin-top: 6px; }
+.a-lead p { font-size: 19px; line-height: 1.6; }
+.a-lead p + p, .a-body p + p, .a-body ul + p, .a-body p + ul { margin-top: 10px; }
+.a-body { margin-top: 6px; }
+.a-body ul { padding-left: 1.15em; list-style: square; }
+.a-body li { padding-left: .2em; }
+.a-body li + li { margin-top: 8px; }
+.a-body li::marker { color: var(--cardinal); font-size: 1.1em; }
+
+.cite {
+  display: inline; padding: 0 1px; margin: 0 1px;
+  border: 0; background: none;
+  font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: var(--cardinal);
+  text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em;
+}
+.cite:hover { color: var(--cardinal-dark); text-decoration-thickness: 3px; }
+.cite:focus-visible { box-shadow: 0 -2px var(--focus), 0 4px var(--focus-ink) !important; text-decoration: none; }
+
+.src-hint { margin-top: 4px; font-size: 15px; color: var(--ink-2); }
+.src-list { list-style: none; padding: 0; margin-top: 10px; display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.src {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px;
+  padding: 12px 8px 12px 6px;
+  border-bottom: 1px solid var(--rule);
+  scroll-margin: 16px;
+  transition: background-color .3s var(--ease);
+}
+.src-n {
+  width: 30px; height: 30px; display: grid; place-items: center; margin-top: 1px;
+  border: 2px solid var(--ink); border-radius: 3px;
+  font-family: var(--mono); font-weight: 700; font-size: 15px; line-height: 1;
+}
+.src-link { font-weight: 700; font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
+.src-text { font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+.src-link svg { display: inline-block; width: 14px; height: 14px; margin-left: 4px; vertical-align: -1px; }
+.src-note { display: block; margin-top: 3px; font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+.src-note b { font-weight: 700; color: var(--ink); }
+.src.is-target { background: var(--highlight); box-shadow: inset 5px 0 0 var(--focus-ink); }
+.src:focus { outline: 3px solid var(--focus-ink); outline-offset: -3px; }
+.src-here { display: none; font-weight: 700; color: var(--ink); }
+.src.is-target .src-here { display: inline; }
+
+/* non-answers: warning text */
+.warn { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; align-items: start; }
+.warn-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--ink); color: #fff;
+  font-size: 26px; font-weight: 800; line-height: 1;
+}
+.warn-label { font-weight: 800; font-size: 19px; line-height: 1.3; padding-top: 4px; }
+.warn-text { margin-top: 6px; }
+.urgent {
+  display: block; margin-top: 12px; padding: 10px 14px;
+  border-left: 6px solid var(--cardinal); background: var(--cardinal-tint);
+  font-weight: 800; color: var(--ink);
+}
+.next { margin-top: 16px; padding: 14px 16px; background: var(--warm); }
+.next h4 { font-size: 16px; font-weight: 800; }
+.next ul { margin-top: 6px; padding-left: 1.15em; list-style: square; font-size: 17px; }
+.next li + li { margin-top: 4px; }
+.next li::marker { color: var(--ink); }
+
+/* errors: error-summary box */
+.err {
+  border: 3px solid var(--error); border-left-width: 8px;
+  padding: 14px 16px 16px;
+  background: var(--white);
+}
+.err-title { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; line-height: 1.3; color: var(--ink); }
+.err-title svg { width: 22px; height: 22px; color: var(--error); flex: none; }
+.err p { margin-top: 6px; }
+.err .btn-2 { margin-top: 12px; }
+
+/* secondary buttons (rating, Try again, Send comment) */
+.btn-2 {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 8px 18px;
+  border: 2px solid var(--ink-ui); border-radius: 4px;
+  background: var(--white); color: var(--ink);
+  font-size: 17px; font-weight: 700;
+}
+.btn-2:hover { border-color: var(--ink); background: var(--warm); }
+
+.rate {
+  margin-top: 18px; padding-top: 14px; border-top: 1px dashed #B9B5AE;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 10px;
+}
+.rate-q { font-weight: 700; font-size: 17px; margin-right: 6px; }
+.rate-done { font-weight: 700; font-size: 17px; }
+.rate-done.is-sending { color: var(--ink-2); font-weight: 600; }
+.rate-done.is-failed { color: var(--error); }
+.rate-form { width: 100%; }
+.rate-form label { display: block; font-weight: 700; font-size: 17px; }
+.rate-form label span { display: block; font-weight: 400; font-size: 15px; color: var(--ink-2); }
+.rate-form textarea {
+  display: block; width: 100%; margin-top: 8px; min-height: 76px; resize: vertical;
+  padding: 10px 12px; border: 2px solid var(--ink); border-radius: 4px; background: var(--white);
+  font-size: 17px; line-height: 1.5;
+}
+.rate-actions { margin-top: 10px; display: flex; align-items: center; gap: 14px; }
+.rate-count { font-size: 15px; color: var(--ink-2); }
+
+/* the question box */
+.ca-form { padding: 14px 20px 8px; border-top: 2px solid var(--ink); background: var(--white); }
+.ca-form-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ca-label { font-weight: 800; font-size: 17px; }
+.ca-count { font-size: 15px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ca-count[data-over="true"] { color: var(--error); font-weight: 800; }
+.ca-hint { font-size: 15px; color: var(--ink-2); }
+.ca-row { margin-top: 8px; display: flex; align-items: flex-end; gap: 10px; }
+.ca-input {
+  flex: 1; min-width: 0; min-height: 52px; max-height: 150px;
+  padding: 12px 14px; resize: none;
+  border: 2px solid var(--ink); border-radius: 4px; background: var(--white);
+  font-size: 18px; line-height: 1.45;
+}
+.ca-input::placeholder { color: #6B6D71; opacity: 1; }
+.ca-send {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  height: 52px; padding: 0 18px;
+  border: 2px solid transparent; border-radius: 4px;
+  background: var(--cardinal); color: #fff;
+  font-size: 18px; font-weight: 700;
+  box-shadow: 0 3px 0 var(--cardinal-deep);
+}
+.ca-send svg { width: 18px; height: 18px; }
+.ca-send:hover:not(:disabled) { background: var(--cardinal-dark); text-decoration: underline; text-underline-offset: .2em; }
+.ca-send:disabled { background: var(--warm-2); color: var(--ink-2); box-shadow: none; border-color: #C9C5BE; cursor: not-allowed; }
+
+.ca-foot { padding: 4px 16px 12px 20px; background: var(--white); }
+.ca-line { font-size: 15px; line-height: 1.5; color: var(--ink); letter-spacing: -.01em; }
+.ca-line .seg { white-space: nowrap; }
+.ca-more {
+  display: inline; padding: 0 2px; margin-left: 4px;
+  border: 0; background: none;
+  font-size: 15px; font-weight: 700; color: var(--cardinal);
+  text-decoration: underline; text-underline-offset: .2em;
+}
+.ca-more:hover { text-decoration-thickness: 3px; }
+.ca-notice {
+  margin-top: 8px; padding: 12px 14px;
+  border-left: 5px solid var(--ink); background: var(--warm);
+  max-height: 180px; overflow-y: auto;
+  font-size: 15px; line-height: 1.5; color: var(--ink);
+}
+.ca-notice[hidden] { display: none; }
+.ca-notice p + p { margin-top: 8px; }
+
+/* ── PHONE ───────────────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+  .insp-list { grid-template-columns: 1fr; }
+  .foot-grid { grid-template-columns: 1fr; gap: 24px; }
+}
+@media (max-width: 600px) {
+  body { font-size: 17px; }
+  .pbar { font-size: 15px; }
+  .pbar-in { padding: 6px 16px; gap: 4px 12px; }
+  .pbar-ctl { margin-left: 0; width: 100%; }
+  .pbar select { flex: 1; min-width: 0; max-width: none; }
+  .pbar select, .pbar button { height: 40px; font-size: 16px; }
+  .insp-url { font-size: 15px; }
+  .ca-unread { min-width: 26px; height: 26px; border-radius: 13px; font-size: 15px; line-height: 22px; }
+  /* Touch targets: single-line inline controls get an invisible 40px hit
+     area; wrapping links become inline blocks with vertical padding. */
+  .cite, .ca-more, .wordmark { position: relative; }
+  .cite::after, .ca-more::after, .wordmark::after {
+    content: ''; position: absolute; left: -2px; right: -2px; top: 50%;
+    height: 40px; transform: translateY(-50%);
+  }
+  .next a, .src-link, .insp-list a { display: inline-block; padding: 7px 0; }
+  .pb-long { display: none; }
+  .pb-short { display: inline; }
+  .wrap, .site-head-in { padding: 0 16px; }
+  .site-head-in { min-height: 0; padding-top: 12px; }
+  .wordmark span { display: none; }
+  .site-nav { width: 100%; margin: 0 -10px; }
+  .site-nav a { min-height: 48px; padding: 0 10px; }
+  .hero { padding: 36px 0 48px; }
+  .hero h1 { font-size: 38px; }
+  .lede { font-size: 19px; }
+  .btn { width: 100%; }
+  .try-btn { font-size: 17px; }
+  .how { padding: 22px 18px 24px; }
+  .inspired { padding: 44px 0 52px; }
+  .insp-list li { padding: 18px 16px 20px; }
+
+  .ca-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); min-height: 52px; padding: 0 18px 0 14px; }
+  .ca-panel {
+    top: var(--pbar-h); left: 0; right: 0; bottom: 0;
+    width: auto; max-width: none; height: auto;
+    border-radius: 12px 12px 0 0; border-left: 0; border-right: 0; border-bottom: 0;
+    box-shadow: 0 -10px 40px rgba(0,0,0,.25);
+  }
+  .ca-head { padding: 10px 8px 10px 16px; }
+  .ca-title { font-size: 18px; }
+  .ca-phase { padding: 8px 16px; font-size: 15px; gap: 10px; }
+  .ca-log { padding: 18px 16px 24px; font-size: 16px; }
+  .a-lead p { font-size: 17px; }
+  .m-q { font-size: 18px; }
+  .warn-label, .err-title { font-size: 17px; }
+  .starter, .src-link, .src-text, .rate-q, .rate-done, .btn-2, .next ul { font-size: 16px; }
+  .ca-form { padding: 10px 16px 6px; }
+  .ca-hint { display: none; }
+  .ca-input { font-size: 16px; min-height: 48px; }
+  .ca-send { height: 48px; padding: 0 14px; font-size: 17px; }
+  .ca-foot { padding: 2px 16px max(10px, env(safe-area-inset-bottom)); }
+}
+
+/* ── MOTION ──────────────────────────────────────────────────────── */
+.no-anim *, .no-anim *::before, .no-anim *::after { animation: none !important; transition: none !important; }
+.no-anim, .no-anim .ca-log { scroll-behavior: auto; }
+@media (prefers-reduced-motion: reduce) {
+  html, .ca-log { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@media (forced-colors: active) {
+  .ca-panel, .err, .warn-icon, .src-n { border: 1px solid CanvasText; }
+  .src.is-target { outline: 3px solid Highlight; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+
+<!-- ── PROTOTYPE BAR ───────────────────────────────────────────── -->
+<div class="pbar" id="pbar">
+  <div class="pbar-in">
+    <p class="pbar-name"><a href="../index.html">← All directions</a> <strong>Civic Clarity</strong> <span>Prototype · mock replies, not real answers</span></p>
+    <div class="pbar-ctl">
+      <label for="pb-type" class="sr-only">Show reply type</label>
+      <select id="pb-type"></select>
+      <button type="button" id="pb-show">Show<span class="pb-long"> reply type</span></button>
+      <button type="button" id="pb-fill">Fill<span class="pb-long"> with every reply type</span><span class="pb-short"> all<span class="sr-only"> — every reply type</span></span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SITE HEADER (mock) ──────────────────────────────────────── -->
+<header class="site-head">
+  <div class="site-head-in">
+    <a class="wordmark" href="#main"><b>HEAL-AI</b><span>Ethics assessments of AI in health care</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="#toolkit">Toolkit</a></li>
+        <li><a href="#toolkit">Reports</a></li>
+        <li><a href="#main" aria-current="page">Ask</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <!-- ── HERO ──────────────────────────────────────────────────── -->
+  <section class="hero" aria-labelledby="hero-h">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">Ask · Beta</p>
+        <h1 id="hero-h">Get plain answers from HEAL-AI’s published work</h1>
+        <p class="lede">Ask about our ethics assessments, playbook or templates. Every answer shows the documents it came from.</p>
+        <div class="hero-actions">
+          <button type="button" class="btn" id="hero-open">Open the assistant
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <p class="hero-note">No account needed. Answers can be wrong.</p>
+        </div>
+        <div class="try">
+          <h2 id="try-h">Try a question</h2>
+          <ul class="try-list" id="try-list" aria-labelledby="try-h"></ul>
+        </div>
+      </div>
+      <aside class="how" aria-labelledby="how-h">
+        <h2 id="how-h">How answers work</h2>
+        <ol>
+          <li><div><h3>It reads only HEAL-AI’s documents</h3><p>Reports, playbooks, templates and resources we have published. Nothing else.</p></div></li>
+          <li><div><h3>It answers in plain words, then shows its sources</h3><p>Numbers like [1] take you to the document each point comes from.</p></div></li>
+          <li><div><h3>It says when it cannot answer</h3><p>If the material does not cover a question, or it is about someone’s care, it tells you and points you to people who can help.</p></div></li>
+        </ol>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ── INSPIRED BY ───────────────────────────────────────────── -->
+  <section class="inspired" id="inspired" aria-labelledby="insp-h">
+    <div class="wrap">
+      <h2 id="insp-h">Inspired by</h2>
+      <p class="sub">This direction borrows from public-sector design systems known for plain language and accessibility.</p>
+      <ul class="insp-list">
+        <li>
+          <a href="https://design-system.service.gov.uk" target="_blank" rel="noopener noreferrer">GOV.UK Design System<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 5h5v5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sr-only"> (opens in a new tab)</span></a>
+          <p class="insp-url">design-system.service.gov.uk</p>
+          <p class="insp-what"><b>Borrowed:</b> the warning-text pattern, the phase banner with a Beta tag, the yellow-and-black focus state and the plain-English writing style.</p>
+        </li>
+        <li>
+          <a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener noreferrer">NIST AI Risk Management Framework<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 5h5v5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sr-only"> (opens in a new tab)</span></a>
+          <p class="insp-url">nist.gov/itl/ai-risk-management-framework</p>
+          <p class="insp-what"><b>Borrowed:</b> sober, trustworthy-AI framing, quick-link question buttons and clear, labelled section headings.</p>
+        </li>
+        <li>
+          <a href="https://designsystem.digital.gov" target="_blank" rel="noopener noreferrer">U.S. Web Design System<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 5h5v5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sr-only"> (opens in a new tab)</span></a>
+          <p class="insp-url">designsystem.digital.gov</p>
+          <p class="insp-what"><b>Borrowed:</b> alert boxes with a heavy left border for errors, and its accessible-by-default component rules.</p>
+        </li>
+      </ul>
+      <p class="insp-note">Patterns only — no logos, brand names in the UI, copy or paid fonts were taken.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap foot-grid">
+    <section>
+      <a class="wordmark" href="#main"><b>HEAL-AI</b></a>
+      <p>Ethics assessments of AI tools in health care. Mock page for a design prototype.</p>
+    </section>
+    <section id="toolkit" tabindex="-1">
+      <h2>Toolkit</h2>
+      <p>Reports, playbooks, templates and resources. (Link target in this prototype.)</p>
+    </section>
+    <section id="about" tabindex="-1">
+      <h2>About and contact</h2>
+      <p>The HEAL-AI team. (Link target in this prototype.)</p>
+    </section>
+  </div>
+</footer>
+
+<!-- ── THE ASSISTANT ───────────────────────────────────────────── -->
+<div class="ca" id="ca" data-open="false">
+  <button type="button" class="ca-launcher" id="ca-launcher" aria-expanded="false" aria-controls="ca-panel">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6A.5.5 0 0 1 5 19.2V16h-.5A.5.5 0 0 1 4 15.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M8.5 8.5h7M8.5 11.5h4.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+    <span class="ca-launcher-text">Ask a question</span>
+    <span class="ca-unread" id="ca-unread" hidden>1<span class="sr-only"> new answer</span></span>
+  </button>
+
+  <section class="ca-panel" id="ca-panel" role="dialog" aria-modal="false" aria-labelledby="ca-title" aria-describedby="ca-phase-text" hidden>
+    <header class="ca-head">
+      <div>
+        <p class="ca-kicker">HEAL-AI</p>
+        <h2 class="ca-title" id="ca-title"></h2>
+      </div>
+      <div class="ca-head-actions">
+        <button type="button" class="ca-icon" id="ca-min" aria-label="Minimise (keeps this conversation)" title="Minimise">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 12h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="ca-icon" id="ca-close" aria-label="Close and clear this conversation" title="Close and clear">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+    <p class="ca-phase"><strong class="ca-tag">Beta</strong><span id="ca-phase-text">This is a new service. Answers can be wrong.</span></p>
+
+    <div class="ca-log" id="ca-log" role="log" aria-live="polite" aria-label="Conversation" tabindex="0"></div>
+
+    <form class="ca-form" id="ca-form" novalidate>
+      <div class="ca-form-top">
+        <label class="ca-label" for="ca-q">Your question</label>
+        <span class="ca-count" id="ca-count"></span>
+      </div>
+      <p class="ca-hint" id="ca-hint">Press Enter to send. Shift + Enter adds a new line.</p>
+      <div class="ca-row">
+        <textarea id="ca-q" class="ca-input" rows="1" placeholder="Ask about HEAL-AI’s work" aria-describedby="ca-hint ca-count"></textarea>
+        <button type="submit" class="ca-send" id="ca-send">Send
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </form>
+
+    <footer class="ca-foot">
+      <p class="ca-line"><span id="ca-line-text"></span><button type="button" class="ca-more" id="ca-more" aria-expanded="false" aria-controls="ca-notice">Details</button></p>
+      <div class="ca-notice" id="ca-notice" hidden>
+        <p id="ca-note"></p>
+        <p id="ca-privacy"></p>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<script src="../fixtures.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var M = window.HEALAI_MOCK;
+  var C = M.copy;
+  var esc = M.esc;
+  var params = new URLSearchParams(window.location.search);
+  var FAST = params.has('fast');
+  if (FAST) document.documentElement.classList.add('no-anim');
+
+  var MAX = C.maxQuestion, CMAX = C.maxComment;
+  var NETWORK_ERROR = 'The assistant could not be reached. Check your connection and try again.';
+  var URGENT = 'If this is urgent, contact emergency services.';
+
+  var ICON = {
+    arrow: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    out: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 5h5v5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    error: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>'
+  };
+
+  function quiet() { return FAST || M.reducedMotion(); }
+
+  /* ── elements ───────────────────────────────────────────────────── */
+  var root     = document.getElementById('ca');
+  var launcher = document.getElementById('ca-launcher');
+  var unread   = document.getElementById('ca-unread');
+  var panel    = document.getElementById('ca-panel');
+  var log      = document.getElementById('ca-log');
+  var form     = document.getElementById('ca-form');
+  var input    = document.getElementById('ca-q');
+  var send     = document.getElementById('ca-send');
+  var count    = document.getElementById('ca-count');
+  var more     = document.getElementById('ca-more');
+  var notice   = document.getElementById('ca-notice');
+
+  document.getElementById('ca-title').textContent = C.title;
+  document.getElementById('ca-note').textContent = C.note;
+  document.getElementById('ca-privacy').textContent = C.privacy;
+  input.setAttribute('maxlength', String(MAX));
+  setLine(C.saved);
+
+  function setLine(saved) {
+    /* "Can be wrong · Not medical advice · Saved 30 days" */
+    var head = C.lineHead.replace(/\s+$/, '');
+    document.getElementById('ca-line-text').innerHTML =
+      head.replace(/\s*·$/, '').split(' · ').concat([saved]).map(function (x) {
+        return '<span class="seg">' + esc(x) + '</span>';
+      }).join(' · ') + ' ';
+  }
+
+  more.addEventListener('click', function () {
+    var open = more.getAttribute('aria-expanded') !== 'true';
+    more.setAttribute('aria-expanded', String(open));
+    more.textContent = open ? 'Hide details' : 'Details';
+    notice.hidden = !open;
+  });
+
+  /* ── prototype bar height → panel top on phones ─────────────────── */
+  var pbar = document.getElementById('pbar');
+  function setBar() { document.documentElement.style.setProperty('--pbar-h', pbar.offsetHeight + 'px'); }
+  setBar();
+  window.addEventListener('resize', setBar);
+  if (window.ResizeObserver) new ResizeObserver(setBar).observe(pbar);
+
+  /* ── helpers ────────────────────────────────────────────────────── */
+  function safeLink(href) {
+    if (!href) return null;
+    try {
+      var u = new URL(href, window.location.href);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+      return { href: String(href), external: u.origin !== window.location.origin };
+    } catch (e) { return null; }
+  }
+
+  /* [1] → a bracket link to source 1 of THIS answer. Runs on escaped text,
+     so the only markup it can produce is its own. max 0 links nothing. */
+  function linkCitations(escaped, max) {
+    return escaped.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, function (whole, list) {
+      var nums = list.split(/\s*,\s*/).map(function (n) { return parseInt(n, 10); });
+      if (!max || !nums.every(function (i) { return i >= 1 && i <= max; })) return whole;
+      return nums.map(function (i) {
+        return '<button type="button" class="cite" data-to="' + i + '" aria-label="Go to source ' + i + '">[' + i + ']</button>';
+      }).join('');
+    });
+  }
+
+  function sourceNote(s, link) {
+    if (link && link.external) return 'Opens another website in a new tab';
+    if (s.precision === 'section-list') return 'Opens the list of reports';
+    if (s.precision === 'document-pending') return /^#reports\b/.test(s.href || '') ? 'Opens in Sample Reports' : 'Opens the page that lists it';
+    if (link) return 'Opens the document on this site';
+    return 'No link available';
+  }
+
+  /* ── open, minimise, close ──────────────────────────────────────── */
+  var busy = false, generation = 0, turn = 0, filling = 0, hideTimer = null;
+  function isOpen() { return root.getAttribute('data-open') === 'true'; }
+
+  function intro() {
+    log.innerHTML =
+      '<div class="intro">' +
+        '<h3 class="intro-h">What you can ask</h3>' +
+        '<p class="intro-lede">Ask about the playbook, the ethics assessments, the templates or the patient panel. Each answer shows which documents it came from.</p>' +
+        '<div class="starters" role="group" aria-label="Example questions">' +
+          M.starters.map(function (q) {
+            return '<button type="button" class="starter"><span>' + esc(q) + '</span>' + ICON.arrow + '</button>';
+          }).join('') +
+        '</div>' +
+        '<p class="inset">' + esc(C.standalone) + '</p>' +
+      '</div>';
+    log.querySelectorAll('.starter').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ask(b.textContent);
+        /* The starters hide once a question is asked; keep focus in the panel. */
+        input.focus({ preventScroll: true });
+      });
+    });
+  }
+
+  function updateCount() {
+    var n = input.value.length;
+    count.textContent = n > MAX * 0.8 ? n + ' of ' + MAX + ' characters' : '';
+    count.setAttribute('data-over', String(n >= MAX));
+    input.style.height = 'auto';
+    var want = input.scrollHeight + 4;
+    input.style.overflowY = want > 150 ? 'auto' : 'hidden';
+    input.style.height = Math.min(Math.max(want, 48), 150) + 'px';
+    send.disabled = busy || !input.value.trim();
+    syncBar();
+  }
+
+  function open(opts) {
+    clearTimeout(hideTimer);
+    if (!log.firstChild) intro();
+    panel.hidden = false;
+    updateCount();
+    void panel.offsetWidth;
+    root.setAttribute('data-open', 'true');
+    launcher.setAttribute('aria-expanded', 'true');
+    unread.hidden = true;
+    if (!opts || opts.focus !== false) {
+      setTimeout(function () { input.focus({ preventScroll: true }); }, quiet() ? 0 : 60);
+    }
+  }
+
+  function hide() {
+    root.setAttribute('data-open', 'false');
+    launcher.setAttribute('aria-expanded', 'false');
+    hideTimer = setTimeout(function () { panel.hidden = true; }, quiet() ? 0 : 200);
+    launcher.focus({ preventScroll: true });
+  }
+
+  function minimise() { hide(); }
+
+  function close() {
+    generation++;          // any reply still in flight is now stale
+    filling++;             // and any "fill" run stops
+    busy = false;
+    input.value = '';
+    updateCount();
+    hide();
+    log.innerHTML = '';
+  }
+
+  launcher.addEventListener('click', function () { if (isOpen()) minimise(); else open(); });
+  document.getElementById('ca-min').addEventListener('click', minimise);
+  document.getElementById('ca-close').addEventListener('click', close);
+  panel.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); minimise(); }
+  });
+
+  M.health().then(function (h) {
+    if (h && h.notice) document.getElementById('ca-privacy').textContent = h.notice;
+    if (h && h.logging_questions === true && Number(h.log_days) > 0) setLine('Saved ' + Number(h.log_days) + ' days');
+  }).catch(function () {});
+
+  /* ── rendering ──────────────────────────────────────────────────── */
+
+  /* Paragraphs before the first "- " line are "In short"; everything
+     from the first bullet on is "Details", with bullets as a real <ul>. */
+  function splitAnswer(text, max) {
+    var lead = [], body = '', bullets = [], seenList = false;
+    function flush() {
+      if (!bullets.length) return;
+      body += '<ul>' + bullets.join('') + '</ul>';
+      bullets = [];
+    }
+    String(text).split('\n').forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) { flush(); return; }
+      var m = line.match(/^[-•*]\s+(.*)$/);
+      if (m) { seenList = true; bullets.push('<li>' + linkCitations(esc(m[1]), max) + '</li>'); }
+      else if (!seenList) lead.push('<p>' + linkCitations(esc(line), max) + '</p>');
+      else { flush(); body += '<p>' + linkCitations(esc(line), max) + '</p>'; }
+    });
+    flush();
+    return { lead: lead.join(''), body: body };
+  }
+
+  /* Plain text of a reply that is not an answer: escaped, no links. The
+     emergency line is kept word for word, only made to stand out. */
+  function plainText(text) {
+    return String(text).split('\n').map(function (l) { return l.trim(); }).filter(Boolean).map(function (line) {
+      var h = linkCitations(esc(line), 0);
+      var u = esc(URGENT);
+      if (h.indexOf(u) !== -1) h = h.replace(u, '<strong class="urgent">' + u + '</strong>');
+      return '<p class="warn-text">' + h + '</p>';
+    }).join('');
+  }
+
+  function render(msg, data) {
+    var t = ++turn;
+    var kind = M.kindOf(data);
+    var show = M.showsSources(data);
+    var sources = show ? (data.sources || []) : [];
+    var html = '';
+
+    if (kind.k === 'answer') {
+      var parts = splitAnswer(data.answer || '', sources.length);
+      html += '<section class="a-sec" aria-labelledby="ca-t' + t + '-h1"><h3 class="a-h" id="ca-t' + t + '-h1">In short</h3><div class="a-lead">' + parts.lead + '</div></section>';
+      if (parts.body) {
+        html += '<section class="a-sec" aria-labelledby="ca-t' + t + '-h2"><h3 class="a-h" id="ca-t' + t + '-h2">Details</h3><div class="a-body">' + parts.body + '</div></section>';
+      }
+      /* R1: sources only under an actual answer. */
+      if (show) {
+        html += '<section class="a-sec" aria-labelledby="ca-t' + t + '-h3"><h3 class="a-h" id="ca-t' + t + '-h3">Where this comes from</h3>' +
+          '<p class="src-hint">Select a number in the answer to jump to its source.</p><ol class="src-list">';
+        sources.forEach(function (s) {
+          var link = safeLink(s.href);
+          var name = esc(s.label || 'Source ' + s.n);
+          var inner = link
+            ? '<a class="src-link" href="' + esc(link.href) + '"' +
+                (link.external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' + name +
+                (link.external ? ICON.out + '<span class="sr-only"> (opens in a new tab)</span>' : '') + '</a>'
+            : '<span class="src-text">' + name + '</span>';
+          html += '<li class="src" id="ca-t' + t + '-src-' + esc(s.n) + '" tabindex="-1">' +
+                    '<span class="src-n" aria-hidden="true">' + esc(s.n) + '</span>' +
+                    '<span><span class="sr-only">Source ' + esc(s.n) + ': </span>' + inner +
+                      '<span class="src-note">' + esc(sourceNote(s, link)) + ' · ' +
+                        (s.cited ? '<b>Cited in the answer</b>' : 'Found while searching, not cited') +
+                        '<span class="src-here"> · You jumped here</span>' +
+                      '</span>' +
+                    '</span>' +
+                  '</li>';
+        });
+        html += '</ol></section>';
+      }
+    } else {
+      /* R6: a text label on every non-answer; colour is never the signal. */
+      html += '<div class="warn">' +
+                '<span class="warn-icon" aria-hidden="true">!</span>' +
+                '<div><p class="warn-label"><span class="sr-only">Warning: </span>' + esc(kind.label) + '</p>' +
+                  plainText(data.answer || '') + '</div>' +
+              '</div>';
+      if (kind.k === 'declined') {
+        /* R3 */
+        html += '<div class="next"><h4>What you can do next</h4><ul>' +
+                  '<li><a href="' + esc(C.contactHref) + '">Contact the HEAL-AI team</a></li>' +
+                  '<li><a href="' + esc(C.toolkitHref) + '">Browse the reports and resources in the Toolkit</a></li>' +
+                '</ul></div>';
+      } else if (kind.k === 'withheld' || kind.k === 'limited') {
+        html += '<div class="next"><h4>What you can do next</h4><ul>' +
+                  '<li><a href="' + esc(C.toolkitHref) + '">Browse the reports and resources in the Toolkit</a></li>' +
+                '</ul></div>';
+      }
+    }
+
+    if (data.exchange) {
+      var rl = 'ca-t' + t + '-rl';
+      html += '<div class="rate" data-exchange="' + esc(data.exchange) + '">' +
+                '<span class="rate-q" id="' + rl + '">Was this useful?</span>' +
+                '<button type="button" class="btn-2" data-verdict="up" aria-describedby="' + rl + '">Yes</button>' +
+                '<button type="button" class="btn-2" data-verdict="down" aria-describedby="' + rl + '">No</button>' +
+              '</div>';
+    }
+
+    msg.removeAttribute('aria-busy');
+    msg.className = 'msg m-bot m-' + kind.k;
+    msg.innerHTML = html;
+
+    var rate = msg.querySelector('.rate');
+    if (rate) wireRating(rate);
+
+    msg.querySelectorAll('.cite').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var el = document.getElementById('ca-t' + t + '-src-' + b.getAttribute('data-to'));
+        if (!el) return;
+        msg.querySelectorAll('.src').forEach(function (s) { s.classList.remove('is-target'); });
+        el.classList.add('is-target');
+        el.scrollIntoView({ block: 'nearest', behavior: quiet() ? 'auto' : 'smooth' });
+        el.focus({ preventScroll: true });
+      });
+    });
+
+    scrollToMsg(msg);
+    if (!isOpen()) unread.hidden = false;
+  }
+
+  function scrollToMsg(msg) {
+    /* Start the reader at their question, so the answer reads top-down. */
+    var q = msg.previousElementSibling;
+    var top = (q && q.classList.contains('m-user') ? q : msg).offsetTop - 8;
+    log.scrollTop = Math.max(0, top);
+  }
+
+  function wireRating(rate) {
+    var exchange = rate.getAttribute('data-exchange');
+    var labelId = rate.querySelector('.rate-q').id;
+
+    /* One status element, updated in place, so the result is announced and
+       focus has somewhere to go when the clicked button disappears. */
+    function settle(p, okMsg) {
+      var hadFocus = rate.contains(document.activeElement);
+      rate.innerHTML = '<span class="rate-done is-sending" role="status" tabindex="-1">Sending…</span>';
+      var st = rate.firstChild;
+      if (hadFocus) st.focus({ preventScroll: true });
+      p.then(function (r) {
+        if (!r || !r.ok) throw new Error('not ok');
+        st.className = 'rate-done';
+        st.textContent = okMsg;
+      }).catch(function () {
+        st.className = 'rate-done is-failed';
+        st.textContent = 'Your rating could not be sent.';
+      });
+    }
+
+    rate.querySelectorAll('[data-verdict]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (b.getAttribute('data-verdict') === 'up') {
+          settle(M.feedback({ exchange: exchange, verdict: 'up' }), 'Thanks.');
+          return;
+        }
+        var cid = labelId + '-c', nid = labelId + '-n';
+        rate.innerHTML =
+          '<div class="rate-form">' +
+            '<label for="' + cid + '">What was wrong with it? <span>Optional. Please do not include patient details.</span></label>' +
+            '<textarea id="' + cid + '" rows="3" maxlength="' + CMAX + '" aria-describedby="' + nid + '"></textarea>' +
+            '<div class="rate-actions"><button type="button" class="btn-2 rate-send">Send</button>' +
+            '<span class="rate-count" id="' + nid + '">Up to ' + CMAX + ' characters</span></div>' +
+          '</div>';
+        var box = rate.querySelector('textarea');
+        var cnt = rate.querySelector('.rate-count');
+        box.addEventListener('input', function () {
+          var n = box.value.length;
+          cnt.textContent = n > CMAX * 0.8 ? n + ' of ' + CMAX + ' characters' : 'Up to ' + CMAX + ' characters';
+        });
+        rate.querySelector('.rate-send').addEventListener('click', function () {
+          var c = box.value.trim().slice(0, CMAX);
+          settle(M.feedback({ exchange: exchange, verdict: 'down', comment: c || undefined }), 'Thanks — that helps.');
+        });
+        box.focus();
+      });
+    });
+  }
+
+  /* ── asking ─────────────────────────────────────────────────────── */
+  function append(html, cls) {
+    var first = log.querySelector('.intro');
+    if (first) first.classList.add('is-compact');
+    var el = document.createElement('div');
+    el.className = cls;
+    el.innerHTML = html;
+    log.appendChild(el);
+    return el;
+  }
+
+  function showError(msg, q, status, text) {
+    var title = status === 429 ? 'Please wait before asking again' : status ? 'Something went wrong' : 'Could not connect';
+    msg.removeAttribute('aria-busy');
+    msg.className = 'msg m-bot m-error';
+    msg.innerHTML =
+      '<div class="err" role="alert">' +
+        '<p class="err-title">' + ICON.error + '<span><span class="sr-only">Error: </span>' + esc(title) + '</span></p>' +
+        '<p>' + esc(text) + '</p>' +
+        '<button type="button" class="btn-2 retry">Try again</button>' +
+      '</div>';
+    msg.querySelector('.retry').addEventListener('click', function () {
+      if (busy) return;   // another question is in flight; keep this one
+      var mineUser = msg.previousElementSibling;
+      if (mineUser && mineUser.classList.contains('m-user')) mineUser.remove();
+      msg.remove();
+      ask(q);
+      input.focus({ preventScroll: true });
+    });
+    scrollToMsg(msg);
+    if (!isOpen()) unread.hidden = false;
+  }
+
+  function ask(question) {
+    var q = String(question || '').trim();
+    if (!q || busy) return Promise.resolve(false);
+    if (!isOpen()) open({ focus: false });
+    if (q.length > MAX) q = q.slice(0, MAX);
+
+    busy = true;
+    input.value = '';
+    updateCount();
+    var mine = generation;
+
+    append('<p class="m-you">You asked</p><p class="m-q">' + esc(q) + '</p>', 'msg m-user');
+    var msg = append('<p class="pending"><span class="bar" aria-hidden="true"></span>Searching HEAL-AI’s material…</p>', 'msg m-bot');
+    msg.setAttribute('aria-busy', 'true');
+    log.scrollTop = log.scrollHeight;
+
+    return M.ask(q).then(function (res) {
+      if (mine !== generation) return;
+      if (!res.ok) {
+        showError(msg, q, res.status || 500, (res.body && res.body.error) || 'The assistant is unavailable right now.');
+        return;
+      }
+      render(msg, res.body || {});
+    }, function () {
+      if (mine !== generation) return;
+      /* "Failed to fetch" is the browser's words, not the reader's. */
+      showError(msg, q, 0, NETWORK_ERROR);
+    }).then(function () {
+      if (mine !== generation) return false;
+      busy = false;
+      updateCount();
+      return true;
+    });
+  }
+
+  form.addEventListener('submit', function (e) { e.preventDefault(); ask(input.value); });
+  input.addEventListener('input', updateCount);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(input.value); }
+  });
+
+  /* ── page entry points ──────────────────────────────────────────── */
+  document.getElementById('hero-open').addEventListener('click', function () { open(); });
+  var EXAMPLES = [M.starters[0], M.starters[1], 'How are patient partners involved in an assessment?'];
+  var tryList = document.getElementById('try-list');
+  tryList.innerHTML = EXAMPLES.map(function (q) {
+    return '<li><button type="button" class="try-btn"><span>' + esc(q) + '</span><b class="arrow" aria-hidden="true">' + ICON.arrow + '</b></button></li>';
+  }).join('');
+  tryList.querySelectorAll('.try-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var q = b.querySelector('span').textContent;
+      open();   // focus goes into the panel's input, not left behind the sheet
+      ask(q);
+    });
+  });
+
+  /* ── prototype bar ──────────────────────────────────────────────── */
+  var sel = document.getElementById('pb-type');
+  var showBtn = document.getElementById('pb-show');
+  var fillBtn = document.getElementById('pb-fill');
+  sel.innerHTML = M.scenarios.map(function (s) {
+    return '<option value="' + esc(s.id) + '">' + esc(s.label) + '</option>';
+  }).join('');
+  function syncBar() { showBtn.disabled = busy; fillBtn.disabled = busy; }
+
+  function whenIdle() {
+    return new Promise(function (res) {
+      (function check() { if (!busy) res(); else setTimeout(check, 40); })();
+    });
+  }
+  function askScenario(id) {
+    var s = M.scenarios.filter(function (x) { return x.id === id; })[0];
+    if (!s) return Promise.resolve();
+    var gen = generation;
+    return whenIdle().then(function () {
+      if (gen !== generation) return false;      // closed while waiting
+      if (busy) return askScenario(id);          // someone else got in first
+      M.next(s.id);
+      return ask(s.question);
+    });
+  }
+  showBtn.addEventListener('click', function () {
+    if (!isOpen()) open({ focus: false });
+    askScenario(sel.value);
+  });
+
+  function fillAll() {
+    var token = ++filling;
+    if (!isOpen()) open({ focus: false });
+    var first = null;
+    var chain = Promise.resolve();
+    M.scenarios.forEach(function (s) {
+      chain = chain.then(function () {
+        if (token !== filling) return;
+        var before = log.children.length;
+        return askScenario(s.id).then(function () {
+          if (!first && log.children[before]) first = log.children[before];
+        });
+      });
+    });
+    return chain.then(function () {
+      if (token !== filling || !first) return;
+      log.scrollTop = Math.max(0, first.offsetTop - 8);
+    });
+  }
+  fillBtn.addEventListener('click', fillAll);
+
+  /* ── URL states ─────────────────────────────────────────────────── */
+  var demo = params.get('demo');
+  if (demo === 'empty') open();
+  else if (demo === 'all') fillAll();
+  /* closed, or no param: launcher only */
+})();
+</script>
+</body>
+</html>

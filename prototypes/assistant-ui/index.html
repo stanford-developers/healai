@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assistant UI · four directions</title>
+<!--
+  HEAL-AI assistant · UI prototypes · comparison page
+  PROTOTYPE ONLY. Nothing here is live. Every reply in the prototypes is mock
+  data from fixtures.js. Screenshots in shots/ were taken at 1440x900 and
+  375x812 with ?demo=all&fast (the conversation filled with every reply type).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cardinal: #8C1515; --cardinal-dark: #6D1010; --tint: rgba(140,21,21,.07);
+    --ink: #2E2D29; --ink-mid: #4D4F53; --ink-low: #5F6165;
+    --bg: #fff; --bg-soft: #F9F9F9; --bg-warm: #F2EFEA;
+    --line: rgba(46,45,41,.12); --line-strong: rgba(46,45,41,.22);
+    --serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+    --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg-soft); color: var(--ink); font: 16px/1.6 var(--sans); overflow-x: hidden; }
+  a { color: var(--cardinal); text-underline-offset: 3px; }
+  a:hover { color: var(--cardinal-dark); }
+  :focus-visible { outline: 3px solid var(--cardinal); outline-offset: 3px; border-radius: 4px; }
+  img { display: block; max-width: 100%; height: auto; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  .bar { background: var(--ink); color: #fff; font: 500 13px/1 var(--mono); letter-spacing: .04em; }
+  .bar .wrap { padding-top: 12px; padding-bottom: 12px; }
+
+  header.hero { background: var(--bg); border-bottom: 1px solid var(--line); }
+  header.hero .wrap { padding-top: 56px; padding-bottom: 48px; }
+  .eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--cardinal); }
+  h1 { font: 400 clamp(36px, 6vw, 60px)/1.05 var(--serif); letter-spacing: -.01em; margin: 16px 0 18px; max-width: 18ch; }
+  h1 em { color: var(--cardinal); }
+  .lede { font-size: 19px; color: var(--ink-mid); max-width: 62ch; }
+  .lede + .lede { margin-top: 10px; font-size: 16px; }
+
+  .rec { margin: 40px 0 0; background: var(--bg); border: 1px solid var(--line); border-left: 4px solid var(--cardinal); border-radius: 12px; padding: 24px 28px; }
+  .rec h2 { font: 600 13px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--cardinal); margin-bottom: 12px; }
+  .rec p { font: 400 21px/1.45 var(--serif); max-width: 70ch; }
+  .rec ul { margin: 14px 0 0 20px; color: var(--ink-mid); }
+  .rec li + li { margin-top: 6px; }
+
+  main .wrap { padding-top: 48px; padding-bottom: 64px; }
+  .section-title { font: 400 30px/1.2 var(--serif); margin-bottom: 8px; }
+  .section-sub { color: var(--ink-mid); margin-bottom: 28px; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+  .card { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .card.is-rec { border-color: var(--cardinal); box-shadow: 0 0 0 1px var(--cardinal); }
+  .shots { background: var(--bg-warm); padding: 18px; display: grid; grid-template-columns: minmax(0, 3.2fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  .shots a { display: block; border-radius: 8px; overflow: hidden; border: 1px solid var(--line-strong); background: #fff; }
+  .shots a:focus-visible { outline-offset: 2px; }
+  .shots figcaption { font: 500 11.5px/1.3 var(--mono); color: var(--ink-low); margin-top: 6px; letter-spacing: .04em; }
+  .body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .num { font: 500 12px/1 var(--mono); color: var(--cardinal); letter-spacing: .1em; }
+  .card h3 { font: 600 26px/1.15 var(--serif); margin-top: 6px; }
+  .tag { font: 600 11.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #fff; background: var(--cardinal); padding: 6px 8px; border-radius: 4px; }
+  .idea { font-size: 17px; color: var(--ink); }
+  .k { font: 600 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-low); margin-bottom: 8px; }
+  .insp { list-style: none; border-top: 1px solid var(--line); }
+  .insp li { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px; color: var(--ink-mid); }
+  .insp a { font-weight: 600; }
+  .tradeoff { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .tradeoff ul { margin-left: 18px; font-size: 15px; color: var(--ink-mid); }
+  .tradeoff li + li { margin-top: 4px; }
+  .open { margin-top: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; font: 600 15px/1 var(--sans); text-decoration: none; }
+  .btn-primary { background: var(--cardinal); color: #fff; }
+  .btn-primary:hover { background: var(--cardinal-dark); color: #fff; }
+  .btn-ghost { border: 1px solid var(--line-strong); color: var(--ink); background: #fff; }
+  .btn-ghost:hover { border-color: var(--ink); color: var(--ink); }
+
+  .table-wrap { overflow-x: auto; margin-top: 48px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 15px; }
+  caption { text-align: left; padding: 18px 20px 4px; font: 400 22px/1.3 var(--serif); }
+  th, td { text-align: left; padding: 12px 20px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { font: 600 12px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-low); }
+  tbody th { font-weight: 600; }
+
+  .rules { margin-top: 48px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 24px 28px; }
+  .rules h2 { font: 400 22px/1.3 var(--serif); margin-bottom: 10px; }
+  .rules ul { margin-left: 20px; color: var(--ink-mid); columns: 2; column-gap: 40px; }
+  .rules li { break-inside: avoid; margin-bottom: 6px; }
+  footer { color: var(--ink-low); font-size: 14px; padding: 0 0 48px; }
+
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 0 16px; }
+    header.hero .wrap { padding-top: 36px; padding-bottom: 32px; }
+    .lede { font-size: 17px; }
+    .rec { padding: 20px; }
+    .rec p { font-size: 18px; }
+    .shots { padding: 12px; gap: 8px; }
+    .body { padding: 18px; }
+    .tradeoff { grid-template-columns: 1fr; }
+    .rules { padding: 20px; }
+    .rules ul { columns: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<div class="bar"><div class="wrap">PROTOTYPES · mock replies only · nothing here is live</div></div>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">HEAL-AI assistant · redesign</p>
+    <h1>Four ways the assistant <em>could look.</em></h1>
+    <p class="lede">Each one is a working page you can click through. Open one, ask a question, try the example questions, rate an answer. The replies are made up for the demo. No model is called.</p>
+    <p class="lede">Every direction keeps the same rules as the live assistant. They differ in look and in what they put first.</p>
+
+    <section class="rec" aria-labelledby="rec-h">
+      <h2 id="rec-h">Recommendation</h2>
+      <p>Build <strong>Evidence First</strong>, and borrow two things from <strong>Civic Clarity</strong>.</p>
+      <ul>
+        <li>Evidence First shows the sources before the answer. That is the one thing that makes this assistant different from a general chatbot, so it should be the first thing people see.</li>
+        <li>It looks like the modern tools policy people already use, while keeping Stanford red as the accent.</li>
+        <li>From Civic Clarity, take the plain headings inside each answer ("In short", "Details", "Where this comes from") and the very strong keyboard focus outline. Both make it easier to read and to use.</li>
+        <li>The trade-off: it has the most moving parts (source cards, a typing effect), so it takes the most work to build and test.</li>
+      </ul>
+    </section>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h2 class="section-title">The four directions</h2>
+    <p class="section-sub">Click a screenshot to open that prototype. Large picture: a laptop screen. Small picture: a phone, 375px wide. Both show a conversation with every kind of reply.</p>
+
+    <div class="grid">
+
+      <!-- 1 ─────────────────────────────────────────────── -->
+      <article class="card" aria-labelledby="d1">
+        <div class="shots">
+          <figure><a href="briefing/?demo=all&amp;fast"><img src="shots/briefing-desktop.png" width="1440" height="900" alt="Policy Briefing on a laptop: a warm white panel; the answer is set like a memo with a Bottom line, Key points and numbered notes."></a><figcaption>Laptop</figcaption></figure>
+          <figure><a href="briefing/?demo=all&amp;fast" tabindex="-1" aria-hidden="true"><img src="shots/briefing-phone.png" width="375" height="812" alt=""></a><figcaption>Phone</figcaption></figure>
+        </div>
+        <div class="body">
+          <div>
+            <p class="num">01</p>
+            <h3 id="d1">Policy Briefing</h3>
+          </div>
+          <p class="idea">Each answer reads like a one-page memo from a think tank. A short "Bottom line", then "Key points", then numbered notes like footnotes.</p>
+          <div>
+            <p class="k">Inspired by</p>
+            <ul class="insp">
+              <li><a href="https://www.anthropic.com/news" target="_blank" rel="noopener noreferrer">Anthropic</a>: lots of white space, serif headlines, quiet controls.</li>
+              <li><a href="https://hai.stanford.edu/policy" target="_blank" rel="noopener noreferrer">Stanford HAI Policy</a>: the summary comes first, the points come after.</li>
+              <li><a href="https://ourworldindata.org/artificial-intelligence" target="_blank" rel="noopener noreferrer">Our World in Data</a>: numbered notes that say where each source goes.</li>
+            </ul>
+          </div>
+          <div class="tradeoff">
+            <div><p class="k">Good</p><ul><li>Calm and serious. Feels like Stanford.</li><li>Closest to the current site, so the easiest change.</li></ul></div>
+            <div><p class="k">Watch out</p><ul><li>The least "new" of the four.</li><li>Footnote numbers are small to tap on a phone.</li></ul></div>
+          </div>
+          <p class="open"><a class="btn btn-primary" href="briefing/">Open Policy Briefing</a><a class="btn btn-ghost" href="briefing/?demo=empty&amp;fast">See the empty panel</a></p>
+        </div>
+      </article>
+
+      <!-- 2 ─────────────────────────────────────────────── -->
+      <article class="card is-rec" aria-labelledby="d2">
+        <div class="shots">
+          <figure><a href="evidence/?demo=all&amp;fast"><img src="shots/evidence-desktop.png" width="1440" height="900" alt="Evidence First on a laptop: a row of source cards sits above the answer; numbered citation pills in the text point back to them."></a><figcaption>Laptop</figcaption></figure>
+          <figure><a href="evidence/?demo=all&amp;fast" tabindex="-1" aria-hidden="true"><img src="shots/evidence-phone.png" width="375" height="812" alt=""></a><figcaption>Phone</figcaption></figure>
+        </div>
+        <div class="body">
+          <div class="head">
+            <div>
+              <p class="num">02</p>
+              <h3 id="d2">Evidence First</h3>
+            </div>
+            <span class="tag">Recommended</span>
+          </div>
+          <p class="idea">The sources come first. You see which HEAL-AI documents were used, as cards, before you read the answer. Tap a number in the text and its card lights up.</p>
+          <div>
+            <p class="k">Inspired by</p>
+            <ul class="insp">
+              <li><a href="https://www.perplexity.ai" target="_blank" rel="noopener noreferrer">Perplexity</a>: source cards above the answer, numbered citations in the text.</li>
+              <li><a href="https://vercel.com/docs" target="_blank" rel="noopener noreferrer">Vercel Docs</a>: black-and-white interface with one accent colour, a tight type scale.</li>
+              <li><a href="https://docs.stripe.com" target="_blank" rel="noopener noreferrer">Stripe Docs</a>: clear note, warning and error boxes with an icon and a bold label.</li>
+            </ul>
+          </div>
+          <div class="tradeoff">
+            <div><p class="k">Good</p><ul><li>Shows the point of the tool at a glance: every answer has a source.</li><li>Looks most like a modern tech product.</li></ul></div>
+            <div><p class="k">Watch out</p><ul><li>Most work to build and test.</li><li>The cards take space on a phone before the answer starts.</li></ul></div>
+          </div>
+          <p class="open"><a class="btn btn-primary" href="evidence/">Open Evidence First</a><a class="btn btn-ghost" href="evidence/?demo=empty&amp;fast">See the empty panel</a></p>
+        </div>
+      </article>
+
+      <!-- 3 ─────────────────────────────────────────────── -->
+      <article class="card" aria-labelledby="d3">
+        <div class="shots">
+          <figure><a href="console/?demo=all&amp;fast"><img src="shots/console-desktop.png" width="1440" height="900" alt="Command Console on a laptop: a wide dark-framed panel opens in the middle of the screen like a search box, with a sources table under the answer."></a><figcaption>Laptop</figcaption></figure>
+          <figure><a href="console/?demo=all&amp;fast" tabindex="-1" aria-hidden="true"><img src="shots/console-phone.png" width="375" height="812" alt=""></a><figcaption>Phone</figcaption></figure>
+        </div>
+        <div class="body">
+          <div>
+            <p class="num">03</p>
+            <h3 id="d3">Command Console</h3>
+          </div>
+          <p class="idea">Opens in the middle of the screen, like the search box in a fast work app. Press "/" or Cmd+K to open it. Built for people who use the keyboard.</p>
+          <div>
+            <p class="k">Inspired by</p>
+            <ul class="insp">
+              <li><a href="https://linear.app" target="_blank" rel="noopener noreferrer">Linear</a>: a command menu, keyboard hints, dark frame, quick motion.</li>
+              <li><a href="https://vercel.com/docs" target="_blank" rel="noopener noreferrer">Vercel Docs</a>: small code-style labels and status dots.</li>
+              <li><a href="https://primer.style" target="_blank" rel="noopener noreferrer">GitHub Primer</a>: status labels and focus styles that work for everyone.</li>
+            </ul>
+          </div>
+          <div class="tradeoff">
+            <div><p class="k">Good</p><ul><li>The most "Silicon Valley" feel.</li><li>Big reading area on a laptop.</li></ul></div>
+            <div><p class="k">Watch out</p><ul><li>Covers the page you were reading.</li><li>Keyboard shortcuts mean little to most visitors.</li><li>Dark frame is a step away from the site.</li></ul></div>
+          </div>
+          <p class="open"><a class="btn btn-primary" href="console/">Open Command Console</a><a class="btn btn-ghost" href="console/?demo=empty&amp;fast">See the empty panel</a></p>
+        </div>
+      </article>
+
+      <!-- 4 ─────────────────────────────────────────────── -->
+      <article class="card" aria-labelledby="d4">
+        <div class="shots">
+          <figure><a href="civic/?demo=all&amp;fast"><img src="shots/civic-desktop.png" width="1440" height="900" alt="Civic Clarity on a laptop: large plain text, a red header, a Beta banner, and each answer split into In short, Details and Where this comes from."></a><figcaption>Laptop</figcaption></figure>
+          <figure><a href="civic/?demo=all&amp;fast" tabindex="-1" aria-hidden="true"><img src="shots/civic-phone.png" width="375" height="812" alt=""></a><figcaption>Phone</figcaption></figure>
+        </div>
+        <div class="body">
+          <div>
+            <p class="num">04</p>
+            <h3 id="d4">Civic Clarity</h3>
+          </div>
+          <p class="idea">The clearest to read. Big text, plain words, and each answer split into "In short", "Details" and "Where this comes from". Warnings are impossible to miss.</p>
+          <div>
+            <p class="k">Inspired by</p>
+            <ul class="insp">
+              <li><a href="https://design-system.service.gov.uk" target="_blank" rel="noopener noreferrer">GOV.UK Design System</a>: warning text, the Beta banner, the yellow focus outline, plain English.</li>
+              <li><a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener noreferrer">NIST AI RMF</a>: sober, trustworthy-AI tone and clear section headings.</li>
+              <li><a href="https://designsystem.digital.gov" target="_blank" rel="noopener noreferrer">U.S. Web Design System</a>: alert boxes with a thick left border.</li>
+            </ul>
+          </div>
+          <div class="tradeoff">
+            <div><p class="k">Good</p><ul><li>Easiest for anyone to read, on any screen.</li><li>Best accessibility of the four.</li></ul></div>
+            <div><p class="k">Watch out</p><ul><li>Looks more like a government service than a tech product.</li><li>Big text means more scrolling.</li></ul></div>
+          </div>
+          <p class="open"><a class="btn btn-primary" href="civic/">Open Civic Clarity</a><a class="btn btn-ghost" href="civic/?demo=empty&amp;fast">See the empty panel</a></p>
+        </div>
+      </article>
+    </div>
+
+    <div class="table-wrap" role="region" aria-labelledby="cmp-cap" tabindex="0">
+      <table>
+        <caption id="cmp-cap">At a glance</caption>
+        <thead><tr><th scope="col"></th><th scope="col">Briefing</th><th scope="col">Evidence</th><th scope="col">Console</th><th scope="col">Civic</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Feels</th><td>Think-tank memo</td><td>Modern tech product</td><td>Fast work app</td><td>Public service</td></tr>
+          <tr><th scope="row">Puts first</th><td>The bottom line</td><td>The sources</td><td>Speed and keyboard</td><td>Plain reading</td></tr>
+          <tr><th scope="row">Fits the current site</th><td>Very closely</td><td>Closely</td><td>Least</td><td>Closely</td></tr>
+          <tr><th scope="row">Work to build</th><td>Least</td><td>Most</td><td>Medium</td><td>Medium</td></tr>
+          <tr><th scope="row">Easiest to read</th><td>Good</td><td>Good</td><td>Good</td><td>Best</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="rules" aria-labelledby="rules-h">
+      <h2 id="rules-h">What all four keep from the live assistant</h2>
+      <ul>
+        <li>Sources show only under a real answer. Never under a refusal, a decline, a withheld answer or limited service.</li>
+        <li>Numbers like [1] or [1,3] in an answer jump to the matching source.</li>
+        <li>"Not covered" points to the HEAL-AI team and the Toolkit.</li>
+        <li>One line under the box: "Can be wrong · Not medical advice · Saved 30 days", with Details for the full notice.</li>
+        <li>"Was this useful?" Yes / No, with an optional comment on No.</li>
+        <li>Every refusal has a clear written label, not just a colour.</li>
+        <li>Works with the keyboard. Escape hides the panel. Screen readers hear new replies.</li>
+        <li>Readable contrast, calm motion for people who turn it off, and no sideways scrolling on a phone.</li>
+        <li>Stanford cardinal red stays the accent colour.</li>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<footer><div class="wrap">Prototypes only. Patterns were borrowed from the sites listed; no logos, brand names, copy or paid fonts were taken. The answers in the prototypes are sample wording, not real HEAL-AI findings.</div></footer>
+
+</body>
+</html>

@@ -1,0 +1,1350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Command Console · HEAL-AI assistant prototype</title>
+<meta name="description" content="Prototype of a redesigned HEAL-AI assistant: keyboard-first, opens like a command palette. Mock replies only.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   HEAL-AI assistant · prototype direction "Command Console"
+   Keyboard-first. Opens like a command palette: centred sheet on desktop,
+   full-height sheet on phones. Charcoal chrome, light reading area,
+   cardinal as the single accent. PROTOTYPE ONLY — mock replies.
+─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --cardinal: #8C1515;
+  --cardinal-dark: #6D1010;
+  --cardinal-tint: #F4E8E8;     /* ~8% cardinal on white */
+  --cardinal-wash: #FBF3F3;
+  --cardinal-on-dark: #F3A6A6;  /* 8.7:1 on charcoal */
+
+  --ink: #2E2D29;
+  --ink-mid: #4D4F53;
+  --ink-low: #6B6D71;           /* 5.2:1 on white */
+  --bg: #FFFFFF;
+  --bg-soft: #F9F9F9;
+  --bg-warm: #F2EFEA;
+  --line: #E7E5E0;
+  --line-ui: #8F8B83;           /* 3.4:1 on white — control borders */
+
+  --char: #1E1D1A;              /* chrome */
+  --char-2: #2A2925;            /* field on chrome */
+  --char-line: rgba(255,255,255,.10);
+  --char-ui: #7C7870;           /* 3.8:1 on chrome, 3.3:1 on the field — field border */
+  --on-char: #F5F3EF;
+  --on-char-mid: #C9C6BE;
+  --on-char-low: #A9A69E;       /* 6.9:1 on chrome */
+
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+
+  --r: 8px;
+  --r-sm: 6px;
+  --t: 150ms;
+  --ease: cubic-bezier(.2,.7,.2,1);
+  --bar-h: 0px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+h1, h2, h3, p, ul, ol { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  background: var(--bg);
+  color: var(--ink-mid);
+}
+.sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+:focus-visible { outline: 2px solid var(--cardinal); outline-offset: 2px; }
+.wrap { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Prototype bar ───────────────────────────────────────────────────── */
+.pbar {
+  position: relative; z-index: 1000;
+  background: var(--bg-warm);
+  border-bottom: 1px dashed #B9B4AA;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+.pbar-in {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px 16px;
+  padding: 7px 16px;
+  max-width: 1440px; margin: 0 auto;
+}
+.pbar-id { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.pbar-tag {
+  background: var(--char); color: var(--on-char);
+  padding: 2px 7px; border-radius: 4px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 11px;
+}
+.pbar-name { font-weight: 600; }
+.pbar-mock { color: #5F5D57; }
+.pbar-back { color: var(--cardinal); text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.pbar-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
+.pbar-ctl label { color: #5F5D57; }
+.pbar select, .pbar button {
+  font-family: var(--mono); font-size: 12px;
+  height: 30px; border-radius: var(--r-sm);
+  border: 1px solid var(--line-ui); background: var(--bg);
+  padding: 0 8px; color: var(--ink);
+}
+.pbar select { max-width: 100%; }
+.pbar button:hover { border-color: var(--ink); }
+.pbar .pbar-fill { background: var(--char); color: var(--on-char); border-color: var(--char); }
+.pbar .pbar-fill:hover { background: #000; }
+@media (min-width: 760px) { .pbar { position: sticky; top: 0; } }
+
+/* ── Mock site nav ───────────────────────────────────────────────────── */
+.nav { border-bottom: 1px solid var(--line); background: var(--bg); }
+.nav-in { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+.wordmark { font-family: var(--serif); font-weight: 700; font-size: 22px; letter-spacing: -.01em; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; gap: 10px; }
+.wordmark i { width: 10px; height: 10px; background: var(--cardinal); border-radius: 2px; display: inline-block; }
+.nav-links { display: flex; align-items: center; gap: 4px; list-style: none; padding: 0; }
+.nav-links a { text-decoration: none; font-size: 14.5px; color: var(--ink-mid); padding: 8px 12px; border-radius: var(--r-sm); display: inline-block; }
+.nav-links a:hover { color: var(--ink); background: var(--bg-soft); }
+.nav-links a[aria-current="page"] { color: var(--cardinal); font-weight: 600; }
+@media (max-width: 720px) { .nav-links li:not(.keep) { display: none; } }
+
+/* ── Hero ────────────────────────────────────────────────────────────── */
+.hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--bg); }
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(46,45,41,.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(46,45,41,.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 30%, transparent 75%);
+          mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 30%, transparent 75%);
+}
+.hero-in {
+  position: relative;
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  gap: 56px; align-items: center;
+  padding-top: 72px; padding-bottom: 72px;
+}
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--cardinal); display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid rgba(140,21,21,.28); background: var(--cardinal-wash);
+  padding: 5px 10px; border-radius: 999px;
+}
+.eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--cardinal); }
+.hero h1 {
+  margin-top: 20px;
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 1.04; letter-spacing: -.035em; font-weight: 700; color: var(--ink);
+  text-wrap: balance;
+}
+.hero h1 em { font-style: normal; color: var(--cardinal); }
+.lede { margin-top: 18px; font-size: 18px; line-height: 1.55; color: var(--ink-mid); max-width: 34em; }
+.hero-cta { margin-top: 30px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 12px;
+  height: 48px; padding: 0 10px 0 20px;
+  border: 0; border-radius: var(--r);
+  background: var(--cardinal); color: #fff;
+  font-size: 15.5px; font-weight: 600;
+  box-shadow: 0 1px 0 rgba(255,255,255,.15) inset, 0 6px 18px rgba(140,21,21,.22);
+  transition: background var(--t) var(--ease), transform var(--t) var(--ease);
+}
+.btn-primary:hover { background: var(--cardinal-dark); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary kbd { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.35); color: #fff; }
+.cta-hint { font-family: var(--mono); font-size: 12.5px; color: var(--ink-low); display: inline-flex; align-items: center; gap: 6px; }
+
+/* Palette preview card in the hero */
+.try {
+  border: 1px solid #D9D6CF; border-radius: 12px; background: var(--bg);
+  box-shadow: 0 24px 60px -24px rgba(30,29,26,.28), 0 2px 6px rgba(30,29,26,.05);
+  overflow: hidden;
+}
+.try-head {
+  background: var(--char); color: var(--on-char-low);
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px; height: 48px;
+  font-family: var(--mono); font-size: 13px;
+}
+.try-head .p { color: var(--cardinal-on-dark); font-weight: 600; }
+.try-head kbd { margin-left: auto; background: transparent; color: var(--on-char-low); border-color: var(--char-ui); }
+.try-label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-low); padding: 14px 16px 6px; }
+.try-list { list-style: none; padding: 0 8px 8px; }
+.try-btn {
+  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+  min-height: 46px; padding: 10px 10px; border: 0; border-radius: var(--r-sm);
+  background: transparent; font-size: 15px; color: var(--ink);
+}
+.try-btn .ico { font-family: var(--mono); font-size: 16px; color: var(--ink-low); width: 16px; flex: none; }
+.try-btn .txt { flex: 1; min-width: 0; }
+.try-btn kbd { opacity: 0; transition: opacity var(--t) var(--ease); flex: none; }
+.try-btn:hover, .try-btn:focus-visible { background: var(--bg-warm); }
+.try-btn:hover kbd, .try-btn:focus-visible kbd { opacity: 1; }
+.try-btn:hover .ico, .try-btn:focus-visible .ico { color: var(--cardinal); }
+.try-btn:focus-visible { outline-offset: -2px; }
+.try-foot {
+  border-top: 1px solid var(--line); background: var(--bg-soft);
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-low);
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 16px;
+}
+.try-foot span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Facts strip */
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); border-top: 1px solid var(--line); }
+.fact { padding: 22px 24px 24px 0; }
+.fact + .fact { padding-left: 24px; border-left: 1px solid var(--line); }
+.fact-k { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--cardinal); }
+.fact p { margin-top: 6px; font-size: 15px; color: var(--ink-mid); }
+
+/* Inspired by */
+.section { padding: 64px 0; }
+.section-soft { background: var(--bg-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.mono-label { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-low); }
+.insp { border: 1px solid #D9D6CF; border-radius: 12px; background: var(--bg); overflow: hidden; }
+.insp-head { padding: 22px 24px 18px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.insp-head h2 { font-size: 26px; letter-spacing: -.025em; font-weight: 700; margin-top: 4px; }
+.insp-head p { font-size: 14.5px; color: var(--ink-mid); max-width: 32em; }
+.insp-list { list-style: none; padding: 0; }
+.insp-row {
+  display: grid; grid-template-columns: 200px 180px minmax(0,1fr); gap: 4px 24px; align-items: baseline;
+  padding: 16px 24px; border-bottom: 1px solid var(--line);
+}
+.insp-row a { font-weight: 600; font-size: 16px; color: var(--ink); text-decoration: underline; text-decoration-color: rgba(140,21,21,.4); text-underline-offset: 4px; }
+.insp-row a:hover { color: var(--cardinal); text-decoration-color: currentColor; }
+.insp-url { font-family: var(--mono); font-size: 12.5px; color: var(--ink-low); overflow-wrap: anywhere; }
+.insp-row p { font-size: 15px; color: var(--ink-mid); }
+.insp-note { padding: 14px 24px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-mid); background: var(--bg-soft); }
+
+.anchors { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+.anchor-card { border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; scroll-margin-top: calc(var(--bar-h) + 16px); }
+.anchor-card h3 { font-size: 16px; font-weight: 600; margin-top: 4px; }
+.anchor-card p { font-size: 14.5px; color: var(--ink-mid); margin-top: 4px; }
+.site-foot { border-top: 1px solid var(--line); padding: 28px 0 120px; font-size: 14px; color: var(--ink-low); }
+
+@media (max-width: 900px) {
+  .hero-in { grid-template-columns: minmax(0,1fr); gap: 36px; padding-top: 48px; padding-bottom: 48px; }
+  .insp-row { grid-template-columns: minmax(0,1fr); }
+  .anchors { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  .lede { font-size: 17px; }
+  .facts { grid-template-columns: minmax(0,1fr); }
+  .fact, .fact + .fact { padding: 16px 0; border-left: 0; }
+  .fact + .fact { border-top: 1px solid var(--line); }
+  .section { padding: 44px 0; }
+  .insp-head, .insp-row, .insp-note { padding-left: 16px; padding-right: 16px; }
+  .cta-hint { display: none; }
+  .try-foot span:not(:last-child) { display: none; }
+  .pbar select, .pbar button { height: 40px; font-size: 13px; }
+  .pbar-back { display: inline-flex; align-items: center; min-height: 40px; }
+  .nav-links a, .wordmark { min-height: 40px; display: inline-flex; align-items: center; }
+  .insp-row a { display: inline-block; padding: 8px 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE ASSISTANT
+═══════════════════════════════════════════════════════════════════════ */
+.cc { font-family: var(--sans); color: var(--ink); }
+
+/* Launcher */
+.cc-launch {
+  position: fixed; right: 24px; bottom: 24px; z-index: 880;
+  display: inline-flex; align-items: center; gap: 10px;
+  height: 48px; padding: 0 8px 0 10px;
+  border: 1px solid #000; border-radius: 12px;
+  background: var(--char); color: var(--on-char);
+  font-size: 14.5px; font-weight: 600;
+  box-shadow: 0 12px 32px -8px rgba(30,29,26,.45), 0 0 0 1px rgba(255,255,255,.06) inset;
+  transition: transform var(--t) var(--ease), background var(--t) var(--ease);
+}
+.cc-launch:hover { background: #000; transform: translateY(-1px); }
+.cc-launch:focus-visible { outline: 3px solid var(--cardinal); outline-offset: 3px; }
+.cc-launch .mark { width: 28px; height: 28px; border-radius: 7px; background: var(--cardinal); display: grid; place-items: center; font-family: var(--mono); font-size: 17px; font-weight: 600; color: #fff; }
+.cc-launch kbd { background: transparent; color: var(--on-char-low); border-color: var(--char-ui); }
+.cc-launch .lbl { padding-right: 2px; }
+.cc-unread { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: var(--cardinal); border: 2px solid #fff; }
+
+/* Scrim (desktop) — clicking it minimises */
+.cc-scrim {
+  position: fixed; inset: 0; z-index: 890;
+  background: rgba(30,29,26,.32);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity var(--t) var(--ease);
+}
+.cc[data-open="true"] .cc-scrim { opacity: 1; }
+.cc-scrim[hidden], .cc-win[hidden] { display: none; }
+
+/* Window — centred palette on desktop */
+.cc-win {
+  position: fixed; z-index: 900;
+  top: calc(var(--bar-h) + 6vh); left: 0; right: 0;
+  margin: 0 auto;
+  width: min(780px, calc(100vw - 48px));
+  max-height: calc(100vh - var(--bar-h) - 6vh - 32px);
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  border: 1px solid #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 40px 100px -20px rgba(15,14,12,.55), 0 0 0 1px rgba(255,255,255,.04) inset;
+  opacity: 0; transform: translateY(-8px) scale(.985);
+  transition: opacity var(--t) var(--ease), transform var(--t) var(--ease);
+}
+.cc[data-open="true"] .cc-win { opacity: 1; transform: none; }
+
+/* Header */
+.cc-head {
+  flex: none;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--char); color: var(--on-char);
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--char-line);
+}
+.cc-head .mark { width: 30px; height: 30px; border-radius: 7px; background: var(--cardinal); display: grid; place-items: center; font-family: var(--mono); font-size: 13px; font-weight: 600; color: #fff; flex: none; }
+.cc-head-txt { min-width: 0; flex: 1; }
+.cc-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cc-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--on-char); }
+.cc-beta { font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--cardinal-on-dark); border: 1px solid rgba(243,166,166,.45); border-radius: 4px; padding: 1px 6px; }
+.cc-sub { font-family: var(--mono); font-size: 11.5px; color: var(--on-char-low); margin-top: 2px; }
+.cc-head-act { display: flex; align-items: center; gap: 2px; flex: none; }
+.cc-esc { margin-right: 6px; background: transparent; color: var(--on-char-low); border-color: var(--char-ui); }
+.cc-icon {
+  width: 40px; height: 40px; border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--on-char-mid);
+  display: grid; place-items: center;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.cc-icon svg { width: 18px; height: 18px; }
+.cc-icon:hover { background: rgba(255,255,255,.08); color: #fff; }
+.cc-head :focus-visible, .cc-composer :focus-visible { outline-color: var(--cardinal-on-dark); }
+
+/* Log */
+.cc-log {
+  position: relative;
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg);
+  scroll-behavior: smooth;
+}
+.cc-log:focus-visible { outline-offset: -3px; }
+
+/* Empty state */
+.cc-intro { padding: 20px 20px 12px; }
+.cc-lede { font-size: 15.5px; color: var(--ink-mid); max-width: 38em; }
+.cc-group { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 8px; }
+.cc-group .mono-label { font-size: 11px; }
+.cc-navhint { font-family: var(--mono); font-size: 11.5px; color: var(--ink-low); display: inline-flex; align-items: center; gap: 4px; }
+.cc-navhint kbd { min-width: 18px; height: 18px; font-size: 10.5px; }
+.cc-cmds { list-style: none; padding: 0; margin: 0 -8px; }
+.cc-cmd {
+  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+  min-height: 46px; padding: 10px 10px; border: 0; border-radius: var(--r-sm);
+  background: transparent; font-size: 15.5px; color: var(--ink);
+  transition: background var(--t) var(--ease);
+}
+.cc-cmd .ico { font-family: var(--mono); font-size: 16px; color: var(--ink-low); width: 16px; flex: none; text-align: center; }
+.cc-cmd .txt { flex: 1; min-width: 0; }
+.cc-cmd kbd { flex: none; opacity: .0; transition: opacity var(--t) var(--ease); }
+.cc-cmd:hover, .cc-cmd:focus-visible { background: var(--bg-warm); }
+.cc-cmd:hover kbd, .cc-cmd:focus-visible kbd { opacity: 1; }
+.cc-cmd:hover .ico, .cc-cmd:focus-visible .ico { color: var(--cardinal); }
+.cc-cmd:focus-visible { outline-offset: -2px; }
+.cc-standalone { margin-top: 12px; font-size: 13.5px; color: var(--ink-low); display: flex; gap: 8px; align-items: baseline; }
+.cc-standalone::before { content: "i"; flex: none; font-family: var(--mono); font-size: 10.5px; font-weight: 600; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line-ui); display: inline-grid; place-items: center; color: var(--ink-low); transform: translateY(2px); }
+.cc-intro.is-compact { padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--bg-soft); }
+.cc-intro.is-compact .cc-standalone { margin-top: 0; font-size: 13px; }
+
+/* Exchange */
+.cc-x { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); }
+.cc-x:last-child { border-bottom: 0; }
+.cc-q { display: flex; gap: 10px; align-items: baseline; }
+.cc-q-mark { font-family: var(--mono); font-weight: 600; color: var(--cardinal); flex: none; width: 14px; }
+.cc-q p { font-size: 16px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); overflow-wrap: anywhere; }
+.cc-r { margin: 12px 0 0 24px; }
+.cc-r.is-new { animation: cc-in var(--t) var(--ease) both; }
+@keyframes cc-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.cc-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-low);
+}
+.cc-meta .sep { color: #B3AFA7; }
+.cc-meta .hash { margin-left: auto; letter-spacing: .02em; text-transform: none; color: var(--ink-low); }
+.cc-meta .k { color: var(--ink); font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+.cc-meta .k::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--cardinal); }
+.cc-k-refused .cc-meta .k::before, .cc-k-withheld .cc-meta .k::before,
+.cc-k-declined .cc-meta .k::before, .cc-k-limited .cc-meta .k::before { background: transparent; border: 1.5px solid currentColor; width: 6px; height: 6px; }
+.cc-k-error .cc-meta .k::before { border-radius: 1px; background: var(--cardinal); }
+.cc-k-answer .cc-meta .k { color: var(--cardinal); }
+
+/* Pending */
+.cc-pending .cc-meta .k::before { display: none; }
+.cc-scan { display: inline-flex; gap: 3px; }
+.cc-scan i { width: 6px; height: 10px; border-radius: 1px; background: var(--cardinal); opacity: .25; animation: cc-scan 900ms infinite; }
+.cc-scan i:nth-child(2) { animation-delay: 150ms; }
+.cc-scan i:nth-child(3) { animation-delay: 300ms; }
+@keyframes cc-scan { 0%, 100% { opacity: .2; } 40% { opacity: 1; } }
+
+/* Status pill (non-answers) */
+.cc-pill {
+  margin-top: 10px;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13.5px; font-weight: 600; line-height: 1.3;
+  padding: 5px 11px 5px 10px; border-radius: 999px;
+  border: 1px solid var(--line-ui); background: var(--bg-warm); color: var(--ink);
+}
+.cc-pill .dot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid currentColor; flex: none; }
+.cc-pill-refused, .cc-pill-withheld, .cc-pill-error { background: var(--cardinal-wash); border-color: rgba(140,21,21,.45); color: var(--cardinal); }
+.cc-pill-refused .dot, .cc-pill-error .dot { background: currentColor; }
+.cc-pill-error .dot { border-radius: 2px; }
+
+/* Answer body */
+.cc-body { margin-top: 10px; font-size: 15.5px; line-height: 1.65; color: var(--ink); }
+.cc-body p + p, .cc-body p + ul, .cc-body ul + p { margin-top: 10px; }
+.cc-body ul { list-style: none; padding: 0; margin-top: 10px; }
+.cc-body li { position: relative; padding-left: 20px; }
+.cc-body li + li { margin-top: 6px; }
+.cc-body li::before { content: ""; position: absolute; left: 4px; top: .7em; width: 6px; height: 6px; border-radius: 1px; background: var(--ink-low); }
+.cc-nonanswer .cc-body { color: var(--ink-mid); }
+
+.cc-cite {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 19px; padding: 0 5px; margin: 0 1px 0 3px;
+  vertical-align: 2px;
+  font-family: var(--mono); font-size: 11px; font-weight: 600; line-height: 1;
+  color: var(--cardinal); background: var(--cardinal-tint);
+  border: 1px solid rgba(140,21,21,.6); border-radius: 4px;
+  position: relative;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.cc-cite + .cc-cite { margin-left: 2px; }
+.cc-cite:hover { background: var(--cardinal); color: #fff; border-color: var(--cardinal); }
+.cc-cite:focus-visible { outline-offset: 1px; }
+
+/* Next step */
+.cc-next { margin-top: 12px; font-size: 14.5px; color: var(--ink); display: flex; gap: 8px; align-items: baseline; }
+.cc-next .lbl { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-low); flex: none; }
+.cc-next a { color: var(--cardinal); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.cc-next a:hover { text-decoration-thickness: 2px; }
+
+/* Sources table */
+.cc-src { margin-top: 16px; border: 1px solid #DCD9D2; border-radius: var(--r); overflow: hidden; }
+.cc-src-head {
+  display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 10px;
+  padding: 7px 12px; background: var(--bg-soft); border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-low);
+}
+.cc-src-head h3 { font: inherit; letter-spacing: inherit; grid-column: 1 / 3; }
+.cc-src-list { list-style: none; padding: 0; }
+.cc-src-row {
+  display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 2px 10px; align-items: baseline;
+  padding: 10px 12px; min-height: 44px;
+  border-top: 1px solid var(--line);
+  transition: background var(--t) var(--ease), box-shadow var(--t) var(--ease);
+  scroll-margin: 12px;
+}
+.cc-src-row:first-child { border-top: 0; }
+.cc-src-n {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+  display: inline-grid; place-items: center; width: 22px; height: 20px; border-radius: 4px;
+  border: 1px solid var(--line-ui); color: var(--ink);
+}
+.cc-src-row[data-cited="true"] .cc-src-n { border-color: rgba(140,21,21,.45); color: var(--cardinal); background: var(--cardinal-wash); }
+.cc-src-t { font-size: 14.5px; line-height: 1.45; overflow-wrap: anywhere; min-width: 0; }
+.cc-src-t a { color: var(--ink); font-weight: 500; text-decoration: underline; text-decoration-color: #C4C0B8; text-underline-offset: 3px; }
+.cc-src-t a:hover { color: var(--cardinal); text-decoration-color: currentColor; }
+.cc-uncited { margin-left: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-low); white-space: nowrap; }
+.cc-src-w { font-family: var(--mono); font-size: 11.5px; color: var(--ink-low); white-space: nowrap; text-align: right; }
+.cc-src-w::before { content: "↗ "; color: var(--ink-low); }
+.cc-src-row.is-target { background: var(--cardinal-wash); box-shadow: inset 3px 0 0 var(--cardinal); }
+.cc-src-row:focus { outline: 2px solid var(--cardinal); outline-offset: -2px; }
+
+/* Rating */
+.cc-rate { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cc-rate-l { font-size: 13.5px; color: var(--ink-low); margin-right: 2px; }
+.cc-btn {
+  height: 32px; padding: 0 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--line-ui); background: var(--bg); color: var(--ink);
+  font-size: 13.5px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: border-color var(--t) var(--ease), background var(--t) var(--ease);
+}
+.cc-btn:hover { border-color: var(--ink); background: var(--bg-soft); }
+.cc-btn-strong { background: var(--char); color: var(--on-char); border-color: var(--char); }
+.cc-btn-strong:hover { background: #000; border-color: #000; }
+.cc-btn-red { color: var(--cardinal); border-color: rgba(140,21,21,.6); }
+.cc-btn-red:hover { background: var(--cardinal); color: #fff; border-color: var(--cardinal); }
+.cc-btn[disabled] { opacity: .55; cursor: default; }
+.cc-done { font-family: var(--mono); font-size: 12px; color: var(--ink-mid); display: inline-flex; align-items: center; gap: 8px; }
+.cc-done.ok::before { content: "✓"; color: var(--cardinal); font-weight: 600; }
+.cc-done.fail { color: var(--cardinal); }
+.cc-comment { width: 100%; }
+.cc-comment label { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.cc-comment label span { display: block; font-weight: 400; color: var(--ink-low); }
+.cc-comment textarea {
+  margin-top: 6px; width: 100%; resize: vertical; min-height: 64px;
+  border: 1px solid var(--line-ui); border-radius: var(--r-sm); padding: 8px 10px;
+  font-size: 15px; line-height: 1.45; background: var(--bg);
+}
+.cc-comment-act { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
+.cc-comment-n { font-family: var(--mono); font-size: 11.5px; color: var(--ink-low); }
+
+/* Error */
+.cc-err { margin-top: 10px; border: 1px solid rgba(140,21,21,.45); background: var(--cardinal-wash); border-radius: var(--r); padding: 12px 14px; }
+.cc-err .cc-pill { margin-top: 0; background: var(--bg); }
+.cc-err p.msg { margin-top: 8px; font-size: 15px; color: var(--ink); }
+.cc-err .cc-btn { margin-top: 10px; }
+
+/* Composer (dark) */
+.cc-composer { flex: none; background: var(--char); color: var(--on-char); padding: 12px 12px 10px; border-top: 1px solid #000; }
+.cc-field {
+  display: flex; align-items: flex-end; gap: 8px;
+  background: var(--char-2); border: 1px solid var(--char-ui); border-radius: 10px;
+  padding: 6px 6px 6px 12px;
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.cc-field:focus-within { border-color: var(--cardinal-on-dark); box-shadow: 0 0 0 3px rgba(243,166,166,.18); }
+.cc-prompt { font-family: var(--mono); font-weight: 600; color: var(--cardinal-on-dark); line-height: 36px; flex: none; }
+.cc-input {
+  flex: 1; min-width: 0; border: 0; background: transparent; resize: none;
+  color: var(--on-char); font-size: 16px; line-height: 1.5;
+  padding: 6px 0; height: 36px; max-height: 140px; overflow-y: hidden;
+}
+.cc-input::placeholder { color: var(--on-char-low); opacity: 1; }
+.cc-input:focus { outline: none; }
+.cc-count { font-family: var(--mono); font-size: 11.5px; color: var(--on-char-low); line-height: 36px; flex: none; }
+.cc-count:empty { display: none; }
+.cc-count[data-over="true"] { color: var(--cardinal-on-dark); font-weight: 600; }
+.cc-send {
+  flex: none; height: 36px; min-width: 36px; padding: 0 10px 0 12px; border: 0; border-radius: 7px;
+  background: var(--cardinal); color: #fff;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13.5px; font-weight: 600;
+  transition: background var(--t) var(--ease), opacity var(--t) var(--ease);
+}
+.cc-send:hover:not([disabled]) { background: #A51C1C; }
+.cc-send[disabled] { background: #3A3833; color: #8F8B83; cursor: default; }
+.cc-send kbd { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: inherit; min-width: 18px; height: 18px; }
+.cc-send[disabled] kbd { background: transparent; border-color: #55524C; }
+.cc-foot { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 2px; }
+.cc-line { font-family: var(--mono); font-size: 11.5px; color: var(--on-char-low); display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.cc-more {
+  border: 0; background: transparent; padding: 2px 4px; margin: -2px 0;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--cardinal-on-dark);
+  text-decoration: underline; text-underline-offset: 3px; border-radius: 4px;
+}
+.cc-more:hover { color: #fff; }
+.cc-keys { font-family: var(--mono); font-size: 11px; color: var(--on-char-low); display: inline-flex; align-items: center; gap: 5px; }
+.cc-keys kbd { background: transparent; color: var(--on-char-mid); border-color: var(--char-ui); min-width: 18px; height: 18px; font-size: 10.5px; }
+.cc-keys kbd + span { margin-right: 6px; }
+.cc-notice { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--char-line); border-radius: var(--r-sm); background: var(--char-2); }
+.cc-notice p { font-size: 13.5px; line-height: 1.5; color: var(--on-char-mid); }
+.cc-notice p + p { margin-top: 6px; }
+
+/* Phone: full-height sheet */
+@media (max-width: 640px) {
+  .cc-launch { right: 16px; bottom: 16px; }
+  .cc-launch kbd { display: none; }
+  .cc-scrim { display: none; }
+  .cc-win {
+    top: 0; bottom: 0; left: 0; right: 0;
+    width: 100%; max-height: none; height: 100vh; height: 100dvh;
+    border-radius: 0; border: 0; z-index: 1100;
+    transform: translateY(12px);
+  }
+  .cc-esc, .cc-keys, .cc-navhint { display: none; }
+  .cc-head { padding: 8px 4px 8px 16px; padding-top: max(8px, env(safe-area-inset-top)); }
+  .cc-head .mark { display: none; }
+  .cc-title-row { flex-wrap: nowrap; }
+  .cc-title { white-space: nowrap; }
+  .cc-icon { width: 44px; height: 44px; }
+  .cc-intro { padding: 16px 16px 10px; }
+  .cc-intro.is-compact { padding: 10px 16px; }
+  .cc-x { padding: 16px 16px 18px; }
+  .cc-r { margin-left: 0; }
+  .cc-q p { font-size: 16px; }
+  .cc-cmd { min-height: 48px; font-size: 15.5px; }
+  .cc-btn { height: 40px; padding: 0 14px; font-size: 15px; }
+  .cc-rate-l { font-size: 15px; }
+  .cc-src-head { grid-template-columns: 30px minmax(0,1fr); }
+  .cc-src-head .opens { display: none; }
+  .cc-src-row { grid-template-columns: 30px minmax(0,1fr); }
+  .cc-src-t { font-size: 15px; }
+  .cc-src-w { grid-column: 2; text-align: left; white-space: normal; }
+  .cc-next { flex-direction: column; gap: 2px; font-size: 15px; }
+  .cc-standalone, .cc-intro.is-compact .cc-standalone { font-size: 15px; }
+  .cc-lede { font-size: 15.5px; }
+  .cc-meta { font-size: 11.5px; }
+  .cc-composer { padding: 10px 10px max(10px, env(safe-area-inset-bottom)); }
+  .cc-send { min-width: 44px; height: 40px; justify-content: center; padding: 0 12px; }
+  .cc-send .lbl, .cc-send kbd { display: none; }
+  .cc-prompt, .cc-count { line-height: 40px; }
+  .cc-input { padding: 8px 0; height: 40px; }
+  .cc-foot { margin-top: 6px; }
+  .cc-line { font-family: var(--sans); font-size: 12px; flex-wrap: nowrap; gap: 4px; width: 100%; justify-content: space-between; }
+  /* One line at 375px; on narrower phones "Saved 30 days" drops to a
+     second line as a unit instead of being clipped. */
+  .cc-line > span { min-width: 0; }
+  #ccSaved { white-space: nowrap; }
+  .cc-more { font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 0 4px; margin: 0 -4px 0 0; min-height: 40px; flex: none; }
+  .cc-notice p { font-size: 15px; }
+  .cc-comment label { font-size: 15px; }
+  .cc-pill { font-size: 15px; }
+  .cc-done { font-size: 15px; font-family: var(--sans); }
+  .cc-comment-n { font-size: 13px; }
+  .cc-src-w { font-size: 13px; }
+  .cc-meta { font-size: 12.5px; }
+  .cc-beta { font-size: 11.5px; }
+  .cc-sub { font-size: 12.5px; }
+  .cc-uncited, .cc-next .lbl, .cc-src-head { font-size: 12px; }
+  /* Bigger hit areas on touch without changing the layout: the citation
+     chips grow to ~40px tall, and a source row is one target. */
+  .cc-cite::after { content: ""; position: absolute; left: -1px; right: -1px; top: -11px; bottom: -11px; }
+  .cc-src-row { position: relative; }
+  .cc-src-t a::after { content: ""; position: absolute; inset: 0; }
+}
+
+/* Fast (screenshots) and reduced motion: no motion at all */
+.is-fast *, .is-fast *::before, .is-fast *::after { animation: none !important; transition: none !important; }
+.is-fast .cc-log { scroll-behavior: auto; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .cc-scan i { opacity: .7; }
+}
+@media (forced-colors: active) {
+  .cc-win, .cc-launch, .cc-pill, .cc-cite, .cc-src { border: 1px solid CanvasText; }
+  .cc-src-row.is-target { outline: 2px solid Highlight; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Prototype bar ─────────────────────────────────────────────── -->
+<div class="pbar" id="pbar">
+  <div class="pbar-in">
+    <div class="pbar-id">
+      <span class="pbar-tag">Prototype</span>
+      <span class="pbar-name">Command Console</span>
+      <span class="pbar-mock">Prototype · mock replies, not real answers</span>
+      <a class="pbar-back" href="../index.html">← All directions</a>
+    </div>
+    <div class="pbar-ctl">
+      <label for="pbSel">Show reply type</label>
+      <select id="pbSel"></select>
+      <button type="button" id="pbShow">Ask it</button>
+      <button type="button" id="pbFill" class="pbar-fill">Fill with every reply type</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Mock site page ────────────────────────────────────────────── -->
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="wordmark" href="#top" aria-label="HEAL-AI home"><i aria-hidden="true"></i>HEAL-AI</a>
+    <nav aria-label="Site">
+      <ul class="nav-links">
+        <li><a href="#toolkit">Toolkit</a></li>
+        <li><a href="#reports">Reports</a></li>
+        <li><a href="#about">About</a></li>
+        <li class="keep"><a href="#top" aria-current="page">Ask</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="heroTitle">
+    <div class="hero-grid" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="hero-in">
+        <div class="hero-copy">
+          <p class="eyebrow">Ask · Beta</p>
+          <h1 id="heroTitle">Ask HEAL-AI’s published work. <em>Check every source.</em></h1>
+          <p class="lede">Answers come only from HEAL-AI’s own reports, playbook and templates, with numbered sources you can open and read.</p>
+          <div class="hero-cta">
+            <button type="button" class="btn-primary" id="heroOpen">Open the assistant <kbd aria-hidden="true">/</kbd></button>
+            <span class="cta-hint">or press <kbd>⌘</kbd><kbd>K</kbd> anywhere</span>
+          </div>
+        </div>
+        <div class="try" role="group" aria-labelledby="tryLabel">
+          <div class="try-head" aria-hidden="true"><span class="p">›</span><span>Ask about HEAL-AI’s work…</span><kbd>/</kbd></div>
+          <p class="try-label" id="tryLabel">Try a question</p>
+          <ul class="try-list" id="tryList"></ul>
+          <div class="try-foot" aria-hidden="true">
+            <span><kbd>↵</kbd> ask</span>
+            <span><kbd>esc</kbd> minimise</span>
+            <span>Each answer lists its sources</span>
+          </div>
+        </div>
+      </div>
+      <div class="facts">
+        <div class="fact"><p class="fact-k">Sourced</p><p>Every claim is numbered and points to the HEAL-AI document it came from.</p></div>
+        <div class="fact"><p class="fact-k">Bounded</p><p>Medical questions are refused. Gaps in the material are said plainly.</p></div>
+        <div class="fact"><p class="fact-k">Private</p><p>Questions are kept 30 days to improve the assistant. Do not type patient details.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft" id="inspired" aria-labelledby="inspTitle">
+    <div class="wrap">
+      <div class="insp">
+        <div class="insp-head">
+          <div>
+            <p class="mono-label">Design notes · this direction</p>
+            <h2 id="inspTitle">Inspired by</h2>
+          </div>
+          <p>Command Console borrows interaction patterns from tools people already trust to be fast and precise.</p>
+        </div>
+        <ul class="insp-list">
+          <li class="insp-row">
+            <a href="https://linear.app" target="_blank" rel="noopener noreferrer">Linear<span class="sr"> (opens in a new tab)</span></a>
+            <span class="insp-url">linear.app</span>
+            <p>A command menu that opens on one keystroke, key hints beside each action, restrained dark chrome and quick motion.</p>
+          </li>
+          <li class="insp-row">
+            <a href="https://vercel.com/docs" target="_blank" rel="noopener noreferrer">Vercel docs<span class="sr"> (opens in a new tab)</span></a>
+            <span class="insp-url">vercel.com/docs</span>
+            <p>Monospace metadata labels, status dots always paired with a word, and a precise background grid.</p>
+          </li>
+          <li class="insp-row">
+            <a href="https://primer.style" target="_blank" rel="noopener noreferrer">GitHub Primer<span class="sr"> (opens in a new tab)</span></a>
+            <span class="insp-url">primer.style</span>
+            <p>Status labels that never rely on colour alone, and strong, consistent focus rings.</p>
+          </li>
+        </ul>
+        <p class="insp-note">Patterns only — no logos, brand names in the UI, copy or paid fonts were taken.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-label="Site sections (placeholders)">
+    <div class="wrap anchors">
+      <div class="anchor-card" id="toolkit"><p class="mono-label">Toolkit</p><h3>Reports, playbook and templates</h3><p>Placeholder for the site’s Toolkit page.</p></div>
+      <div class="anchor-card" id="reports"><p class="mono-label">Reports</p><h3>Sample ethics reports</h3><p>Placeholder for the site’s Sample Reports page.</p></div>
+      <div class="anchor-card" id="about"><p class="mono-label">About</p><h3>Contact the HEAL-AI team</h3><p>Placeholder for the site’s About and contact page.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot"><div class="wrap">HEAL-AI · Stanford Health Care · Prototype page, not the live site.</div></footer>
+
+<!-- ─── The assistant ─────────────────────────────────────────────── -->
+<div class="cc" id="cc" data-open="false">
+  <button type="button" class="cc-launch" id="ccLaunch" aria-expanded="false" aria-controls="ccWin" aria-keyshortcuts="/ Control+K Meta+K">
+    <span class="mark" aria-hidden="true">›</span>
+    <span class="lbl">Ask HEAL-AI</span>
+    <kbd aria-hidden="true">/</kbd>
+    <span class="cc-unread" id="ccUnread" hidden><span class="sr">, new answer</span></span>
+  </button>
+  <div class="cc-scrim" id="ccScrim" hidden></div>
+  <section class="cc-win" id="ccWin" role="dialog" aria-modal="false" aria-labelledby="ccTitle" aria-describedby="ccSub" hidden>
+    <header class="cc-head">
+      <span class="mark" aria-hidden="true">HA</span>
+      <div class="cc-head-txt">
+        <div class="cc-title-row"><h2 class="cc-title" id="ccTitle"></h2><span class="cc-beta">Beta</span></div>
+        <p class="cc-sub" id="ccSub">Answers from published material</p>
+      </div>
+      <div class="cc-head-act">
+        <kbd class="cc-esc" aria-hidden="true">esc</kbd>
+        <button type="button" class="cc-icon" id="ccMin" aria-label="Minimise (keeps this conversation)" title="Minimise · Esc">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 12h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="cc-icon" id="ccClose" aria-label="Close and clear this conversation" title="Close and clear">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+    <div class="cc-log" id="ccLog" role="log" aria-live="polite" aria-label="Conversation" tabindex="0"></div>
+    <form class="cc-composer" id="ccForm" novalidate>
+      <div class="cc-field">
+        <span class="cc-prompt" aria-hidden="true">›</span>
+        <label class="sr" for="ccInput">Ask a question about HEAL-AI’s work</label>
+        <textarea id="ccInput" class="cc-input" rows="1" maxlength="500" placeholder="Ask about HEAL-AI’s work…" aria-describedby="ccCount ccKeys"></textarea>
+        <span class="cc-count" id="ccCount"></span>
+        <button type="submit" class="cc-send" id="ccSend" aria-label="Send question" disabled>
+          <span class="lbl" aria-hidden="true">Send</span><kbd aria-hidden="true">↵</kbd>
+          <svg class="arrow" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" style="display:none"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="cc-foot">
+        <p class="cc-line"><span id="ccLineText"></span><button type="button" class="cc-more" id="ccMore" aria-expanded="false" aria-controls="ccNotice">Details</button></p>
+        <p class="cc-keys" id="ccKeys"><kbd>↵</kbd><span>send</span><kbd>⇧↵</kbd><span>new line</span><kbd>esc</kbd><span>minimise</span></p>
+      </div>
+      <div class="cc-notice" id="ccNotice" hidden>
+        <p id="ccNote"></p>
+        <p id="ccPrivacy"></p>
+      </div>
+    </form>
+  </section>
+</div>
+
+<script src="../fixtures.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var M = window.HEALAI_MOCK;
+  var C = M.copy;
+  var esc = M.esc;
+  var MAX = C.maxQuestion;
+  var CMAX = C.maxComment;
+  var params = new URLSearchParams(window.location.search);
+  var FAST = params.has('fast');
+  if (FAST) document.documentElement.classList.add('is-fast');
+
+  function $(id) { return document.getElementById(id); }
+  var root = $('cc'), launcher = $('ccLaunch'), unread = $('ccUnread'), scrim = $('ccScrim');
+  var win = $('ccWin'), log = $('ccLog'), form = $('ccForm'), input = $('ccInput');
+  var send = $('ccSend'), count = $('ccCount'), more = $('ccMore'), notice = $('ccNotice');
+
+  var busy = false, generation = 0, turn = 0, hideTimer = null, healthChecked = false;
+
+  /* Phone sheet uses an arrow icon in the send button; desktop shows "Send ↵". */
+  var arrow = send.querySelector('.arrow');
+  var phoneMQ = window.matchMedia('(max-width: 640px)');
+  function syncSend() { arrow.style.display = phoneMQ.matches ? 'block' : 'none'; }
+  syncSend();
+  if (phoneMQ.addEventListener) phoneMQ.addEventListener('change', syncSend);
+
+  function reduced() { return FAST || M.reducedMotion(); }
+
+  /* ── static copy ─────────────────────────────────────────────────── */
+  $('ccTitle').textContent = C.title;
+  $('ccLineText').innerHTML = esc(C.lineHead) + '<span id="ccSaved">' + esc(C.saved) + '</span>';
+  $('ccNote').textContent = C.note;
+  $('ccPrivacy').textContent = C.privacy;
+
+  /* The sticky prototype bar's height, so the palette sits below it. */
+  var pbar = $('pbar');
+  function measureBar() {
+    var sticky = getComputedStyle(pbar).position === 'sticky';
+    document.documentElement.style.setProperty('--bar-h', (sticky ? pbar.offsetHeight : 0) + 'px');
+  }
+  measureBar();
+  window.addEventListener('resize', measureBar);
+  window.addEventListener('load', measureBar);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureBar);
+
+  /* ── helpers ─────────────────────────────────────────────────────── */
+  function safeLink(href) {
+    if (!href) return null;
+    try {
+      var u = new URL(href, window.location.href);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+      return { href: String(href), external: u.origin !== window.location.origin };
+    } catch (e) { return null; }
+  }
+
+  /* [1] and [1,3] → chips that jump to that source of THIS answer.
+     Runs on escaped text. With no valid set (a non-answer) nothing links. */
+  function linkCitations(escaped, valid) {
+    return escaped.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, function (whole, list) {
+      var nums = list.split(/\s*,\s*/).map(function (n) { return parseInt(n, 10); });
+      if (!valid || !nums.every(function (i) { return valid[i]; })) return whole;
+      return nums.map(function (i) {
+        return '<button type="button" class="cc-cite" data-to="' + i + '" aria-label="Source ' + i + '">' + i + '</button>';
+      }).join('');
+    });
+  }
+
+  function renderText(text, valid) {
+    var out = '', bullets = [];
+    function flush() {
+      if (!bullets.length) return;
+      out += '<ul>' + bullets.join('') + '</ul>';
+      bullets = [];
+    }
+    String(text).split('\n').forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) { flush(); return; }
+      var m = line.match(/^[-•*]\s+(.*)$/);
+      if (m) bullets.push('<li>' + linkCitations(esc(m[1]), valid) + '</li>');
+      else { flush(); out += '<p>' + linkCitations(esc(line), valid) + '</p>'; }
+    });
+    flush();
+    return out;
+  }
+
+  function whereItOpens(s) {
+    if (s.precision === 'section-list') return 'Reports list';
+    if (s.precision === 'document-pending') return /^#reports\b/.test(s.href || '') ? 'Sample Reports' : 'Listing page';
+    return 'Document';
+  }
+
+  function shortId(x) { return '#' + String(x).slice(0, 4) + '·' + String(x).slice(-4); }
+
+  /* Machine-style metadata line: kind · detail · id */
+  function metaFor(kind, data, show) {
+    var parts;
+    switch (kind.k) {
+      case 'answer':
+        var n = show ? data.sources.length : 0;
+        var cited = show ? data.sources.filter(function (s) { return s.cited; }).length : 0;
+        parts = ['Answer', n ? n + (n === 1 ? ' source' : ' sources') : 'No sources'];
+        if (n && cited && cited < n) parts.push(cited + ' cited');
+        break;
+      case 'refused':
+        parts = ['Refused', data.blocked_by === 'clinical_intent' ? 'Clinical' : String(data.blocked_by || 'Guard').replace(/_/g, ' ')];
+        break;
+      case 'declined': parts = ['Declined', 'Not in material']; break;
+      case 'withheld': parts = ['Withheld', 'Failed checks']; break;
+      case 'limited': parts = ['Limited', 'Generation paused']; break;
+      default: parts = [kind.k];
+    }
+    return metaLine(parts, data.exchange);
+  }
+
+  function metaLine(parts, exchange) {
+    var html = '<p class="cc-meta"><span class="k">' + esc(parts[0]) + '</span>';
+    for (var i = 1; i < parts.length; i++) html += ' <span class="sep" aria-hidden="true">·</span> <span>' + esc(parts[i]) + '</span>';
+    if (exchange) html += ' <span class="hash" aria-hidden="true">' + esc(shortId(exchange)) + '</span>';
+    return html + '</p>';
+  }
+
+  /* ── empty state ─────────────────────────────────────────────────── */
+  function intro() {
+    log.innerHTML =
+      '<div class="cc-intro" id="ccIntro">' +
+        '<p class="cc-lede">Ask about the playbook, the ethics assessments, the templates or the patient panel. ' +
+        'Each answer shows which documents it came from.</p>' +
+        '<div class="cc-group"><p class="mono-label" id="ccSugg">Suggested questions</p>' +
+          '<span class="cc-navhint" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd> move&nbsp;&nbsp;<kbd>↵</kbd> ask</span></div>' +
+        '<ul class="cc-cmds" aria-labelledby="ccSugg">' +
+          M.starters.map(function (q) {
+            return '<li><button type="button" class="cc-cmd"><span class="ico" aria-hidden="true">→</span>' +
+                   '<span class="txt">' + esc(q) + '</span><kbd aria-hidden="true">↵</kbd></button></li>';
+          }).join('') +
+        '</ul>' +
+        '<p class="cc-standalone">' + esc(C.standalone) + '</p>' +
+      '</div>';
+  }
+
+  function compactIntro() {
+    var el = $('ccIntro');
+    if (el && !el.classList.contains('is-compact')) {
+      el.classList.add('is-compact');
+      el.innerHTML = '<p class="cc-standalone">' + esc(C.standalone) + '</p>';
+    }
+  }
+
+  function cmds() { return Array.prototype.slice.call(log.querySelectorAll('.cc-cmd')); }
+
+  log.addEventListener('click', function (e) {
+    var b = e.target.closest('.cc-cmd');
+    if (!b) return;
+    ask(b.querySelector('.txt').textContent);
+    /* The starter list is replaced when the question is asked; keep focus
+       in the panel instead of letting it fall to <body>. */
+    input.focus({ preventScroll: true });
+  });
+
+  /* Arrow keys move through the command list; Up from the first goes
+     back to the input, Down from an empty input enters the list. */
+  log.addEventListener('keydown', function (e) {
+    var b = e.target.closest && e.target.closest('.cc-cmd');
+    if (!b) return;
+    var list = cmds(), i = list.indexOf(b);
+    if (e.key === 'ArrowDown') { e.preventDefault(); (list[i + 1] || list[0]).focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (i === 0) input.focus(); else list[i - 1].focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); list[0].focus(); }
+    else if (e.key === 'End') { e.preventDefault(); list[list.length - 1].focus(); }
+  });
+
+  /* ── input ───────────────────────────────────────────────────────── */
+  function updateCount() {
+    var n = input.value.length;
+    count.textContent = n > MAX * 0.8 ? n + '/' + MAX : '';
+    count.setAttribute('data-over', String(n >= MAX));
+    input.style.height = 'auto';
+    var want = input.scrollHeight;
+    input.style.overflowY = want > 140 ? 'auto' : 'hidden';
+    input.style.height = Math.min(Math.max(want, phoneMQ.matches ? 40 : 36), 140) + 'px';
+    send.disabled = busy || !input.value.trim();
+  }
+
+  input.addEventListener('input', updateCount);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(input.value); return; }
+    if (e.key === 'ArrowDown' && !input.value) {
+      var list = cmds();
+      if (list.length) { e.preventDefault(); list[0].focus(); }
+    }
+  });
+  form.addEventListener('submit', function (e) { e.preventDefault(); ask(input.value); });
+
+  more.addEventListener('click', function () {
+    var open = more.getAttribute('aria-expanded') !== 'true';
+    more.setAttribute('aria-expanded', String(open));
+    more.textContent = open ? 'Hide' : 'Details';
+    notice.hidden = !open;
+  });
+
+  /* ── open / minimise / close ─────────────────────────────────────── */
+  function isOpen() { return root.getAttribute('data-open') === 'true'; }
+
+  function open(opts) {
+    clearTimeout(hideTimer);
+    if (!log.firstChild) intro();
+    win.hidden = false;
+    scrim.hidden = false;
+    updateCount();
+    void win.offsetWidth;
+    root.setAttribute('data-open', 'true');
+    launcher.setAttribute('aria-expanded', 'true');
+    unread.hidden = true;
+    checkHealth();
+    if (!opts || opts.focus !== false) {
+      setTimeout(function () { input.focus({ preventScroll: true }); }, reduced() ? 0 : 40);
+    }
+  }
+
+  function hide() {
+    root.setAttribute('data-open', 'false');
+    launcher.setAttribute('aria-expanded', 'false');
+    hideTimer = setTimeout(function () { win.hidden = true; scrim.hidden = true; }, reduced() ? 0 : 160);
+    launcher.focus({ preventScroll: true });
+  }
+
+  function minimise() { hide(); }
+
+  function clearConversation() {
+    fillToken++;               // a running "Fill with every reply type" stops too
+    generation++;
+    busy = false;
+    input.value = '';
+    updateCount();
+    log.innerHTML = '';
+  }
+
+  function close() {
+    clearConversation();
+    hide();
+  }
+
+  launcher.addEventListener('click', function () { if (isOpen()) minimise(); else open(); });
+  $('ccMin').addEventListener('click', minimise);
+  $('ccClose').addEventListener('click', close);
+  scrim.addEventListener('click', minimise);
+
+  function isTyping(el) {
+    if (!el) return false;
+    var t = el.tagName;
+    return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || el.isContentEditable;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && (k === 'k' || k === 'K') && !isTyping(e.target)) {
+      e.preventDefault();
+      if (isOpen()) input.focus(); else open();
+      return;
+    }
+    if (k === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !isTyping(e.target)) {
+      e.preventDefault();
+      if (isOpen()) input.focus(); else open();
+      return;
+    }
+    if (k === 'Escape' && isOpen() &&
+        (win.contains(e.target) || e.target === document.body || e.target === document.documentElement)) {
+      e.preventDefault();
+      minimise();
+    }
+  });
+
+  /* ── service notice ──────────────────────────────────────────────── */
+  function checkHealth() {
+    if (healthChecked) return;
+    healthChecked = true;
+    M.health().then(function (h) {
+      if (h && h.notice) $('ccPrivacy').textContent = h.notice;
+      var saved = $('ccSaved');
+      if (h && h.logging_questions === false) saved.textContent = 'Not saved';
+      else if (h && h.logging_questions === true && Number(h.log_days) > 0) saved.textContent = 'Saved ' + Number(h.log_days) + ' days';
+    }).catch(function () { healthChecked = false; });
+  }
+
+  /* ── rendering a reply ───────────────────────────────────────────── */
+  function nextStep(kind) {
+    var tk = '<a href="' + esc(C.toolkitHref) + '">Toolkit</a>';
+    switch (kind.k) {
+      case 'declined':
+        return '<p class="cc-next"><span class="lbl">Next</span><span>Not covered here? ' +
+               '<a href="' + esc(C.contactHref) + '">Contact the HEAL-AI team</a> or browse the reports and resources in the ' + tk + '.</span></p>';
+      case 'refused':
+        return '<p class="cc-next"><span class="lbl">Next</span><span>Ask about HEAL-AI’s reports, playbook or how assessments are run.</span></p>';
+      case 'withheld':
+        return '<p class="cc-next"><span class="lbl">Next</span><span>Try a narrower question, or read the reports in the ' + tk + '.</span></p>';
+      case 'limited':
+        return '<p class="cc-next"><span class="lbl">Next</span><span>Browse the reports and resources in the ' + tk + ' while answers are paused.</span></p>';
+    }
+    return '';
+  }
+
+  function render(el, wrap, data) {
+    var t = ++turn;
+    var kind = M.kindOf(data);
+    var show = M.showsSources(data);
+    var valid = null, html = '';
+    if (show) { valid = {}; data.sources.forEach(function (s) { valid[s.n] = true; }); }
+
+    html += metaFor(kind, data, show);
+    if (kind.label) {
+      html += '<p class="cc-pill cc-pill-' + kind.k + '"><span class="dot" aria-hidden="true"></span>' + esc(kind.label) + '</p>';
+    }
+    html += '<div class="cc-body">' + renderText(data.answer || '', valid) + '</div>';
+    html += nextStep(kind);
+
+    if (show) {
+      var hid = 'cc-t' + t + '-srch';
+      html += '<section class="cc-src" aria-labelledby="' + hid + '">' +
+        '<div class="cc-src-head"><h3 id="' + hid + '">Sources</h3><span class="opens" aria-hidden="true">Opens</span></div>' +
+        '<ol class="cc-src-list">';
+      data.sources.forEach(function (s) {
+        var link = safeLink(s.href);
+        var name = esc(s.label || 'Source ' + s.n);
+        var inner = link
+          ? '<a href="' + esc(link.href) + '"' + (link.external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' +
+              name + (link.external ? '<span class="sr"> (opens in a new tab)</span>' : '') + '</a>'
+          : '<span>' + name + '</span>';
+        html += '<li class="cc-src-row" id="cc-t' + t + '-src-' + s.n + '" tabindex="-1" data-cited="' + !!s.cited + '">' +
+                  '<span class="cc-src-n" aria-hidden="true">' + esc(s.n) + '</span>' +
+                  '<span class="cc-src-t"><span class="sr">Source ' + esc(s.n) + ': </span>' + inner +
+                    (s.cited ? '<span class="sr"> — cited in the answer</span>' : '<span class="cc-uncited">Not cited</span>') +
+                  '</span>' +
+                  '<span class="cc-src-w"><span class="sr">Opens: </span>' + esc(whereItOpens(s)) + '</span>' +
+                '</li>';
+      });
+      html += '</ol></section>';
+    }
+
+    if (data.exchange) {
+      var rl = 'cc-t' + t + '-rl';
+      html += '<div class="cc-rate" data-exchange="' + esc(data.exchange) + '">' +
+                '<span class="cc-rate-l" id="' + rl + '">Was this useful?</span>' +
+                '<button type="button" class="cc-btn" data-verdict="up" aria-describedby="' + rl + '">Yes</button>' +
+                '<button type="button" class="cc-btn" data-verdict="down" aria-describedby="' + rl + '">No</button>' +
+              '</div>';
+    }
+
+    el.removeAttribute('aria-busy');
+    el.className = 'cc-r cc-k-' + kind.k + (kind.k === 'answer' ? '' : ' cc-nonanswer') + (reduced() ? '' : ' is-new');
+    el.innerHTML = html;
+
+    var rate = el.querySelector('.cc-rate');
+    if (rate) wireRating(rate);
+
+    el.querySelectorAll('.cc-cite').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var target = document.getElementById('cc-t' + t + '-src-' + b.getAttribute('data-to'));
+        if (!target) return;
+        el.querySelectorAll('.cc-src-row').forEach(function (r) { r.classList.remove('is-target'); });
+        target.classList.add('is-target');
+        target.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'auto' : 'smooth' });
+        target.focus({ preventScroll: true });
+      });
+    });
+
+    log.scrollTop = Math.max(0, wrap.offsetTop - 8);
+    if (!isOpen()) unread.hidden = false;
+  }
+
+  function renderError(el, wrap, err, q) {
+    var rate = !!err.status;
+    var text = rate ? err.message : 'The assistant could not be reached. Check your connection and try again.';
+    var label = err.status === 429 ? 'Too many questions' : (rate ? 'Service error' : 'Could not connect');
+    var parts = err.status ? ['Error', String(err.status), err.status === 429 ? 'Rate limited' : 'Server'] : ['Error', 'No connection'];
+    el.removeAttribute('aria-busy');
+    el.className = 'cc-r cc-k-error' + (reduced() ? '' : ' is-new');
+    el.innerHTML = metaLine(parts, null) +
+      '<div class="cc-err" role="alert">' +
+        '<p class="cc-pill cc-pill-error"><span class="dot" aria-hidden="true"></span>' + esc(label) + '</p>' +
+        '<p class="msg">' + esc(text) + '</p>' +
+        '<button type="button" class="cc-btn cc-btn-red">Try again</button>' +
+      '</div>';
+    el.querySelector('.cc-btn').addEventListener('click', function () {
+      if (busy) return;
+      wrap.remove();
+      input.focus({ preventScroll: true });
+      ask(q);
+    });
+    log.scrollTop = Math.max(0, wrap.offsetTop - 8);
+    if (!isOpen()) unread.hidden = false;
+  }
+
+  function wireRating(rate) {
+    var exchange = rate.getAttribute('data-exchange');
+    var labelId = rate.querySelector('.cc-rate-l').id;
+
+    function post(verdict, comment) {
+      return M.feedback({ exchange: exchange, verdict: verdict, comment: comment || undefined })
+        .then(function (r) { if (!r || !r.ok) throw new Error(String(r && r.status)); });
+    }
+    /* The clicked button is replaced by the status line, so focus moves
+       to the line (tabindex -1) rather than falling to <body>. */
+    function show(cls, msg) {
+      var hadFocus = rate.contains(document.activeElement);
+      rate.innerHTML = '<span class="cc-done' + cls + '" role="status" tabindex="-1">' + esc(msg) + '</span>';
+      if (hadFocus || document.activeElement === document.body) rate.firstChild.focus({ preventScroll: true });
+    }
+    function settle(p, okMsg) {
+      show('', 'Sending…');
+      p.then(function () { show(' ok', okMsg); })
+       .catch(function () { show(' fail', 'Your rating could not be sent.'); });
+    }
+
+    rate.querySelectorAll('.cc-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (b.getAttribute('data-verdict') === 'up') { settle(post('up'), 'Thanks.'); return; }
+        var cid = labelId + '-c', nid = labelId + '-n';
+        rate.innerHTML =
+          '<div class="cc-comment">' +
+            '<label for="' + cid + '">What was wrong with it? <span>Optional. Please do not include patient details.</span></label>' +
+            '<textarea id="' + cid + '" rows="2" maxlength="' + CMAX + '" aria-describedby="' + nid + '"></textarea>' +
+            '<div class="cc-comment-act"><button type="button" class="cc-btn cc-btn-strong">Send</button>' +
+            '<span class="cc-comment-n" id="' + nid + '">0/' + CMAX + '</span></div>' +
+          '</div>';
+        var box = rate.querySelector('textarea'), n = rate.querySelector('.cc-comment-n');
+        box.addEventListener('input', function () { n.textContent = box.value.length + '/' + CMAX; });
+        rate.querySelector('.cc-btn').addEventListener('click', function () {
+          settle(post('down', box.value.trim().slice(0, CMAX)), 'Thanks — that helps.');
+        });
+        box.focus();
+      });
+    });
+  }
+
+  /* ── asking ──────────────────────────────────────────────────────── */
+  function ask(question, opts) {
+    var q = String(question || '').trim();
+    if (!q || busy) return Promise.resolve();
+    if (!isOpen() && !(opts && opts.noOpen)) open({ focus: false });
+    if (q.length > MAX) q = q.slice(0, MAX);
+
+    busy = true;
+    input.value = '';
+    updateCount();
+    compactIntro();
+    var mine = generation;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'cc-x';
+    wrap.innerHTML =
+      '<div class="cc-q"><span class="cc-q-mark" aria-hidden="true">›</span><p><span class="sr">You asked: </span>' + esc(q) + '</p></div>' +
+      '<div class="cc-r cc-pending" aria-busy="true"><p class="cc-meta"><span class="cc-scan" aria-hidden="true"><i></i><i></i><i></i></span>' +
+      '<span class="k">Searching HEAL-AI’s material…</span></p></div>';
+    log.appendChild(wrap);
+    var el = wrap.querySelector('.cc-r');
+    log.scrollTop = log.scrollHeight;
+
+    return M.ask(q).then(function (res) {
+      if (mine !== generation) return;
+      if (!res.ok) {
+        var e = new Error((res.body && res.body.error) || 'The assistant is unavailable right now.');
+        e.status = res.status;
+        throw e;
+      }
+      render(el, wrap, res.body);
+    }).catch(function (err) {
+      if (mine !== generation) return;
+      renderError(el, wrap, err, q);
+    }).then(function () {
+      if (mine !== generation) return;
+      busy = false;
+      updateCount();
+    });
+  }
+
+  /* ── prototype controls ──────────────────────────────────────────── */
+  var sel = $('pbSel');
+  M.scenarios.forEach(function (s) {
+    var o = document.createElement('option');
+    o.value = s.id; o.textContent = s.label;
+    sel.appendChild(o);
+  });
+
+  function scenarioById(id) {
+    for (var i = 0; i < M.scenarios.length; i++) if (M.scenarios[i].id === id) return M.scenarios[i];
+    return null;
+  }
+
+  function showScenario(id, opts) {
+    var s = scenarioById(id);
+    if (!s || busy) return Promise.resolve();
+    if (!isOpen() && !(opts && opts.noOpen)) open({ focus: false });
+    M.next(id);
+    return ask(s.question, opts);
+  }
+
+  var ORDER = ['answer', 'answer-short', 'clinical', 'declined', 'withheld', 'limited', 'ratelimit', 'network'];
+  var fillToken = 0;
+  function fillAll() {
+    clearConversation();
+    var mine = ++fillToken;
+    if (!isOpen()) open({ focus: false });
+    intro();
+    var p = Promise.resolve();
+    /* If the visitor minimises mid-fill, the rest fills in the background
+       (unread dot) instead of popping the panel open again. Close stops it. */
+    ORDER.forEach(function (id) {
+      p = p.then(function () { if (mine === fillToken) return showScenario(id, { noOpen: true }); });
+    });
+    return p.then(function () {
+      if (mine !== fillToken) return;
+      var first = log.querySelector('.cc-x');
+      if (first) log.scrollTop = Math.max(0, first.offsetTop - 8);
+    });
+  }
+
+  $('pbShow').addEventListener('click', function () { showScenario(sel.value); });
+  $('pbFill').addEventListener('click', function () {
+    fillAll().then(function () { if (isOpen()) input.focus({ preventScroll: true }); });
+  });
+
+  /* ── hero ────────────────────────────────────────────────────────── */
+  var tryList = $('tryList');
+  tryList.innerHTML = M.starters.map(function (q) {
+    return '<li><button type="button" class="try-btn"><span class="ico" aria-hidden="true">→</span>' +
+           '<span class="txt">' + esc(q) + '</span><kbd aria-hidden="true">↵</kbd></button></li>';
+  }).join('');
+  tryList.addEventListener('click', function (e) {
+    var b = e.target.closest('.try-btn');
+    if (!b) return;
+    open();
+    ask(b.querySelector('.txt').textContent);
+  });
+  $('heroOpen').addEventListener('click', function () { open(); });
+
+  /* ── URL states ──────────────────────────────────────────────────── */
+  var demo = params.get('demo');
+  if (demo === 'empty') open();
+  else if (demo === 'all') { open(); fillAll(); }
+})();
+</script>
+</body>
+</html>
