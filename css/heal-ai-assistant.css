@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.css
-     commit  91592ca (branch main)
+     commit  5e4739d (branch main)
      copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
@@ -393,9 +393,18 @@
 .ha-count:empty { display: none; }
 .ha-count[data-over="true"] { color: var(--ha-cardinal); }
 
-.ha-foot { padding: 4px 16px 12px; background: var(--ha-bg); }
+.ha-foot { padding: 4px 16px 10px; background: var(--ha-bg); }
 .ha-note { font-size: 11.5px; line-height: 1.45; color: var(--ha-ink-low); }
 .ha-note + .ha-note { margin-top: 4px !important; }
+/* One line: the essentials, then "Details" for the full notice. */
+.ha-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 11px; }
+.ha-more {
+  flex-shrink: 0; background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 600; color: var(--ha-cardinal);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.ha-more:focus-visible { outline: 2px solid var(--ha-cardinal); outline-offset: 2px; border-radius: 3px; }
+.ha-notice { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: var(--ha-soft); max-height: 160px; overflow-y: auto; }
 
 /* ── phones ───────────────────────────────────────────────────────── */
 @media (max-width: 560px) {

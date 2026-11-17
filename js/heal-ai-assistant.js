@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.js
-     commit  91592ca (branch main)
+     commit  5e4739d (branch main)
      copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
@@ -92,6 +92,18 @@
   var PRIVACY_OFF =
     'The text of your question is not stored. Please still avoid typing ' +
     'patient details or anything confidential.';
+
+  /* The one line under the box. It names the three things a visitor must
+     know before typing (it can be wrong, it is not advice, it is saved);
+     "Details" opens the full notice the server sends. The saved part
+     follows the server: unknown until /api/health answers, then the real
+     retention period, or "not saved" when logging is off. */
+  /* Short enough for one line on a phone; the header already says Beta. */
+  var LINE_HEAD = 'Can be wrong · Not medical advice · ';
+  var SAVED_UNKNOWN = 'May be saved';
+  var SAVED_ON = 'Questions saved';
+  var SAVED_OFF = 'Not saved';
+  function savedFor(days) { return 'Saved ' + days + ' days'; }
 
   var ICON = {
     chat: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6A.5.5 0 0 1 5 19.2V16h-.5A.5.5 0 0 1 4 15.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.5 8.5h7M8.5 11.5h4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
@@ -191,8 +203,14 @@
         '</form>' +
         '<div class="ha-count" id="' + id + '-count"></div>' +
         '<footer class="ha-foot">' +
-          '<p class="ha-note">' + esc(NOTE) + '</p>' +
-          '<p class="ha-note ha-privacy">' + esc(PRIVACY_UNKNOWN) + '</p>' +
+          '<p class="ha-note ha-line">' +
+            '<span>' + esc(LINE_HEAD) + '<span class="ha-saved">' + esc(SAVED_UNKNOWN) + '</span></span>' +
+            '<button type="button" class="ha-more" aria-expanded="false" aria-controls="' + id + '-notice">Details</button>' +
+          '</p>' +
+          '<div class="ha-notice" id="' + id + '-notice" hidden>' +
+            '<p class="ha-note">' + esc(NOTE) + '</p>' +
+            '<p class="ha-note ha-privacy">' + esc(PRIVACY_UNKNOWN) + '</p>' +
+          '</div>' +
         '</footer>' +
       '</section>';
 
@@ -206,6 +224,15 @@
     var send     = root.querySelector('.ha-send');
     var count    = root.querySelector('.ha-count');
     var privacy  = root.querySelector('.ha-privacy');
+    var saved    = root.querySelector('.ha-saved');
+    var more     = root.querySelector('.ha-more');
+    var notice   = root.querySelector('.ha-notice');
+    more.addEventListener('click', function () {
+      var open = more.getAttribute('aria-expanded') !== 'true';
+      more.setAttribute('aria-expanded', String(open));
+      more.textContent = open ? 'Hide' : 'Details';
+      notice.hidden = !open;
+    });
 
     function intro() {
       log.innerHTML =
@@ -300,6 +327,8 @@
           service.hidden = true;
           if (h && h.notice) privacy.textContent = h.notice;
           else if (h && h.logging_questions === false) privacy.textContent = PRIVACY_OFF;
+          if (h && h.logging_questions === false) saved.textContent = SAVED_OFF;
+          else if (h && h.logging_questions === true) saved.textContent = Number(h.log_days) > 0 ? savedFor(Number(h.log_days)) : SAVED_ON;
           // anything else: keep the conservative wording
         })
         .catch(function () {
