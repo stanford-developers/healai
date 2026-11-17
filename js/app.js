@@ -1952,11 +1952,11 @@ function loadAssistantAssets() {
       const link = document.createElement('link');
       link.id = 'ha-css';
       link.rel = 'stylesheet';
-      link.href = 'css/heal-ai-assistant.css?v=beta-20261117';
+      link.href = 'css/heal-ai-assistant.css?v=beta-20261117b';
       document.head.appendChild(link);
     }
     const s = document.createElement('script');
-    s.src = 'js/heal-ai-assistant.js?v=beta-20261117';
+    s.src = 'js/heal-ai-assistant.js?v=beta-20261117b';
     s.onload = () => resolve(true);
     /* A failed asset must not look like a failed assistant. Rejecting
        lets the caller say the panel could not load, rather than leaving
@@ -2004,11 +2004,23 @@ function renderAssistant() {
   byId('assistant-h').innerHTML = c.headline;
   byId('assistant-lede').textContent = c.lede;
 
+  /* Built from the site's own section patterns: the Toolkit's intro with a
+     side card (.rt-intro), its numbered step cards (.proc-step) and the
+     About page's white cards (.white-card), so this page reads like the
+     rest of the site rather than a lone button on an empty page. Every
+     string comes from ASSISTANT_COPY in data.js and is escaped. */
+  const e = escapeHTML;
   const limitsHTML = `
-    <aside class="assist-limits">
-      <h4>${c.limitsTitle}</h4>
-      <ul>${c.limits.map(l => `<li>${l}</li>`).join('')}</ul>
-    </aside>`;
+    <div class="two-col assist-cards">
+      <div class="white-card">
+        <h3>${e(c.limitsTitle)}</h3>
+        <ul class="assist-list">${c.limits.map(l => `<li>${e(l)}</li>`).join('')}</ul>
+      </div>
+      <div class="white-card">
+        <h3>${e(c.privacyTitle)}</h3>
+        <ul class="assist-list">${c.privacy.map(l => `<li>${e(l)}</li>`).join('')}</ul>
+      </div>
+    </div>`;
 
   /* On, but nowhere to ask. Say that plainly. The alternative — showing
      the box anyway — produces a question, a spinner and then a generic
@@ -2018,8 +2030,8 @@ function renderAssistant() {
     body.innerHTML = `
       <div class="assist-pending">
         <div class="badge">Stage 2 · Coming soon</div>
-        <h3>${c.unavailableTitle}</h3>
-        <p>${c.unavailableBody}</p>
+        <h3>${e(c.unavailableTitle)}</h3>
+        <p>${e(c.unavailableBody)}</p>
         <div style="margin-top:24px">
           <a href="${SIGN_UP_URL}" target="_blank" rel="noopener"
              class="btn-prime" id="assist-notify-btn">Notify me &rarr;</a>
@@ -2028,27 +2040,43 @@ function renderAssistant() {
       ${limitsHTML}`;
     /* Same treatment as the other CTAs: our own form when we have an
        endpoint for it, otherwise the href falls through to SIGN_UP_URL. */
-    byId('assist-notify-btn').addEventListener('click', e => {
+    byId('assist-notify-btn').addEventListener('click', ev => {
       if (!hasSignUpEndpoint()) return;
-      e.preventDefault();
+      ev.preventDefault();
       openSignUp();
     });
     return;
   }
 
-  /* The page explains the assistant and opens the panel; it no longer
-     holds a second copy of it. One conversation, wherever it was started. */
+  /* The page explains the assistant and opens the panel; it does not hold
+     a second copy of it. One conversation, wherever it was started. */
   body.innerHTML = `
-    <div class="assist-open">
-      <button type="button" class="btn-prime" id="assist-open-btn" disabled>Open the assistant</button>
-      <p class="assist-open-note">It opens in the corner of the page, and stays with you as you browse.</p>
-    </div>
-    <div class="assist-examples">
-      <p class="assist-examples-label">Try one of these</p>
-      <div class="assist-example-row">
-        ${c.examples.map(q =>
-          `<button type="button" class="assist-example" disabled>${q}</button>`).join('')}
+    <p class="eyebrow">${e(c.introEyebrow)}</p>
+    <div class="rt-intro assist-intro">
+      <div>
+        <h2>${e(c.introHeading)}</h2>
+        <p>${e(c.introBody)}</p>
+        <div class="assist-open">
+          <button type="button" class="btn-prime" id="assist-open-btn" disabled>${e(c.openLabel)} &rarr;</button>
+          <p class="assist-open-note">${e(c.openNote)}</p>
+        </div>
       </div>
+      <aside class="assist-try">
+        <h4>${e(c.examplesTitle)}</h4>
+        <ul>
+          ${c.examples.map(q => `<li><button type="button" class="assist-example" disabled>${e(q)}</button></li>`).join('')}
+        </ul>
+      </aside>
+    </div>
+
+    <p class="eyebrow">${e(c.stepsEyebrow)}</p>
+    <div class="process-steps assist-steps">
+      ${c.steps.map(st => `
+        <div class="proc-step">
+          <div class="proc-num">STEP ${e(st.n)}</div>
+          <h4>${e(st.title)}</h4>
+          <p>${e(st.desc)}</p>
+        </div>`).join('')}
     </div>
     ${limitsHTML}`;
 

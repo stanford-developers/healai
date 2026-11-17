@@ -2969,3 +2969,37 @@ footer :focus-visible {
 }
 
 
+
+/* ── Ask page (Stage 2 beta) ─────────────────────────────────────────────
+   Reuses .rt-intro, .proc-step and .white-card; these rules only adapt
+   them: example questions as quiet buttons inside the side card, three
+   steps instead of five, and the limits and privacy cards side by side. */
+.assist-intro { margin-top: 14px; }
+.assist-intro .assist-open { margin-top: 22px; }
+.assist-try ul { list-style: none; display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; }
+.rt-intro .assist-try li { display: block; }
+.rt-intro .assist-try li::before { content: none; }
+.assist-try .assist-example {
+  display: flex; gap: 10px; width: 100%;
+  text-align: left; background: none; border: 0; padding: 9px 0;
+  font: inherit; font-size: 14px; line-height: 1.5; color: var(--ink);
+  border-bottom: 1px solid var(--line); border-radius: 0; cursor: pointer;
+  transition: color var(--t-fast);
+}
+.assist-try li:last-child .assist-example { border-bottom: 0; }
+.assist-try .assist-example::before { content: '→'; color: var(--cardinal); font-weight: 600; flex-shrink: 0; }
+.assist-try .assist-example:hover:not(:disabled) { background: none; }
+.assist-try .assist-example:hover:not(:disabled),
+.assist-try .assist-example:focus-visible { color: var(--cardinal); }
+.assist-try .assist-example:focus-visible { outline: 2px solid var(--cardinal); outline-offset: 2px; border-radius: 4px; }
+.assist-try .assist-example:disabled { cursor: default; color: var(--ink-low); }
+.assist-steps { grid-template-columns: repeat(3, 1fr); margin-top: 14px; margin-bottom: 56px; }
+.assist-cards { margin-bottom: 0; }
+.assist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.assist-list li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.6; color: var(--ink-mid); }
+.assist-list li::before { content: '—'; color: var(--cardinal); flex-shrink: 0; }
+@media (max-width: 900px) {
+  .assist-steps { grid-template-columns: 1fr; }
+  .assist-steps .proc-step { border-right: 1px solid var(--line); border-bottom: none; }
+  .assist-steps .proc-step:last-child { border-bottom: 1px solid var(--line); }
+}

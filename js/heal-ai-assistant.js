@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.js
-     commit  2cc78fd (public-beta release)
+     commit  91592ca (branch main)
      copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
@@ -73,6 +73,9 @@
   ];
 
   var TITLE = 'Ask about HEAL-AI’s work';
+  /* Where a "not covered" reply points. Site routes on heal-ai.stanford.edu. */
+  var CONTACT_HREF = '#about';
+  var TOOLKIT_HREF = '#toolkit';
   var SUBTITLE = 'Beta · Answers from published material';
 
   var NOTE =
@@ -111,11 +114,16 @@
      on text that is already escaped, so the only markup it can produce
      is its own. */
   function linkCitations(escaped, max) {
-    return escaped.replace(/\[(\d+)\]/g, function (whole, n) {
-      var i = parseInt(n, 10);
-      if (i < 1 || i > max) return whole;   // out of range: show it, plainly
-      return '<button type="button" class="ha-cite" data-to="' + i +
-             '" aria-label="Source ' + i + '">' + i + '</button>';
+    /* [1], and lists such as [1,3,4] or [1, 3], which some models write.
+       Out of range: shown plainly, never linked. With max 0 (a reply that
+       is not an answer) nothing is linked at all. */
+    return escaped.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, function (whole, list) {
+      var nums = list.split(/\s*,\s*/).map(function (n) { return parseInt(n, 10); });
+      if (!nums.every(function (i) { return i >= 1 && i <= max; })) return whole;
+      return nums.map(function (i) {
+        return '<button type="button" class="ha-cite" data-to="' + i +
+               '" aria-label="Source ' + i + '">' + i + '</button>';
+      }).join('');
     });
   }
 
@@ -354,11 +362,21 @@
         '</div>';
       }
 
-      html += '<div class="ha-answer">' + renderAnswer(data.answer || '', sources.length) + '</div>';
+      /* Sources and citations belong to an answer. A refusal, a declined
+         question, a withheld answer or limited service shows none: listing
+         documents under "I can't answer that" reads as if they were the
+         answer, or as if the assistant were hinting at one. */
+      var showSources = kind.k === 'answer' && sources.length > 0;
+      html += '<div class="ha-answer">' + renderAnswer(data.answer || '', showSources ? sources.length : 0) + '</div>';
 
-      if (sources.length) {
-        var heading = kind.k === 'answer' ? 'Sources' : 'Documents retrieved for your question';
-        html += '<div class="ha-sources"><h3 class="ha-sources-label">' + heading + '</h3><ol class="ha-source-list">';
+      /* Not covered: say where a person can help, as the V1 plan asks. */
+      if (kind.k === 'declined') {
+        html += '<p class="ha-next">Not covered here? <a href="' + esc(CONTACT_HREF) + '">Contact the HEAL-AI team</a> ' +
+                'or browse the reports and resources in the <a href="' + esc(TOOLKIT_HREF) + '">Toolkit</a>.</p>';
+      }
+
+      if (showSources) {
+        html += '<div class="ha-sources"><h3 class="ha-sources-label">Sources</h3><ol class="ha-source-list">';
         sources.forEach(function (s) {
           var link = safeLink(s.href);
           var name = esc(s.label || 'Source ' + s.n);

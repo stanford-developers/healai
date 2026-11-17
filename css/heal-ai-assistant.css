@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.css
-     commit  116fb26 (branch audit-and-floating-panel)
+     commit  91592ca (branch main)
      copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
@@ -436,3 +436,12 @@
 }
 
 @media print { .ha-assistant { display: none !important; } }
+
+/* The pointer to a person, under a "not covered" reply. */
+.ha-assistant .ha-next {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ha-ink-mid);
+}
+.ha-assistant .ha-next a { color: var(--ha-cardinal); text-decoration: underline; text-underline-offset: 2px; }

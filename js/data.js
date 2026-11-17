@@ -89,18 +89,47 @@ const NAV_ITEMS = [
 const ASSISTANT_COPY = {
   eyebrow: 'Ask · Beta',
   headline: 'Ask about <em>our published work.</em>',
-  lede: 'Explore HEAL-AI\'s published work with this experimental assistant. AI-generated answers can be inaccurate; check the linked original documents.',
+  lede: 'An experimental assistant that answers from HEAL-AI\'s own reports, playbook, templates and guides, and shows you where each answer came from.',
+
+  /* Section 1 — how to use it, with questions it answers well. */
+  introEyebrow: 'How to use it',
+  introHeading: 'Ask a question. Check the answer against its sources.',
+  introBody: 'Type a question about HEAL-AI\'s ethics assessments, the FURM process, the Patient Partner Panel or the templates. The answer links each point to the document it came from, so you can open it and read the original.',
+  openLabel: 'Open the assistant',
+  openNote: 'It opens in the corner of the page and stays with you as you browse.',
+  examplesTitle: 'Try asking',
   examples: [
-    'Who reviews an AI tool before it is deployed?',
-    'What does a FURM ethics assessment actually look at?',
+    'We\'re deploying an ambient AI scribe. What ethical issues should we think about?',
+    'How does the HEAL-AI ethics assessment fit into FURM?',
+    'What are the five steps for adopting this process?',
     'How are patient partners recruited and trained?',
   ],
+
+  /* Section 2 — what happens, in three steps. */
+  stepsEyebrow: 'How it works',
+  steps: [
+    { n: '01', title: 'You ask', desc: 'One question about HEAL-AI\'s published work. Each question is answered on its own.' },
+    { n: '02', title: 'It searches our documents', desc: 'Only HEAL-AI\'s published reports, playbook, templates and guides. Not the web, and not the model\'s general knowledge.' },
+    { n: '03', title: 'It answers with sources', desc: 'Each point cites the document it came from. If the material does not cover your question, it says so.' },
+  ],
+
+  /* Section 3 — limits and privacy, side by side. */
   limitsTitle: 'What it will not do',
   limits: [
-    'It is not intended for medical, legal or clinical advice, or decisions about an individual case.',
-    'It searches published HEAL-AI material. Answers may be incomplete or inaccurate; verify them against the original sources.',
-    'It is not a person from the lab. For anything that needs one, use the contact details on the About page.',
+    'Give medical, legal or clinical advice, or speak to an individual case.',
+    'Say whether a tool is ethical, approved or worth buying. HEAL-AI publishes assessments, not verdicts.',
+    'Replace a person from the lab. For anything that needs one, use the contact details on the About page.',
   ],
+  /* Keep in step with VISITOR_NOTICE in the assistant repository's
+     deployment/handler.mjs, which the panel itself shows. */
+  privacyTitle: 'What happens to your question',
+  privacy: [
+    'It is sent to AWS, where the answer is written.',
+    'Questions, answers and any rating are saved with obvious identifiers such as email addresses removed, to improve the assistant, and marked for deletion after 30 days.',
+    'If you rate an answer, it may be checked by a second AI model inside AWS and kept for up to 180 days.',
+    'Please do not enter patient details or anything confidential.',
+  ],
+
   /* Shown in place of the panel when SHOW_ASSISTANT is on but no endpoint
      is configured. Honest about the state rather than silently broken. */
   unavailableTitle: 'The assistant is not switched on yet.',
