@@ -47,6 +47,23 @@
  *   honeypot field that real users never fill in. If it ever gets
  *   hammered, the quickest fix is Deploy → Manage deployments → Archive,
  *   which kills the URL instantly.
+ *
+ *   There is no rate limit and no email confirmation, so anyone can add
+ *   any address. Confirm an address before mailing it anything.
+ *
+ * FORMULAS
+ *   A value that starts with = (or + - @) is read by Sheets as a formula,
+ *   so a "name" of =HYPERLINK(…) or =IMPORTXML(…) would become live in the
+ *   signup Sheet. Every submitted value goes through asText() before it is
+ *   written, which makes Sheets keep it as plain text. (Finding W3 of the
+ *   2026-11-17 review.)
+ *
+ * WHAT A STRANGER CAN LEARN
+ *   Nothing about the Sheet. The health check (doGet) answers only
+ *   { ok: true } or { ok: false }; it used to return the tab name and the
+ *   row count, which told anyone how many people had signed up and when.
+ *   Errors are logged for you (View → Executions) and the caller gets a
+ *   generic message, not the internal error text. (Finding W5.)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -64,6 +81,9 @@ var SHEET_ID = '1Wg2I0XHnBw8zbXFbRmFrX571Msc3fZwBPielt59RK68';
 
 var SHEET_NAME = 'Signups';
 var MAX_LEN = 200;
+
+/** What a caller sees when something went wrong on our side. */
+var GENERIC_ERROR = 'Sign-up is not working right now. Please try again later.';
 
 /** Opens the target Sheet, preferring the explicit ID and falling back to
  *  the bound spreadsheet so an unedited SHEET_ID still works in a
@@ -114,34 +134,52 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
 
-    sheet.appendRow([new Date(), name, email, affiliation]);
+    /* asText() only at the write: the checks above should see the value
+       the visitor typed, not one with a quote mark added. */
+    sheet.appendRow([new Date(), asText(name), asText(email), asText(affiliation)]);
     return json({ ok: true });
 
   } catch (err) {
-    return json({ ok: false, error: String(err) });
+    /* The real error goes to the script's own log, for you. The caller
+       gets a sentence that says nothing about the Sheet or the code. */
+    console.error('signup doPost failed: ' + err);
+    return json({ ok: false, error: GENERIC_ERROR });
   }
 }
 
 /** A GET on the endpoint is someone opening the URL in a browser, or a
  *  health check. Reports whether the Sheet is actually reachable, since
  *  that is the one part of the setup a POST can't tell you about without
- *  writing a row. */
+ *  writing a row — and nothing else. The URL is public, so the tab name and
+ *  row count are not shown: the row count is how many people signed up. To
+ *  see those, open the Sheet. */
 function doGet() {
   try {
-    var sheet = openSheet();
-    return json({
-      ok: true,
-      sheet: sheet.getName(),
-      rows: sheet.getLastRow(),
-      message: 'HEAL-AI signup endpoint is healthy. Submit the form on the site to add a row.',
-    });
+    openSheet();
+    return json({ ok: true });
   } catch (err) {
-    return json({ ok: false, error: String(err) });
+    console.error('signup doGet failed: ' + err);
+    return json({ ok: false });
   }
 }
 
 function clean(v) {
   return String(v == null ? '' : v).trim().slice(0, MAX_LEN);
+}
+
+/** Makes Sheets store a value as plain text rather than as a formula.
+ *  Sheets treats a cell that starts with = + - or @ as a formula, and a
+ *  leading tab or carriage return can hide one of those from a quick look.
+ *  A leading apostrophe is Sheets' own "this is text" marker: it is not
+ *  shown in the cell and is not part of the value, so an ordinary name or
+ *  email looks exactly as typed.
+ *
+ *  It protects the Sheet only. A CSV download of the Sheet contains the
+ *  original text, =… and all, and Excel will treat that as a formula when
+ *  the file is opened. Import such a file as text, or do not open it in a
+ *  spreadsheet program at all. */
+function asText(v) {
+  return /^[=+\-@\t\r]/.test(v) ? "'" + v : v;
 }
 
 function json(obj) {

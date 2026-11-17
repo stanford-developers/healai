@@ -18,6 +18,13 @@
  GLOBAL SCOPE
    Loaded after config.js and the Supabase CDN script, so SUPABASE_URL,
    SUPABASE_ANON_KEY, and window.supabase (the library) already exist.
+   Also after js/safe-html.js, which gives escapeHTML().
+
+ DATABASE TEXT IS ESCAPED
+   Every value from a row is passed through escapeHTML() before it goes
+   into innerHTML in the lists below. A title saved as <img onerror=…>
+   would otherwise run as code in an editor's browser, where it can read
+   the editor's login session. Keep doing this for any new column you show.
 ═════════════════════════════════════════════════════════════════════════════
 */
 
@@ -243,7 +250,7 @@ function syncNewsYearOptions() {
   const years = [...new Set(LIST_ROWS.news.map(r => String(r.date || '').slice(0, 4)).filter(Boolean))]
     .sort().reverse();
   sel.innerHTML = '<option value="">All years</option>'
-    + years.map(y => `<option value="${y}">${y}</option>`).join('');
+    + years.map(y => `<option value="${escapeHTML(y)}">${escapeHTML(y)}</option>`).join('');
   if (years.includes(current)) sel.value = current;
 }
 
@@ -559,7 +566,7 @@ async function loadResources() {
     .order('created_at', { ascending: true });
 
   if (error) {
-    list.innerHTML = `<p class="admin-empty">Couldn't load resources: ${error.message}</p>`;
+    list.innerHTML = `<p class="admin-empty">Couldn't load resources: ${escapeHTML(error.message)}</p>`;
     return;
   }
 
@@ -587,20 +594,20 @@ function renderResourceList() {
   /* Listed in the same order the public site renders them, grouped by
      category, so "which card is the big one" is answerable from here. */
   list.innerHTML = rows.map(r => `
-    <div class="admin-resource-row" data-id="${r.id}">
+    <div class="admin-resource-row" data-id="${escapeHTML(r.id)}">
       <div>
-        <span class="admin-resource-category">${RESOURCE_CATEGORY_LABEL[r.category] || r.category}</span>
-        <h4>${r.title}</h4>
-        <p>${r.description || ''}</p>
-        <span class="admin-resource-meta" title="${resourceTargetTitle(r)}">${r.icon || 'paper'} · ${resourceTargetLabel(r)}</span>
+        <span class="admin-resource-category">${escapeHTML(RESOURCE_CATEGORY_LABEL[r.category] || r.category)}</span>
+        <h4>${escapeHTML(r.title)}</h4>
+        <p>${escapeHTML(r.description)}</p>
+        <span class="admin-resource-meta" title="${escapeHTML(resourceTargetTitle(r))}">${escapeHTML(r.icon || 'paper')} · ${escapeHTML(resourceTargetLabel(r))}</span>
       </div>
       <div class="admin-news-row-actions">
         <label class="admin-priority-field">
           <span>Order</span>
-          <input type="number" step="10" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? 0}">
+          <input type="number" step="10" class="admin-priority-input" data-id="${escapeHTML(r.id)}" value="${escapeHTML(r.priority ?? 0)}">
         </label>
         ${editButtonHTML('resources', r)}
-        <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}" data-path="${r.file_path || ''}">Delete</button>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${escapeHTML(r.id)}" data-path="${escapeHTML(r.file_path)}">Delete</button>
       </div>
     </div>
   `).join('');
@@ -798,7 +805,7 @@ async function loadNewsItems() {
     .order('date', { ascending: false });
 
   if (error) {
-    list.innerHTML = `<p class="admin-empty">Couldn't load news items: ${error.message}</p>`;
+    list.innerHTML = `<p class="admin-empty">Couldn't load news items: ${escapeHTML(error.message)}</p>`;
     return;
   }
 
@@ -822,20 +829,20 @@ function renderNewsList() {
   }
 
   list.innerHTML = rows.map(r => `
-    <div class="admin-resource-row" data-id="${r.id}">
+    <div class="admin-resource-row" data-id="${escapeHTML(r.id)}">
       <div>
-        <span class="admin-resource-category">${NEWS_TYPE_LABEL[r.type] || r.type}</span>
-        <h4>${r.title}</h4>
-        <p>${r.description || ''}</p>
-        <span class="admin-resource-meta">${newsMetaLine(r)} · ${r.date}</span>
+        <span class="admin-resource-category">${escapeHTML(NEWS_TYPE_LABEL[r.type] || r.type)}</span>
+        <h4>${escapeHTML(r.title)}</h4>
+        <p>${escapeHTML(r.description)}</p>
+        <span class="admin-resource-meta">${escapeHTML(newsMetaLine(r))} · ${escapeHTML(r.date)}</span>
       </div>
       <div class="admin-news-row-actions">
         <label class="admin-priority-field">
           <span>Priority</span>
-          <input type="number" step="1" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? ''}" placeholder="date">
+          <input type="number" step="1" class="admin-priority-input" data-id="${escapeHTML(r.id)}" value="${escapeHTML(r.priority)}" placeholder="date">
         </label>
         ${editButtonHTML('news', r)}
-        <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}">Delete</button>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${escapeHTML(r.id)}">Delete</button>
       </div>
     </div>
   `).join('');
@@ -937,7 +944,7 @@ async function loadReports() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    list.innerHTML = `<p class="admin-empty">Couldn't load reports: ${error.message}</p>`;
+    list.innerHTML = `<p class="admin-empty">Couldn't load reports: ${escapeHTML(error.message)}</p>`;
     return;
   }
 
@@ -960,19 +967,19 @@ function renderReportList() {
   }
 
   list.innerHTML = rows.map(r => `
-    <div class="admin-resource-row" data-id="${r.id}">
+    <div class="admin-resource-row" data-id="${escapeHTML(r.id)}">
       <div>
-        <h4>${r.name}</h4>
-        <p>${r.sub}</p>
-        <span class="admin-resource-meta">${r.file_name || 'No file attached'}</span>
+        <h4>${escapeHTML(r.name)}</h4>
+        <p>${escapeHTML(r.sub)}</p>
+        <span class="admin-resource-meta">${escapeHTML(r.file_name || 'No file attached')}</span>
       </div>
       <div class="admin-news-row-actions">
         <label class="admin-priority-field">
           <span>Priority</span>
-          <input type="number" step="1" class="admin-priority-input" data-id="${r.id}" value="${r.priority ?? ''}" placeholder="upload order">
+          <input type="number" step="1" class="admin-priority-input" data-id="${escapeHTML(r.id)}" value="${escapeHTML(r.priority)}" placeholder="upload order">
         </label>
         ${editButtonHTML('reports', r)}
-        <button type="button" class="btn-second admin-delete-btn" data-id="${r.id}" data-path="${r.file_path || ''}">Delete</button>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${escapeHTML(r.id)}" data-path="${escapeHTML(r.file_path)}">Delete</button>
       </div>
     </div>
   `).join('');
@@ -1070,7 +1077,7 @@ async function loadTeamMembers() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    list.innerHTML = `<p class="admin-empty">Couldn't load team members: ${error.message}</p>`;
+    list.innerHTML = `<p class="admin-empty">Couldn't load team members: ${escapeHTML(error.message)}</p>`;
     return;
   }
   if (!data.length) {
@@ -1079,24 +1086,24 @@ async function loadTeamMembers() {
   }
 
   list.innerHTML = data.map(m => `
-    <div class="admin-resource-row" data-id="${m.id}">
+    <div class="admin-resource-row" data-id="${escapeHTML(m.id)}">
       <div>
-        <span class="admin-resource-category">${m.badge}</span>
-        <h4>${m.name}</h4>
-        <p>${m.role}</p>
-        <span class="admin-resource-meta">${m.affiliation ? m.affiliation : 'Lab default affiliation'} · ${(m.photo_path || m.photo_url) ? 'Has a photo' : 'No photo — initials avatar'}</span>
+        <span class="admin-resource-category">${escapeHTML(m.badge)}</span>
+        <h4>${escapeHTML(m.name)}</h4>
+        <p>${escapeHTML(m.role)}</p>
+        <span class="admin-resource-meta">${escapeHTML(m.affiliation || 'Lab default affiliation')} · ${(m.photo_path || m.photo_url) ? 'Has a photo' : 'No photo — initials avatar'}</span>
       </div>
       <div class="admin-news-row-actions">
         <label class="admin-priority-field">
           <span>Priority</span>
-          <input type="number" step="1" class="admin-priority-input" data-id="${m.id}" value="${m.priority ?? ''}" placeholder="upload order">
+          <input type="number" step="1" class="admin-priority-input" data-id="${escapeHTML(m.id)}" value="${escapeHTML(m.priority)}" placeholder="upload order">
         </label>
         <label class="admin-photo-field">
           <span>${(m.photo_path || m.photo_url) ? 'Replace photo' : 'Add photo'}</span>
-          <input type="file" accept="image/*" class="admin-photo-input" data-id="${m.id}" data-old-path="${m.photo_path || ''}">
+          <input type="file" accept="image/*" class="admin-photo-input" data-id="${escapeHTML(m.id)}" data-old-path="${escapeHTML(m.photo_path)}">
         </label>
         ${editButtonHTML('team', m)}
-        <button type="button" class="btn-second admin-delete-btn" data-id="${m.id}" data-path="${m.photo_path || ''}">Delete</button>
+        <button type="button" class="btn-second admin-delete-btn" data-id="${escapeHTML(m.id)}" data-path="${escapeHTML(m.photo_path)}">Delete</button>
       </div>
     </div>
   `).join('');

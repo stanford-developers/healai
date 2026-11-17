@@ -9,8 +9,14 @@
 #
 #   So the site is assembled here from an ALLOWLIST. Anything not named
 #   below is not published — a new internal file added at the root is
-#   private by default, which is the opposite of the branch-mode behaviour
-#   and the whole point of doing it this way.
+#   excluded from the published website by default, which is the opposite
+#   of the branch-mode behaviour and the whole point of doing it this way.
+#
+#   EXCLUDED IS NOT PRIVATE. The GitHub repository itself is public, so
+#   every file in it (and its whole history) can be read on github.com
+#   whether or not it is published here. This workflow only keeps files
+#   off heal-ai.stanford.edu. Anything that must stay confidential does
+#   not belong in this repository at all.
 #
 # ADDING A FILE TO THE SITE
 #   Add it to SITE_PATHS. Forgetting to is a visible 404, whereas
@@ -41,6 +47,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # The website's own checks (tools/test-site.mjs): database text is
+      # escaped, unsafe links are refused, a report citation survives a
+      # cold load, and the signup script stores formulas as plain text.
+      # Plain Node, no packages to install. A failure stops the deploy.
+      - name: Test the site
+        run: node tools/test-site.mjs
 
       - name: Assemble the published site
         shell: bash
@@ -104,6 +117,22 @@ jobs:
           # /admin/ gets the versioned asset urls too.
           mkdir -p _site/admin
           cp _site/admin.html _site/admin/index.html
+
+          # admin.html links its files relatively (css/…, js/…, assets/…),
+          # which is right at /admin.html but wrong one folder down: at
+          # /admin/ the browser asked for /admin/css/style.css and got a 404,
+          # so the page loaded with no styles and no scripts. Point the copy
+          # one level up. "../" rather than "/" so it also works when the
+          # site is served from a subpath like /heal-ai/.
+          sed -i -E 's#(href|src)="(css|js|assets)/#\1="../\2/#g' _site/admin/index.html
+          if grep -qE '(href|src)="(css|js|assets)/' _site/admin/index.html; then
+            echo "::error::_site/admin/index.html still has folder-relative asset links"
+            exit 1
+          fi
+          if ! grep -q 'src="../js/admin.js' _site/admin/index.html; then
+            echo "::error::_site/admin/index.html lost its admin.js reference in the rewrite"
+            exit 1
+          fi
 
           echo "Published tree:"
           find _site -type f | sort | sed 's/^/  /'

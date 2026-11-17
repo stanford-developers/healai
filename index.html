@@ -42,6 +42,41 @@
   -->
 
   <meta charset="UTF-8">
+  <!-- ─── Content-Security-Policy ─────────────────────────────────────────
+       A second line of defence behind escapeHTML()/safeURL() (js/safe-html.js).
+       If a script ever does get into the page, this list decides what it can
+       load and where it can send data. Every source is here for a reason:
+
+         script-src   'self' = config/data/safe-html/app.js and the assistant
+                      widget (js/heal-ai-assistant.js). Plus the ONE pinned
+                      Supabase file — the full path, not the whole CDN, so
+                      no other package on jsdelivr can be loaded. No inline
+                      scripts: the page has none, and allowing them would
+                      undo most of the protection.
+         style-src    'self' + Google Fonts' stylesheet. 'unsafe-inline' only
+                      because app.js writes a few style="…" attributes into
+                      its templates (Toolkit spacing, the Ask page). Styles
+                      cannot run code.
+         font-src     Google Fonts' font files.
+         img-src      'self' (assets/), the Supabase file store (team photos,
+                      news thumbnails) and YouTube's still images.
+         media-src    Podcast audio: the Supabase store, or any https URL an
+                      editor pastes in the admin form's "Audio URL".
+         connect-src  Supabase (published content), the assistant API, the
+                      signup Apps Script (script.google.com, which redirects
+                      to script.googleusercontent.com), and the assistant
+                      server on http://localhost:8787 used only by the
+                      ?assistant=dev local preview (see js/config.js).
+         frame-src    YouTube and Vimeo players only. Keep in step with
+                      VIDEO_EMBED_HOSTS in js/app.js.
+         object-src 'none', base-uri 'self', form-action 'self': no plugins,
+                      no <base> hijack, forms only post back to this site.
+
+       Changing a URL in js/config.js (Supabase project, assistant API, signup
+       endpoint) means changing it here too, or that feature stops working.
+       Note: frame-ancestors (clickjacking protection) is ignored in a <meta>
+       tag; it needs a real response header, which GitHub Pages cannot set. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://plqcpxurgusluqapksru.supabase.co https://img.youtube.com; media-src 'self' https:; connect-src 'self' https://plqcpxurgusluqapksru.supabase.co https://l6dt0fqr00.execute-api.us-east-2.amazonaws.com https://script.google.com https://script.googleusercontent.com http://localhost:8787; frame-src https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- ─── EDIT HERE · SEO & social meta ───────────────────────────────────── -->
@@ -717,20 +752,35 @@
 ═════════════════════════════════════════════════════════════════════════════
  6 · SCRIPTS (load order matters)
 ─────────────────────────────────────────────────────────────────────────────
- 1) config.js — phase toggles, brand constants, URLs
- 2) data.js   — all editable copy and resource arrays (depends on config)
- 3) app.js    — DOM rendering & event wiring (depends on config + data)
+ 1) config.js    — phase toggles, brand constants, URLs
+ 2) data.js      — all editable copy and resource arrays (depends on config)
+ 3) safe-html.js — escapeHTML() and safeURL(), used on database content
+ 4) app.js       — DOM rendering & event wiring (depends on all of the above)
 
  `defer` keeps the page parse-and-paint quick while preserving order.
 ═════════════════════════════════════════════════════════════════════════════
 -->
 <script src="js/config.js?v=dev" defer></script>
 <script src="js/data.js?v=dev" defer></script>
+<script src="js/safe-html.js?v=dev" defer></script>
 <!-- Read-only Supabase client: lets the Toolkit tab's Resources panel show
      admin-uploaded files (see admin.html) alongside the static content
      below. Public read is enforced by Row Level Security, not by this
-     script being present, see /supabase/schema.sql. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+     script being present, see /supabase/schema.sql.
+
+     PINNED, WITH AN INTEGRITY HASH. "@2" meant whatever version the CDN
+     served that day, so a new release (or a tampered file) could change
+     the code running on this site with no change in this repo. The exact
+     version plus `integrity` makes the browser refuse any file that is not
+     byte-for-byte the one reviewed. To upgrade: change the version in BOTH
+     index.html and admin.html (and in their Content-Security-Policy), then
+     recompute the hash:
+       curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@VERSION/dist/umd/supabase.js \
+         | openssl dgst -sha384 -binary | openssl base64 -A
+     crossorigin="anonymous" is required for the browser to check it. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"
+        integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O"
+        crossorigin="anonymous" defer></script>
 <script src="js/app.js?v=dev" defer></script>
 
 </body>
