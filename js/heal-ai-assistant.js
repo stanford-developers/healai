@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.js
-     commit  116fb26 (branch audit-and-floating-panel)
+     commit  06db793 (branch audit-and-floating-panel)
      copied  2026-11-16
 
    It lives here because the website is a static GitHub Pages site and can
@@ -179,7 +179,7 @@
         '<form class="ha-form" novalidate>' +
           '<label class="ha-sr-only" for="' + id + '-q">Ask a question about HEAL-AI’s work</label>' +
           '<textarea id="' + id + '-q" class="ha-input" rows="1" maxlength="' + MAX + '" ' +
-            'placeholder="Ask about HEAL-AI’s published work…" aria-describedby="' + id + '-count"></textarea>' +
+            'placeholder="Ask about HEAL-AI’s work…" aria-describedby="' + id + '-count"></textarea>' +
           '<button type="submit" class="ha-send" aria-label="Send question">' + ICON.send + '</button>' +
         '</form>' +
         '<div class="ha-count" id="' + id + '-count"></div>' +

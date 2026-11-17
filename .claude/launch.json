@@ -16,6 +16,18 @@
         "node", "/Users/toxicoyster10/Desktop/heal-ai-assistant/server/server.mjs"
       ],
       "port": 8787
+    },
+    {
+      "name": "assistant-demo",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "HEALAI_AWS_PROFILE=heal-ai",
+        "HEALAI_HOST=127.0.0.1",
+        "HEALAI_ALLOWED_ORIGINS=http://localhost:5178",
+        "HEALAI_ALLOW_UNAPPROVED=1",
+        "node", "/Users/toxicoyster10/Desktop/heal-ai-assistant/server/server.mjs"
+      ],
+      "port": 8787
     }
   ]
 }
