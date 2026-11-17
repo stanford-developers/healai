@@ -1291,6 +1291,24 @@ nav.topnav {
 }
 .assist-limits li:last-child { margin-bottom: 0; }
 
+/* The Ask page opens the floating assistant rather than holding its own
+   copy. The note says where it went, so the click is not a surprise. */
+.assist-open { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; }
+.assist-open-note { margin: 0; font-size: 14px; color: var(--ink-low); }
+.assist-example:disabled, #assist-open-btn:disabled { opacity: .55; cursor: progress; }
+
+/* The hero's decorative "Scroll" cue sits in the bottom-right corner,
+   exactly where the assistant's launcher is. Move it left of the
+   launcher rather than letting the two overlap. */
+body.has-assistant .scroll-cue { right: 220px; }
+@media (max-width: 560px) { body.has-assistant .scroll-cue { right: 90px; } }
+
+/* The mobile menu (z-index 499) opens below the nav, where the assistant's
+   panel (900) sits on a phone. The menu is site navigation and must win:
+   hide the assistant while it is open. visibility, not display, so the
+   conversation and the panel's state are untouched. */
+body:has(#mobile-menu.open) .ha-assistant { visibility: hidden; }
+
 @media (max-width: 640px) {
   /* Full-width pills: at phone width a wrapped row of three long
      questions fragments into ragged half-lines. */

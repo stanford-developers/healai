@@ -6,220 +6,433 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.css
-     commit  211bad5f
-     copied  2026-11-09
+     commit  116fb26 (branch audit-and-floating-panel)
+     copied  2026-11-16
 
    It lives here because the website is a static GitHub Pages site and can
    only serve files that are in this repository. Edits belong upstream; a
    fix made here is lost the next time the file is re-copied.
 
    To see whether this copy has drifted from upstream:
-     git -C ~/Desktop/heal-ai-assistant show 211bad5f:widget/heal-ai-assistant.css \
-       | diff - css/heal-ai-assistant.css
+     tail -n +21 css/heal-ai-assistant.css \
+       | diff - ~/Desktop/heal-ai-assistant/widget/heal-ai-assistant.css
 ─────────────────────────────────────────────────────────────────────────── */
+
 /*
 ═════════════════════════════════════════════════════════════════════════
  HEAL-AI · widget/heal-ai-assistant.css
 ─────────────────────────────────────────────────────────────────────────
- The assistant panel. Written to drop into the existing site: every
- colour, font, radius and easing below is a var() from css/style.css §1.
- There is not one hard-coded brand value here, so re-skinning the site
- re-skins this with it.
+ The floating assistant: a launcher in the bottom-right corner and the
+ conversation panel it opens. Written to drop into the existing site:
+ every colour, font, radius and easing is a var() from css/style.css §1,
+ so re-skinning the site re-skins this with it.
 
  The fallbacks in each var() are only for the standalone demo page,
  which loads this file without the site stylesheet.
+
+ LAYERING. The site's fixed nav is z-index 500 and its modals are 1000.
+ This sits at 900: above page content and the nav's shadow, below any
+ modal, so a video or sign-up dialog still covers it completely.
 ═════════════════════════════════════════════════════════════════════════
 */
 
 .ha-assistant {
   --ha-cardinal:  var(--cardinal, #8C1515);
+  --ha-cardinal-dark: var(--cardinal-dark, #6D1010);
+  --ha-cardinal-light: var(--cardinal-light, #B83A3A);
   --ha-tint:      var(--cardinal-tint, rgba(140,21,21,.08));
+  --ha-soft-tint: var(--cardinal-soft, rgba(140,21,21,.04));
   --ha-bg:        var(--bg, #fff);
   --ha-soft:      var(--bg-soft, #F9F9F9);
+  --ha-warm:      var(--bg-warm, #F2EFEA);
   --ha-ink:       var(--ink, #2E2D29);
   --ha-ink-mid:   var(--ink-mid, #4D4F53);
   --ha-ink-low:   var(--ink-low, #6B6D71);
   --ha-line:      var(--line, rgba(46,45,41,.10));
+  --ha-line-strong: var(--line-strong, rgba(46,45,41,.18));
   --ha-sans:      var(--sans, 'Inter', system-ui, sans-serif);
   --ha-serif:     var(--serif, 'Source Serif Pro', Georgia, serif);
   --ha-mono:      var(--mono, 'JetBrains Mono', ui-monospace, monospace);
   --ha-radius:    var(--radius, 10px);
-  --ha-radius-lg: var(--radius-lg, 14px);
   --ha-ease:      var(--ease, cubic-bezier(.2,.6,.2,1));
   --ha-t:         var(--t-fast, .18s);
 
+  /* Clear of the site's fixed top nav (68px), plus a margin. */
+  --ha-top-clear: 84px;
+  --ha-gap: 20px;
+
   font-family: var(--ha-sans);
   color: var(--ha-ink);
-  max-width: 720px;
-  margin-inline: auto;
+  font-size: 14.5px;
+  line-height: 1.55;
 }
 
 /* The widget sets its own box model rather than inheriting the host
-   page's reset. Without this it renders one size inside the site, which
-   resets globally, and another on any page that does not — and the
-   textarea's auto-resize compounds the difference on every keystroke. */
+   page's reset, so it renders the same on any page. */
 .ha-assistant,
 .ha-assistant *,
 .ha-assistant *::before,
 .ha-assistant *::after { box-sizing: border-box; }
+.ha-assistant p, .ha-assistant h2, .ha-assistant h3, .ha-assistant ol, .ha-assistant ul { margin: 0; }
+.ha-assistant button { font: inherit; cursor: pointer; }
+.ha-assistant svg { width: 18px; height: 18px; flex: none; }
 
-/* Visible to a screen reader, not to the eye. The input needs a real
-   label; the placeholder is not one, because it disappears on focus. */
+/* Visible to a screen reader, not to the eye. */
 .ha-sr-only {
-  position: absolute; width: 1px; height: 1px;
+  position: absolute !important; width: 1px; height: 1px;
   padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
 
-/* ── the ask box ──────────────────────────────────────────────────── */
-.ha-form { display: flex; gap: 10px; align-items: flex-start; }
+/* One focus style for everything in the panel, and never removed. */
+.ha-assistant :focus-visible {
+  outline: 2px solid var(--ha-cardinal);
+  outline-offset: 2px;
+}
 
-.ha-input {
-  flex: 1;
-  font: inherit;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--ha-ink);
-  background: var(--ha-bg);
-  border: 1px solid var(--ha-line);
-  border-radius: var(--ha-radius);
-  padding: 12px 14px;
-  resize: vertical;
-  min-height: 48px;
-  transition: border-color var(--ha-t) var(--ha-ease);
-}
-.ha-input::placeholder { color: var(--ha-ink-low); }
-.ha-input:hover  { border-color: var(--line-strong, rgba(46,45,41,.18)); }
-.ha-input:focus  { outline: none; border-color: var(--ha-cardinal); }
-
-.ha-send {
-  font: inherit; font-size: 14px; font-weight: 600;
-  color: #fff; background: var(--ha-cardinal);
-  border: 1px solid var(--ha-cardinal);
-  border-radius: var(--ha-radius);
-  padding: 13px 20px;
-  cursor: pointer; white-space: nowrap;
-  transition: background var(--ha-t) var(--ha-ease);
-}
-.ha-send:hover:not(:disabled) { background: var(--cardinal-dark, #6D1010); }
-.ha-send:disabled { opacity: .5; cursor: default; }
-
-.ha-count {
-  margin-top: 6px; text-align: right;
-  font-family: var(--ha-mono); font-size: 11px; color: var(--ha-ink-low);
-}
-.ha-count[data-over="true"] { color: var(--ha-cardinal); }
-
-/* ── the answer ───────────────────────────────────────────────────── */
-.ha-panel {
-  margin-top: 20px;
-  border: 1px solid var(--ha-line);
-  border-radius: var(--ha-radius-lg);
-  background: var(--ha-bg);
-  overflow: hidden;
-}
-.ha-panel[hidden] { display: none; }
-
-.ha-answer {
-  font-family: var(--ha-serif);
-  font-size: 17px; line-height: 1.65;
-  color: var(--ha-ink);
-  padding: 22px 24px;
-  margin: 0;
-  white-space: pre-wrap;
-}
-.ha-answer:empty { display: none; }
-
-/* A citation marker. A button, not a span, because it is operable: it
-   scrolls to and highlights the source it points at. */
-.ha-cite {
-  font-family: var(--ha-mono); font-size: 11px; font-weight: 600;
-  vertical-align: super; line-height: 0;
-  color: var(--ha-cardinal); background: var(--ha-tint);
-  border: 0; border-radius: 4px;
-  padding: 2px 4px; margin-left: 1px;
-  cursor: pointer;
-  transition: background var(--ha-t) var(--ha-ease);
-}
-.ha-cite:hover { background: var(--cardinal-light, #B83A3A); color: #fff; }
-
-.ha-source-list { list-style: none; margin: 0; padding: 0; }
-
-.ha-sources {
-  border-top: 1px solid var(--ha-line);
-  background: var(--ha-soft);
-  padding: 16px 24px 18px;
-  margin: 0; list-style: none;
-}
-.ha-sources-label {
-  font-family: var(--ha-mono); font-size: 10px;
-  letter-spacing: .14em; text-transform: uppercase;
-  color: var(--ha-ink-low);
-  margin-bottom: 10px;
-}
-.ha-source {
-  display: flex; gap: 10px; align-items: baseline;
-  font-size: 13.5px; line-height: 1.55; color: var(--ha-ink-mid);
-  padding: 5px 8px; margin: 0 -8px;
-  border-radius: var(--radius-sm, 6px);
-  transition: background var(--ha-t) var(--ha-ease);
-}
-.ha-source-n {
-  flex: none;
-  font-family: var(--ha-mono); font-size: 11px; font-weight: 600;
-  color: var(--ha-cardinal);
-}
-/* Sources the answer did not actually use are shown, but quieter. The
-   visitor should be able to see what was consulted and ignored. */
-.ha-source[data-cited="false"] { opacity: .55; }
-.ha-source[data-cited="false"] .ha-source-n { color: var(--ha-ink-low); }
-.ha-source.is-target { background: var(--ha-tint); }
-
-/* ── states ───────────────────────────────────────────────────────── */
-.ha-status {
-  display: flex; align-items: center; gap: 9px;
-  padding: 18px 24px;
-  font-size: 14px; color: var(--ha-ink-low);
-}
-.ha-dot {
-  width: 7px; height: 7px; border-radius: 50%;
+/* ── the launcher ─────────────────────────────────────────────────── */
+.ha-launcher {
+  position: fixed;
+  right: max(var(--ha-gap), env(safe-area-inset-right));
+  bottom: max(var(--ha-gap), env(safe-area-inset-bottom));
+  z-index: 900;
+  display: inline-flex; align-items: center; gap: 10px;
+  height: 48px; padding: 0 20px 0 16px;
+  border: 0; border-radius: 999px;
   background: var(--ha-cardinal);
+  color: #fff;
+  font-size: 14px; font-weight: 600; letter-spacing: .005em;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.18) inset,
+    0 10px 28px rgba(109,16,16,.28),
+    0 2px 6px rgba(0,0,0,.10);
+  transition:
+    transform var(--ha-t) var(--ha-ease),
+    box-shadow var(--ha-t) var(--ha-ease),
+    background-color var(--ha-t) var(--ha-ease),
+    opacity var(--ha-t) var(--ha-ease);
+}
+.ha-launcher svg { width: 20px; height: 20px; }
+.ha-launcher:hover { background: var(--ha-cardinal-dark); transform: translateY(-1px); }
+.ha-launcher:focus-visible { outline: 3px solid var(--ha-cardinal); outline-offset: 3px; box-shadow: 0 0 0 3px #fff, 0 10px 28px rgba(109,16,16,.28); }
+
+.ha-unread {
+  position: absolute; top: 6px; right: 8px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 2px var(--ha-cardinal);
+}
+.ha-unread[hidden] { display: none; }
+
+/* Gone while the panel is open: the panel's own minimise button is the
+   way back, and a second control in the same corner would sit under it. */
+.ha-assistant[data-open="true"] .ha-launcher {
+  opacity: 0; transform: scale(.92); pointer-events: none; visibility: hidden;
+  transition: opacity var(--ha-t) var(--ha-ease), transform var(--ha-t) var(--ha-ease), visibility 0s linear var(--ha-t);
+}
+
+/* ── the panel ────────────────────────────────────────────────────── */
+.ha-window {
+  position: fixed;
+  right: max(var(--ha-gap), env(safe-area-inset-right));
+  bottom: max(var(--ha-gap), env(safe-area-inset-bottom));
+  z-index: 900;
+  width: min(420px, calc(100vw - 2 * var(--ha-gap)));
+  height: min(680px, calc(100vh - var(--ha-top-clear) - var(--ha-gap)));
+  height: min(680px, calc(100dvh - var(--ha-top-clear) - var(--ha-gap)));
+  display: flex; flex-direction: column;
+  background: var(--ha-bg);
+  border: 1px solid var(--ha-line-strong);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow:
+    0 28px 70px rgba(28,12,12,.20),
+    0 8px 20px rgba(0,0,0,.06),
+    0 0 0 1px rgba(255,255,255,.6) inset;
+  transform-origin: 100% 100%;
+  opacity: 0;
+  transform: translateY(14px) scale(.97);
+  transition: opacity .22s var(--ha-ease), transform .22s var(--ha-ease);
+}
+.ha-window[hidden] { display: none; }
+.ha-assistant[data-open="true"] .ha-window { opacity: 1; transform: none; }
+
+/* A hairline of the brand colour across the top edge. */
+.ha-window::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--ha-cardinal), var(--ha-cardinal-light) 60%, transparent);
+  opacity: .9; pointer-events: none;
+}
+
+.ha-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 16px 12px 12px 18px;
+  border-bottom: 1px solid var(--ha-line);
+  background: linear-gradient(180deg, var(--ha-bg), var(--ha-soft));
+}
+.ha-title {
+  font-family: var(--ha-serif);
+  font-size: 17px; font-weight: 600; line-height: 1.25;
+  color: var(--ha-ink);
+}
+.ha-sub { margin-top: 2px !important; font-size: 12.5px; color: var(--ha-ink-low); }
+.ha-head-actions { display: flex; gap: 2px; }
+.ha-icon-btn {
+  display: grid; place-items: center;
+  width: 34px; height: 34px;
+  border: 0; border-radius: 9px;
+  background: transparent; color: var(--ha-ink-mid);
+  transition: background-color var(--ha-t) var(--ha-ease), color var(--ha-t) var(--ha-ease);
+}
+.ha-icon-btn:hover { background: var(--ha-tint); color: var(--ha-cardinal); }
+
+.ha-service {
+  margin: 10px 14px 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border-left: 3px solid var(--ha-cardinal);
+  background: var(--ha-warm);
+  font-size: 13px; color: var(--ha-ink);
+}
+.ha-service[hidden] { display: none; }
+
+/* ── the conversation ─────────────────────────────────────────────── */
+.ha-log {
+  position: relative;            /* offsetTop of a message is measured from here */
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;  /* scrolling the panel never scrolls the page */
+  padding: 16px 16px 10px;
+  scroll-behavior: smooth;
+}
+.ha-log:focus-visible { outline-offset: -3px; }
+
+.ha-intro-lede { color: var(--ha-ink-mid); }
+.ha-intro-small { margin-top: 6px !important; font-size: 12.5px; color: var(--ha-ink-low); }
+.ha-starters { display: grid; gap: 8px; margin-top: 14px; }
+.ha-starter {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--ha-line-strong);
+  border-radius: 12px;
+  background: var(--ha-bg);
+  color: var(--ha-ink);
+  font-size: 13.5px; line-height: 1.4;
+  transition: border-color var(--ha-t) var(--ha-ease), background-color var(--ha-t) var(--ha-ease);
+}
+.ha-starter:hover { border-color: var(--ha-cardinal-light); background: var(--ha-soft-tint); }
+
+/* After the first question the introduction gets out of the way; the
+   examples stay, smaller, so a presenter can still fire them off. */
+.ha-intro.is-compact .ha-intro-lede,
+.ha-intro.is-compact .ha-intro-small { display: none; }
+.ha-intro.is-compact .ha-starters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px; }
+.ha-intro.is-compact .ha-starter { padding: 5px 10px; border-radius: 999px; font-size: 12px; }
+
+.ha-msg { margin-top: 16px; }
+.ha-msg-user { display: flex; justify-content: flex-end; }
+.ha-bubble {
+  max-width: 86%;
+  padding: 9px 13px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--ha-ink);
+  color: #fff;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+.ha-status { display: flex; align-items: center; gap: 10px; color: var(--ha-ink-low); font-size: 13.5px; }
+.ha-dots { display: inline-flex; gap: 4px; }
+.ha-dots i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ha-cardinal); opacity: .25;
   animation: ha-pulse 1.1s var(--ha-ease) infinite;
 }
-@keyframes ha-pulse { 0%,100% { opacity:.25 } 50% { opacity:1 } }
+.ha-dots i:nth-child(2) { animation-delay: .15s; }
+.ha-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes ha-pulse { 0%, 100% { opacity: .2; transform: none; } 40% { opacity: 1; transform: translateY(-2px); } }
 
+.ha-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ha-tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-family: var(--ha-mono); font-size: 10.5px; letter-spacing: .04em;
+  background: var(--ha-soft); color: var(--ha-ink-mid);
+  border: 1px solid var(--ha-line);
+}
+.ha-tag-refused  { background: var(--ha-warm); color: var(--ha-ink); }
+.ha-tag-withheld { background: var(--ha-soft-tint); color: var(--ha-cardinal); border-color: var(--ha-tint); }
+.ha-tag-limited  { background: var(--ha-warm); color: var(--ha-ink); }
+.ha-tag-dev      { border-style: dashed; border-color: var(--ha-line-strong); }
+
+.ha-answer { color: var(--ha-ink); overflow-wrap: anywhere; }
+.ha-para + .ha-para { margin-top: 8px !important; }
+.ha-points { padding-left: 18px !important; margin: 8px 0 0 !important; }
+.ha-points li { margin: 4px 0; }
+.ha-kind-refused .ha-answer,
+.ha-kind-withheld .ha-answer,
+.ha-kind-limited .ha-answer { color: var(--ha-ink-mid); }
+
+.ha-cite {
+  display: inline-grid; place-items: center;
+  min-width: 19px; height: 19px; padding: 0 5px; margin: 0 1px;
+  vertical-align: 1px;
+  border: 0; border-radius: 6px;
+  background: var(--ha-tint); color: var(--ha-cardinal);
+  font-size: 11px; font-weight: 700; line-height: 1;
+  transition: background-color var(--ha-t) var(--ha-ease), color var(--ha-t) var(--ha-ease);
+}
+.ha-cite:hover { background: var(--ha-cardinal); color: #fff; }
+
+/* ── sources ──────────────────────────────────────────────────────── */
+.ha-sources { margin-top: 14px; }
+.ha-sources-label {
+  font-family: var(--ha-mono); font-size: 10.5px; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ha-ink-low);
+  margin-bottom: 6px !important;
+}
+.ha-source-list { list-style: none; padding: 0 !important; display: grid; gap: 6px; }
+.ha-source {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--ha-line);
+  border-radius: 10px;
+  background: var(--ha-bg);
+  font-size: 13px; line-height: 1.4;
+  scroll-margin: 12px;
+  transition: border-color .25s var(--ha-ease), background-color .25s var(--ha-ease);
+}
+.ha-source-n {
+  display: grid; place-items: center; flex: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ha-soft); border: 1px solid var(--ha-line);
+  font-size: 11px; font-weight: 700; color: var(--ha-ink-mid);
+}
+.ha-source[data-cited="true"] .ha-source-n { background: var(--ha-cardinal); border-color: var(--ha-cardinal); color: #fff; }
+.ha-source.is-target { border-color: var(--ha-cardinal); background: var(--ha-soft-tint); }
+.ha-source:focus { outline: none; }
+.ha-source:focus-visible { outline: 2px solid var(--ha-cardinal); outline-offset: 1px; }
+.ha-source-body { min-width: 0; }
+.ha-src-link {
+  color: var(--ha-ink);
+  text-decoration: underline; text-decoration-color: var(--ha-line-strong);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.ha-src-link:hover { color: var(--ha-cardinal); text-decoration-color: currentColor; }
+.ha-src-link svg { width: 13px; height: 13px; margin-left: 4px; vertical-align: -1px; }
+.ha-src-note { display: block; margin-top: 2px; font-size: 12px; color: var(--ha-ink-low); }
+
+/* ── rating ───────────────────────────────────────────────────────── */
+.ha-rate { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.ha-rate-label { font-size: 12.5px; color: var(--ha-ink-low); }
+.ha-thumb, .ha-comment-send, .ha-retry {
+  padding: 4px 12px;
+  border: 1px solid var(--ha-line-strong);
+  border-radius: 999px;
+  background: var(--ha-bg); color: var(--ha-ink);
+  font-size: 12.5px; font-weight: 500;
+  transition: border-color var(--ha-t) var(--ha-ease), color var(--ha-t) var(--ha-ease);
+}
+.ha-thumb:hover, .ha-comment-send:hover, .ha-retry:hover { border-color: var(--ha-cardinal); color: var(--ha-cardinal); }
+.ha-rate-done { font-size: 12.5px; color: var(--ha-ink-low); }
+.ha-rate-failed { color: var(--ha-cardinal); }
+.ha-comment-label { display: block; width: 100%; font-size: 12.5px; color: var(--ha-ink); }
+.ha-comment-label span { color: var(--ha-ink-low); }
+.ha-comment {
+  width: 100%; resize: vertical; min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--ha-line-strong); border-radius: 10px;
+  font: inherit; font-size: 13px; color: var(--ha-ink); background: var(--ha-bg);
+}
+.ha-comment:focus { border-color: var(--ha-cardinal); outline: none; box-shadow: 0 0 0 3px var(--ha-tint); }
+.ha-comment-actions { width: 100%; display: flex; justify-content: flex-end; }
+
+/* ── errors ───────────────────────────────────────────────────────── */
 .ha-error {
-  padding: 16px 24px;
-  font-size: 14px; color: var(--ha-cardinal);
-  background: var(--cardinal-soft, rgba(140,21,21,.04));
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 3px solid var(--ha-cardinal);
+  background: var(--ha-soft-tint);
+  color: var(--ha-ink);
+  font-size: 13.5px;
 }
+.ha-error .ha-retry { margin-top: 8px; }
 
-.ha-warn {
-  padding: 10px 24px;
+/* ── the ask box ──────────────────────────────────────────────────── */
+.ha-form {
+  display: flex; align-items: flex-end; gap: 8px;
+  padding: 10px 12px 6px;
   border-top: 1px solid var(--ha-line);
-  font-family: var(--ha-mono); font-size: 11px;
-  color: var(--ha-cardinal);
+  background: var(--ha-bg);
 }
-
-/* ── the standing disclaimer ──────────────────────────────────────── */
-.ha-note {
-  margin-top: 14px;
-  font-size: 12.5px; line-height: 1.6; color: var(--ha-ink-low);
+.ha-input {
+  flex: 1; min-width: 0; min-height: 42px;
+  resize: none;
+  padding: 10px 12px;
+  border: 1px solid var(--ha-line-strong);
+  border-radius: 14px;
+  background: var(--ha-soft);
+  font: inherit; font-size: 14.5px; line-height: 1.4;
+  color: var(--ha-ink);
+  transition: border-color var(--ha-t) var(--ha-ease), box-shadow var(--ha-t) var(--ha-ease), background-color var(--ha-t) var(--ha-ease);
 }
+.ha-input::placeholder { color: var(--ha-ink-low); }
+.ha-input:focus { outline: none; border-color: var(--ha-cardinal); background: var(--ha-bg); box-shadow: 0 0 0 3px var(--ha-tint); }
+.ha-send {
+  display: grid; place-items: center; flex: none;
+  width: 42px; height: 42px;
+  border: 0; border-radius: 50%;
+  background: var(--ha-cardinal); color: #fff;
+  transition: background-color var(--ha-t) var(--ha-ease), opacity var(--ha-t) var(--ha-ease);
+}
+.ha-send:hover:not(:disabled) { background: var(--ha-cardinal-dark); }
+.ha-send:disabled { opacity: .35; cursor: not-allowed; }
 
-/* ── responsive ───────────────────────────────────────────────────── */
+.ha-count { padding: 0 16px; font-size: 11px; color: var(--ha-ink-low); text-align: right; }
+.ha-count:empty { display: none; }
+.ha-count[data-over="true"] { color: var(--ha-cardinal); }
+
+.ha-foot { padding: 4px 16px 12px; background: var(--ha-bg); }
+.ha-note { font-size: 11.5px; line-height: 1.45; color: var(--ha-ink-low); }
+.ha-note + .ha-note { margin-top: 4px !important; }
+
+/* ── phones ───────────────────────────────────────────────────────── */
 @media (max-width: 560px) {
-  /* Stacked, the form is a column, and `flex: 1` on the textarea then
-     grows its HEIGHT from a zero basis — which silently overrides the
-     height the auto-resize just set, so a two-line question scrolls
-     inside a one-line box. Pin it to its own height instead. */
-  .ha-form { flex-direction: column; align-items: stretch; }
-  .ha-input { flex: 0 0 auto; width: 100%; }
-  .ha-send { width: 100%; }
-  .ha-answer { font-size: 16px; padding: 18px 18px; }
-  .ha-sources { padding: 14px 18px 16px; }
+  .ha-assistant { --ha-gap: 14px; }
+  /* Icon only: a labelled pill this size would sit over page text. The
+     label stays for a screen reader. */
+  .ha-launcher { width: 54px; height: 54px; padding: 0; justify-content: center; }
+  .ha-launcher svg { width: 22px; height: 22px; }
+  .ha-launcher-text {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+  /* The whole screen below the site's nav, with a small margin, so the
+     nav and its menu button stay reachable while the panel is open. */
+  .ha-window {
+    left: 8px; right: 8px; width: auto;
+    top: calc(68px + 8px); bottom: max(8px, env(safe-area-inset-bottom));
+    height: auto;
+    border-radius: 16px;
+  }
+  /* 16px stops iOS zooming the page when the box takes focus. */
+  .ha-input { font-size: 16px; }
 }
 
+/* ── preferences ──────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .ha-assistant * { animation: none !important; transition: none !important; }
+  .ha-assistant *, .ha-assistant *::before, .ha-assistant *::after {
+    transition: none !important; animation: none !important; scroll-behavior: auto !important;
+  }
+  .ha-window { transform: none; }
+  .ha-dots i { opacity: .6; }
 }
+
+/* Windows high contrast: shadows vanish, so borders carry the shapes. */
+@media (forced-colors: active) {
+  .ha-launcher, .ha-send, .ha-cite, .ha-icon-btn { border: 1px solid ButtonText; }
+  .ha-window { border: 2px solid CanvasText; }
+}
+
+@media print { .ha-assistant { display: none !important; } }

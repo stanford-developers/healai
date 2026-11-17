@@ -6,6 +6,16 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "5178"],
       "port": 5178
+    },
+    {
+      "name": "assistant-dev",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "HEALAI_ALLOWED_ORIGINS=http://localhost:5178",
+        "HEALAI_ALLOW_UNAPPROVED=1",
+        "node", "/Users/toxicoyster10/Desktop/heal-ai-assistant/server/server.mjs"
+      ],
+      "port": 8787
     }
   ]
 }

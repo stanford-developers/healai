@@ -136,6 +136,31 @@ const ASSISTANT_ENDPOINT = '';
 
 
 /* ─────────────────────────────────────────────────────────────────────────
+   ①e LOCAL PREVIEW ONLY · ?assistant=dev
+─────────────────────────────────────────────────────────────────────────────
+   Lets a developer see the assistant on this site, against the assistant
+   server running on the same machine, without editing the two values
+   above. Open:
+
+     http://localhost:5178/?assistant=dev
+
+   It is inert anywhere but localhost / 127.0.0.1, so it cannot switch the
+   feature on at heal-ai.stanford.edu, and the endpoint is fixed rather than
+   taken from the URL, so a link cannot point the box somewhere else.
+   The server must allow this origin:
+     HEALAI_ALLOWED_ORIGINS=http://localhost:5178 HEALAI_ALLOW_UNAPPROVED=1 make serve
+─────────────────────────────────────────────────────────────────────────── */
+const ASSISTANT_DEV_PREVIEW = (() => {
+  try {
+    return ['localhost', '127.0.0.1'].includes(location.hostname) &&
+           new URLSearchParams(location.search).get('assistant') === 'dev';
+  } catch { return false; }
+})();
+const ASSISTANT_ON = SHOW_ASSISTANT || ASSISTANT_DEV_PREVIEW;
+const ASSISTANT_URL = ASSISTANT_DEV_PREVIEW ? 'http://localhost:8787/api/ask' : ASSISTANT_ENDPOINT;
+
+
+/* ─────────────────────────────────────────────────────────────────────────
    ② SIGN-UP · endpoint + fallback URL
 ─────────────────────────────────────────────────────────────────────────────
    SIGNUP_ENDPOINT is the Google Apps Script Web App URL that appends one
