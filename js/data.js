@@ -126,7 +126,7 @@ const ASSISTANT_COPY = {
   privacy: [
     'It is sent to AWS, where the answer is written.',
     'Questions, answers and any rating are saved with obvious identifiers such as email addresses removed, to improve the assistant, and marked for deletion after 30 days.',
-    'If you rate an answer, it may be checked by a second AI model inside AWS and kept for up to 180 days.',
+    'If you rate an answer, it may be checked by a second AI model inside AWS, and the question, answer and any comment are kept for up to 180 days.',
     'Please do not enter patient details or anything confidential.',
   ],
 
