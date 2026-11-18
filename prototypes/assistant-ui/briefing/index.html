@@ -37,6 +37,8 @@
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --ease: cubic-bezier(.2, .6, .2, 1);
+  --bar-h: 48px;             /* real prototype-bar height, set by script */
+  --top-h: 117px;            /* prototype bar + site header, set by script */
   --shadow-panel: 0 1px 0 rgba(46,45,41,.04), 0 24px 60px -12px rgba(46,45,41,.28), 0 8px 18px -6px rgba(46,45,41,.12);
 }
 
@@ -89,6 +91,7 @@ button { cursor: pointer; }
 .proto button:hover, .proto select:hover { background: #46453F; }
 .proto .proto-fill { background: #fff; color: var(--ink); border-color: #fff; }
 .proto .proto-fill:hover { background: #EDE9E1; }
+.pb-short { display: none; }
 
 /* ── Site header (mock) ────────────────────────────────────────────── */
 .site-head { border-bottom: 1px solid var(--rule); background: var(--paper); }
@@ -208,6 +211,8 @@ button { cursor: pointer; }
 .panel {
   position: fixed; z-index: 60; right: 24px; bottom: 90px;
   width: min(440px, calc(100vw - 32px)); height: min(740px, calc(100vh - 136px));
+  /* top edge stays below the site header (so the nav is never covered), but never shorter than 560px */
+  height: min(740px, calc(100vh - 136px), max(560px, calc(100vh - 102px - var(--top-h))));
   display: flex; flex-direction: column;
   background: var(--paper); border: 1px solid var(--rule-mid); border-radius: 10px;
   box-shadow: var(--shadow-panel); overflow: hidden;
@@ -466,9 +471,21 @@ button { cursor: pointer; }
   .inspired-list a { padding: 10px 0; }          /* inline padding: bigger tap area, no layout change */
 }
 @media (max-width: 600px) {
+  /* Prototype bar: two short rows, kept above the sheet so reply types can be switched while it is open */
+  .proto { position: sticky; top: 0; z-index: 70; }
+  .proto .wrap { gap: 0 12px; padding-top: 4px; padding-bottom: 6px; }
+  .proto-back { order: 2; margin-left: auto; }
+  .proto-id { order: 1; gap: 0 8px; min-width: 0; }
+  .proto-ctl { order: 3; width: 100%; flex-wrap: nowrap; }
+  .proto-ctl label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .proto select { flex: 1; min-width: 0; }
+  .proto button { flex: none; }
+  .pb-long { display: none; }
+  .pb-short { display: inline; }
+  main [id], .site-foot [id] { scroll-margin-top: calc(var(--bar-h) + 8px); }
   .launcher { right: 16px; bottom: 16px; }
   .panel {
-    left: 0; right: 0; bottom: 0; top: 10px; width: auto; height: auto;
+    left: 0; right: 0; bottom: 0; top: var(--bar-h); width: auto; height: auto;
     border-radius: 14px 14px 0 0; border-bottom: 0; transform-origin: bottom center;
     transform: translateY(24px);
   }
@@ -492,11 +509,13 @@ button { cursor: pointer; }
   .foot-line { display: block; }                 /* "Details" follows the last segment instead of taking a row of its own */
   .more { display: inline-flex; align-items: center; vertical-align: middle; min-height: 40px; padding: 0 4px; margin-left: 6px; }
   .memo-eyebrow { letter-spacing: .06em; }
-  .count, .rate-actions .cc, .note-n { font-size: 14px; }
+  .count, .rate-actions .cc, .note-n { font-size: 15px; }
+  .example .n, .anatomy .k { font-size: 13px; }
+  .inspired-list .url, .inspired-list li::before { font-size: 15px; }
+  /* citation markers: 13px, with line-height 1 so the raised box does not push lines apart */
+  .cite { font-size: 13px; line-height: 1; padding: 2px 3px 1px; top: -.5em; }
+  .cite-sep { font-size: 13px; top: -.45em; }
   .note-link, .nb-next a { padding: 10px 0; }    /* inline padding: ~40px tap height without moving text */
-}
-@media (max-width: 380px) {
-  .proto-ctl label { width: 100%; }
 }
 
 /* ── Motion ────────────────────────────────────────────────────────── */
@@ -518,15 +537,15 @@ button { cursor: pointer; }
 <body>
 
 <!-- Prototype controls — not part of the design -->
-<div class="proto" role="region" aria-label="Prototype controls">
+<div class="proto" id="proto" role="region" aria-label="Prototype controls">
   <div class="wrap">
     <a class="proto-back" href="../index.html">← All directions</a>
-    <p class="proto-id" style="margin:0"><b>Policy Briefing</b><span>Prototype · mock replies, not real answers</span></p>
+    <p class="proto-id" style="margin:0"><b>Policy Briefing</b><span><span class="pb-long">Prototype · mock replies, not real answers</span><span class="pb-short">Mock replies</span></span></p>
     <div class="proto-ctl">
       <label for="proto-type">Show reply type</label>
       <select id="proto-type"></select>
       <button type="button" id="proto-show">Ask</button>
-      <button type="button" id="proto-fill" class="proto-fill">Fill with every reply type</button>
+      <button type="button" id="proto-fill" class="proto-fill">Fill<span class="pb-long"> with every reply type</span><span class="pb-short"> all<span class="sr-only"> — every reply type</span></span></button>
     </div>
   </div>
 </div>
@@ -706,6 +725,20 @@ button { cursor: pointer; }
   var busy = false, inflight = Promise.resolve(), generation = 0, turn = 0, healthChecked = false;
 
   function motion() { return !FAST && !M.reducedMotion(); }
+
+  /* ── Bar heights → CSS: phone sheet starts below the prototype bar;
+        desktop panel stays below the site header ─────────────────── */
+  var protoBar = $('proto'), siteHead = document.querySelector('.site-head');
+  function setBar() {
+    var h = protoBar.offsetHeight;
+    document.documentElement.style.setProperty('--bar-h', h + 'px');
+    document.documentElement.style.setProperty('--top-h', (h + siteHead.offsetHeight) + 'px');
+  }
+  setBar();
+  window.addEventListener('load', setBar);
+  window.addEventListener('resize', setBar);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(setBar);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(setBar); ro.observe(protoBar); ro.observe(siteHead); }
 
   /* ── Details notice ─────────────────────────────────────────────── */
   more.addEventListener('click', function () {

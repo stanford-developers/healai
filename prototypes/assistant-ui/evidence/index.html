@@ -53,6 +53,7 @@
   --sh-3: 0 30px 70px -18px rgba(16, 20, 28, .32), 0 10px 24px -10px rgba(16, 20, 28, .14);
   --ease: cubic-bezier(.2, .7, .2, 1);
   --focus: 0 0 0 2px #fff, 0 0 0 4px var(--cardinal);
+  --bar-h: 48px;       /* set from the real prototype-bar height by script */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -116,6 +117,8 @@ svg { flex: none; }
 .proto button:hover, .proto-back:hover, .proto select:hover { border-color: #A3A7B0; background: #2A2D34; }
 .proto :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .proto-fill { border-color: #E35A5A !important; }
+.pb-short { display: none; }
+.proto-back { margin-left: 4px; }
 
 /* ── Mock site header ──────────────────────────────────────────────── */
 .site {
@@ -733,12 +736,23 @@ svg { flex: none; }
 /* ── Phone ─────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .wrap { padding: 0 16px; }
-  .proto-in { padding: 8px 16px; gap: 8px; }
-  .proto-ctl { width: 100%; }
-  .proto-lbl { width: 100%; }
-  .proto select { flex: 1 1 160px; min-width: 0; min-height: 40px; }
-  .proto button, .proto-back { min-height: 40px; }
-  .proto-fill { flex: 1 1 auto; justify-content: center; }
+  .proto { font-size: 15px; line-height: 1.3; }
+  .proto-in { padding: 6px 16px; gap: 6px; }
+  .proto-id { width: 100%; flex-wrap: nowrap; gap: 10px; }
+  .proto-dir, .proto-note { white-space: nowrap; }
+  .proto-note { font-family: var(--sans); font-size: 15px; }
+  .proto-back { margin-left: auto; min-height: 36px; font-size: 15px; white-space: nowrap; }
+  .proto-ctl { width: 100%; flex-wrap: nowrap; gap: 6px; }
+  .proto-lbl { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .proto select { flex: 1 1 auto; min-width: 0; min-height: 40px; font-size: 16px; }
+  .proto button { min-height: 40px; font-size: 15px; white-space: nowrap; flex: none; }
+  .pb-long { display: none; }
+  .pb-short { display: inline; }
+  .pb-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* While the sheet is open the bar is pinned above it, so reply types can
+     still be switched. Body padding keeps the page from jumping. */
+  html.ev-sheet-open .proto { position: fixed; top: 0; left: 0; right: 0; z-index: 950; }
+  html.ev-sheet-open body { padding-top: var(--bar-h); }
 
   .site-in { height: 56px; }
   .hero { padding: 40px 0 48px; }
@@ -750,6 +764,10 @@ svg { flex: none; }
   .ex { width: 100%; border-radius: var(--r); font-size: 15px; min-height: 44px; }
   .anat-card { padding: 14px; }
   .anat-row { gap: 6px; }
+  .anat-lbl, .anat-c, .anat-b, .anat-pill { font-size: 12px; }
+  .anat-b, .anat-pill { min-width: 20px; height: 20px; }
+  .anat-c { letter-spacing: .03em; }
+  .anat-steps li::before { font-size: 13px; }
   .anat-steps li { font-size: 15px; }
 
   .inspired { padding: 48px 0 56px; }
@@ -766,7 +784,7 @@ svg { flex: none; }
   .ev[data-open="true"] .ev-launch { display: none; }
   .ev-launch { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); height: 54px; }
   .ev-win {
-    left: 0; right: 0; bottom: 0; top: 10px;
+    left: 0; right: 0; bottom: 0; top: var(--bar-h);
     width: 100%; height: auto; max-height: none;
     border-radius: 18px 18px 0 0; border-bottom: 0;
     transform: translateY(24px); transform-origin: bottom center;
@@ -797,7 +815,7 @@ svg { flex: none; }
   .ev-starter { min-height: 48px; }
   .ev-thumb, .ev-comment-send, .ev-retry, .ev-next a { min-height: 44px; }
   .ev-thumb { padding: 0 16px; }
-  .ev-cite { min-width: 26px; height: 24px; font-size: 12px; }
+  .ev-cite { min-width: 28px; height: 24px; font-size: 13px; }
   .ev-foot { padding: 10px 14px max(10px, env(safe-area-inset-bottom)); }
   .ev-input { font-size: 16px; }
   .ev-send { width: 44px; height: 44px; }
@@ -809,14 +827,18 @@ svg { flex: none; }
   .ev-next p, .ev-next a, .ev-src-meta, .ev-card-sec, .ev-comment-label, .ev-comment-label span,
   .ev-status-head strong, .ev-error .ev-status-head strong, .ev-rate-done { font-size: 15px; }
   .ev-count { font-size: 13px; }
-  .ev-kicker, .ev-sec-h, .ev-sec-meta, .ev-chip, .ev-card-mark, .ev-beta, .ev-badge { font-size: 12px; }
+  .ev-kicker, .ev-sec-h, .ev-chip, .ev-card-mark, .ev-beta, .ev-badge { font-size: 13px; }
+  .ev-badge { min-width: 22px; height: 22px; }
+  .ev-srcitem { grid-template-columns: 24px minmax(0, 1fr); }
+  .ev-sec-meta { font-size: 15px; }
+  .ev-chip { letter-spacing: .02em; }
   .ev-standalone-bar svg { margin-top: 4px; }
   .ev-sub { align-items: flex-start; }
   .ev-sub svg { margin-top: 3px; }
-  .hero-meta, .examples-lbl, .eyebrow, .insp-kicker { font-size: 13px; }
+  .examples-lbl, .eyebrow, .insp-kicker { font-size: 13px; }
+  .hero-meta { font-size: 15px; }
   .insp-url, .site-foot, .site-foot .tiny { font-size: 15px; }
-  .proto-note, .proto-lbl { font-size: 13px; }
-  .site nav a { min-height: 40px; display: inline-flex; align-items: center; }
+  .site nav a { min-height: 40px; display: inline-flex; align-items: center; font-size: 15px; }
   .insp-site a { min-height: 40px; }
   html.ev-sheet-open, html.ev-sheet-open body { overflow: hidden; }
 }
@@ -831,18 +853,18 @@ svg { flex: none; }
 <body>
 
 <!-- ── Prototype bar (not part of the design) ───────────────────────── -->
-<div class="proto" role="region" aria-label="Prototype controls">
+<div class="proto" id="proto" role="region" aria-label="Prototype controls">
   <div class="proto-in">
     <div class="proto-id">
       <span class="proto-dir">Evidence First</span>
-      <span class="proto-note">Prototype · mock replies, not real answers</span>
+      <span class="proto-note"><span class="pb-long">Prototype · m</span><span class="pb-short">M</span>ock replies<span class="pb-long">, not real answers</span></span>
+      <a class="proto-back" href="../index.html">← All<span class="pb-sr">&nbsp;directions</span></a>
     </div>
     <div class="proto-ctl">
       <label class="proto-lbl" for="proto-type">Show reply type</label>
       <select id="proto-type"></select>
       <button type="button" id="proto-ask">Ask it</button>
-      <button type="button" id="proto-fill" class="proto-fill">Fill with every reply type</button>
-      <a class="proto-back" href="../index.html">← All directions</a>
+      <button type="button" id="proto-fill" class="proto-fill">Fill<span class="pb-long">&nbsp;with every reply type</span><span class="pb-short">&nbsp;all<span class="sr">&nbsp;— every reply type</span></span></button>
     </div>
   </div>
 </div>
@@ -1638,6 +1660,14 @@ svg { flex: none; }
     li.appendChild(b);
     exList.appendChild(li);
   });
+
+  /* ── Prototype bar height → sheet top on phones ────────────────── */
+  var protoBar = document.getElementById('proto');
+  function setBar() { document.documentElement.style.setProperty('--bar-h', protoBar.offsetHeight + 'px'); }
+  setBar();
+  window.addEventListener('resize', setBar);
+  if (window.ResizeObserver) new ResizeObserver(setBar).observe(protoBar);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(setBar).catch(function () {});
 
   /* ── Prototype controls ────────────────────────────────────────── */
   var sel = document.getElementById('proto-type');
