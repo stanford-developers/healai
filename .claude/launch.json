@@ -4,7 +4,11 @@
     {
       "name": "heal-ai-static",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "5178"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5178"
+      ],
       "port": 5178
     },
     {
@@ -13,7 +17,8 @@
       "runtimeArgs": [
         "HEALAI_ALLOWED_ORIGINS=http://localhost:5178",
         "HEALAI_ALLOW_UNAPPROVED=1",
-        "node", "/Users/toxicoyster10/Desktop/heal-ai-assistant/server/server.mjs"
+        "node",
+        "/Users/toxicoyster10/Desktop/heal-ai-assistant/server/server.mjs"
       ],
       "port": 8787
     },
@@ -25,9 +30,22 @@
         "HEALAI_HOST=127.0.0.1",
         "HEALAI_ALLOWED_ORIGINS=http://localhost:5178",
         "HEALAI_ALLOW_UNAPPROVED=1",
-        "node", "/Users/toxicoyster10/Desktop/heal-ai-assistant/server/server.mjs"
+        "node",
+        "/Users/toxicoyster10/Desktop/heal-ai-assistant/server/server.mjs"
       ],
       "port": 8787
+    },
+    {
+      "name": "widget-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5191",
+        "--directory",
+        "/Users/toxicoyster10/Desktop/heal-ai-assistant/widget"
+      ],
+      "port": 5191
     }
   ]
 }
