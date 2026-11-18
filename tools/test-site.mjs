@@ -100,7 +100,7 @@ function fakeSupabase(tables) {
 }
 
 /** Loads the given site files into a fresh pretend browser and returns it. */
-function loadSite(files, { tables = {}, hash = '' } = {}) {
+function loadSite(files, { tables = {}, hash = '', rewrite = null } = {}) {
   writeCount = 0;
   const elements = new Map();
   const getEl = id => { if (!elements.has(id)) elements.set(id, fakeElement(id)); return elements.get(id); };
@@ -135,6 +135,7 @@ function loadSite(files, { tables = {}, hash = '' } = {}) {
       throw new Error(`cannot read ${rel}${REF ? ' at ' + REF : ''}`);
     }
     if (rel === 'js/app.js') code = code.replace(/\ninit\(\);\s*$/, '\n');
+    if (rewrite) code = rewrite(rel, code);   // e.g. a config value a test needs changed
     vm.runInContext(code, ctx, { filename: rel });
   }
   return { run: expr => vm.runInContext(expr, ctx), el: getEl, ctx };
@@ -404,6 +405,178 @@ await test('W7 a citation on an already-loaded page still opens straight away', 
   await site.run('enhanceReportsWithUploads()');
   site.run(`resolveSiteLink('#reports?open=db-c')`);
   check(reportPaneShows(site) === 'Report C', `the pane shows ${JSON.stringify(reportPaneShows(site))}`);
+});
+
+
+/* ─── THE ASK PAGE ──────────────────────────────────────────────────────── */
+
+/** A pretend ask box: the elements wireAssistantPage() looks up, keeping
+ *  their listeners so a test can press Enter, submit or click a chip. */
+function fakeAskBox(chipTexts) {
+  const on = el => { el.handlers = {}; el.addEventListener = (t, fn) => { el.handlers[t] = fn; }; return el; };
+  const input = on(fakeElement('assist-q'));
+  const status = fakeElement('assist-status');
+  const send = fakeElement();
+  const form = on(fakeElement());
+  form.querySelector = sel => (sel === '.assist-send' ? send : fakeElement());
+  const chips = chipTexts.map(t => { const c = on(fakeElement()); c.textContent = t; c.disabled = true; return c; });
+  input.disabled = send.disabled = true;
+  const scope = {
+    querySelector: sel => ({ '.assist-form': form, '#assist-q': input, '#assist-status': status })[sel] || null,
+    querySelectorAll: sel => (sel === '.assist-chip' ? chips : []),
+  };
+  const enter = (o = {}) => { let prevented = false; input.handlers.keydown({ key: 'Enter', preventDefault() { prevented = true; }, ...o }); return prevented; };
+  const submit = () => form.handlers.submit({ preventDefault() {} });
+  return { scope, input, status, send, chips, enter, submit };
+}
+
+/** A pretend floating panel that accepts or refuses, and records calls. */
+function fakePanel(site, accepts) {
+  const calls = { ask: [], open: 0 };
+  site.ctx.HealAIAssistant = {
+    ask(q) { calls.ask.push(q); return typeof accepts === 'function' ? accepts(q) : accepts; },
+    open() { calls.open++; }, minimise() {}, close() {},
+  };
+  return calls;
+}
+
+await test('Ask page: the question box comes first, and the page holds no step cards or section eyebrows', () => {
+  const site = loadSite(SITE, { hash: '#assistant' });
+  site.run('renderAssistant()');
+  const ask = site.el('assistant-ask').innerHTML;
+  const body = site.el('assistant-body').innerHTML;
+  noCode(ask + body, 'the Ask page');
+  const t = tags(ask);
+  const box = t.find(x => x.tag === 'textarea');
+  check(box && box.attrs.id === 'assist-q', 'there should be one question box');
+  check(t.some(x => x.tag === 'label' && x.attrs.for === 'assist-q'), 'the box needs a label tied to it');
+  check('disabled' in box.attrs, 'the box must stay disabled until the widget has loaded');
+  const chips = t.filter(x => x.tag === 'button' && /assist-chip/.test(x.attrs.class || ''));
+  const c = site.run('ASSISTANT_COPY');
+  check(chips.length === c.examples.length && chips.every(x => 'disabled' in x.attrs), 'every example should be a disabled button until load');
+  check(visibleText(ask).includes(c.askLoading), 'the box should say it is loading');
+  for (const q of c.examples) check(visibleText(ask).includes(q), `example missing: ${q}`);
+  const text = visibleText(body);
+  check(!/STEP \d/.test(text) && !/class="eyebrow"/.test(ask + body), 'the old step cards or section eyebrows are back');
+  for (const h of [c.anatomyTitle, c.scopeTitle, c.limitsTitle, c.privacyTitle]) check(text.includes(h), `missing heading: ${h}`);
+  for (const l of [...c.limits, ...c.privacy]) check(text.includes(l), `a limit or privacy line is missing: ${l}`);
+  check(/not the web/i.test(text) && text.includes('general knowledge'), 'the page must still say it answers only from HEAL-AI material');
+});
+
+await test('Ask page: not switched on yet shows the notice and Notify me in the box\'s place', () => {
+  const site = loadSite(SITE, { hash: '#assistant',
+    rewrite: (rel, code) => rel === 'js/config.js' ? code.replace(/const ASSISTANT_ENDPOINT = '[^']*';/, "const ASSISTANT_ENDPOINT = '';") : code });
+  site.run('renderAssistant()');
+  const ask = site.el('assistant-ask').innerHTML;
+  const c = site.run('ASSISTANT_COPY');
+  check(visibleText(ask).includes(c.unavailableTitle), 'the "not switched on" notice is missing');
+  check(tags(ask).some(x => x.tag === 'a' && x.attrs.id === 'assist-notify-btn'), 'Notify me is missing');
+  check(!tags(ask).some(x => x.tag === 'textarea'), 'there must be no question box with nowhere to send it');
+  const body = visibleText(site.el('assistant-body').innerHTML);
+  check(!body.includes(c.anatomyTitle), '"How to read an answer" makes no sense before there are answers');
+  for (const l of c.privacy) check(body.includes(l), 'the privacy lines should still be shown');
+});
+
+await test('Ask page: the box hands its question to the panel, and keeps it when the panel is busy', () => {
+  const site = loadSite(SITE, { hash: '#assistant' });
+  const c = site.run('ASSISTANT_COPY');
+  check(site.run('wireAssistantPage({ querySelector: () => null, querySelectorAll: () => [] })') === false,
+    'with no panel to hand to, the page should be told so (it shows "could not load")');
+
+  let calls = fakePanel(site, true);
+  let b = fakeAskBox(c.examples);
+  site.ctx.__scope = b.scope;
+  check(site.run('wireAssistantPage(__scope)') === true, 'wiring should succeed once the widget is there');
+  check(!b.input.disabled && !b.send.disabled && b.chips.every(x => !x.disabled), 'the box, Ask and the examples should switch on');
+  check(b.status.textContent === '', 'the loading line should go');
+
+  b.input.value = '   '; b.submit();
+  check(calls.ask.length === 0, 'an empty question must not be sent');
+
+  b.input.value = 'line one';
+  const shift = b.enter({ shiftKey: true });
+  const ime = b.enter({ isComposing: true });
+  check(!shift && !ime && calls.ask.length === 0, 'Shift+Enter and Enter while composing must not send');
+
+  b.input.value = '  How does FURM work?  ';
+  check(b.enter() === true, 'Enter should send');
+  check(calls.ask[0] === 'How does FURM work?', `asked ${JSON.stringify(calls.ask[0])}`);
+  check(b.input.value === '', 'an accepted question should leave the box empty');
+  check(calls.open === 1, 'focus should move into the panel after a hand-off');
+
+  b.chips[1].handlers.click();
+  check(calls.ask[1] === c.examples[1], 'a chip should ask its own question');
+
+  calls = fakePanel(site, false);
+  b = fakeAskBox(c.examples);
+  site.ctx.__scope = b.scope;
+  site.run('wireAssistantPage(__scope)');
+  b.input.value = 'A second question'; b.submit();
+  check(b.input.value === 'A second question', 'a refused question must stay in the box');
+  check(b.status.textContent === c.askBusy, 'the page should say why nothing happened');
+  check(calls.open === 0, 'focus should not move when nothing was asked');
+  b.input.value = ''; b.chips[0].handlers.click();
+  check(b.input.value === c.examples[0], 'a refused chip should leave its question in the box');
+  b.input.value = 'My own draft'; b.chips[3].handlers.click();
+  check(b.input.value === 'My own draft', 'a chip clicked while the panel is busy must not replace what the visitor typed');
+  check(b.status.textContent === c.askBusy, 'the busy line should still say why nothing happened');
+  check(!/press Ask/i.test(c.askBusy), 'the busy line must not point at the Ask button, which the open panel can cover');
+});
+
+await test('Ask page: the launcher steps aside while the box is on screen, and the box offers the way back', () => {
+  const site = loadSite(SITE, { hash: '#assistant' });
+  const c = site.run('ASSISTANT_COPY');
+  const calls = fakePanel(site, true);
+
+  /* <html>'s classes, an IntersectionObserver the test drives, and the
+     widget's root with the attributes the page reads. */
+  const classes = new Set();
+  site.ctx.document.documentElement = { classList: {
+    toggle: (k, on) => { if (on) classes.add(k); else classes.delete(k); },
+    add: k => classes.add(k), remove: k => classes.delete(k), contains: k => classes.has(k) } };
+  let io = null;
+  site.ctx.IntersectionObserver = class { constructor(fn) { io = { fn, targets: [] }; } observe(t) { io.targets.push(t); } };
+  let mo = null;
+  site.ctx.MutationObserver = class { constructor(fn) { mo = fn; } observe() {} };
+  const attrs = { 'data-open': 'false', 'data-scene': 'welcome' };
+  const unread = { hidden: true };
+  const root = { getAttribute: k => attrs[k] ?? null, querySelector: sel => (sel === '.ha-unread' ? unread : null) };
+  site.ctx.document.querySelector = sel => (sel === '.ha-assistant' ? root : null);
+
+  const b = fakeAskBox(c.examples);
+  const resume = fakeElement(); resume.handlers = {}; resume.addEventListener = (t, fn) => { resume.handlers[t] = fn; };
+  const flag = fakeElement(); flag.hidden = true;
+  resume.querySelector = sel => (sel === '.assist-resume-new' ? flag : null);
+  resume.hidden = true;
+  const q = b.scope.querySelector;
+  b.scope.querySelector = sel => (sel === '.assist-resume' ? resume : q(sel));
+  site.ctx.__scope = b.scope;
+  check(site.run('wireAssistantPage(__scope)') === true, 'wiring should succeed');
+
+  check(io && io.targets.length === 1, 'the page should watch whether the ask box is on screen');
+  io.fn([{ isIntersecting: true }]);
+  check(classes.has('ask-surface-in-view'), 'with the box on screen, <html> should say so (style.css hides the launcher with it)');
+  io.fn([{ isIntersecting: false }]);
+  check(!classes.has('ask-surface-in-view'), 'with the box scrolled away, the launcher should come back');
+
+  check(resume.hidden === true, 'with no conversation yet, there is nothing to go back to');
+  attrs['data-scene'] = 'conversation'; attrs['data-open'] = 'true'; mo();
+  check(resume.hidden === true, 'while the panel is open, "Back to your conversation" is not needed');
+  attrs['data-open'] = 'false'; mo();
+  check(resume.hidden === false, 'a minimised conversation needs a way back while the launcher is hidden');
+  check(flag.hidden === true, 'no "new answer" mark before the widget marks one');
+  unread.hidden = false; mo();
+  check(flag.hidden === false, 'an unseen answer should show on the way back, as it does on the launcher');
+  resume.handlers.click();
+  check(calls.open === 1, '"Back to your conversation" should open the panel');
+  attrs['data-scene'] = 'welcome'; mo();
+  check(resume.hidden === true, 'after Close there is no conversation to go back to');
+
+  /* The rule itself: scoped to this page and to a closed panel, so the
+     launcher is never hidden on another page or under an open panel. */
+  const css = source('css/style.css');
+  check(/html\.ask-surface-in-view:has\(#page-assistant\.active\)\s+\.ha-assistant:not\(\[data-open="true"\]\)\s+\.ha-launcher\s*\{[^}]*visibility:\s*hidden/.test(css),
+    'style.css should hide the launcher only on the Ask page, only while the box is in view and the panel is closed');
 });
 
 

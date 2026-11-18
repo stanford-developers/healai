@@ -88,6 +88,10 @@
   --bg:              #FFFFFF;
   --bg-soft:         #F9F9F9;
   --bg-warm:         #F2EFEA;
+  --bg-ask:          #FBFAF8;   /* the Ask page's question surface */
+  /* The single rose light the assistant panel's welcome uses behind its
+     heading; the Ask page puts the same light behind its question box. */
+  --rose-light:      rgba(184, 58, 58, 0.14);
 
   --ink:             #2E2D29;   /* primary text · ~13:1 on white */
   --ink-mid:         #4D4F53;   /* body / sub copy · ~8:1 on white */
@@ -1090,27 +1094,23 @@ nav.topnav {
 
 
 /* Phase-1 fallback notice (SHOW_VIDEOS = false) */
-.videos-hidden-notice,
-.assist-pending {
+.videos-hidden-notice {
   padding: 56px;
   text-align: center;
   background: var(--bg-warm);
   border: 1.5px dashed var(--cardinal-light);
   border-radius: var(--radius-lg);
 }
-.videos-hidden-notice h3,
-.assist-pending h3 {
+.videos-hidden-notice h3 {
   font-family: var(--serif); font-size: 26px; font-weight: 500;
   margin-bottom: 10px; color: var(--ink);
 }
-.videos-hidden-notice p,
-.assist-pending p {
+.videos-hidden-notice p {
   font-size: 14px; color: var(--ink-mid);
   line-height: 1.7;
   max-width: 560px; margin: 0 auto;
 }
-.videos-hidden-notice .badge,
-.assist-pending .badge {
+.videos-hidden-notice .badge {
   display: inline-block;
   font-family: var(--mono); font-size: 10px;
   letter-spacing: .16em; font-weight: 600;
@@ -1123,95 +1123,14 @@ nav.topnav {
 }
 
 
-/* ─── ASK PAGE · framing around the vendored assistant panel ─────────────
-   The panel itself is styled by css/heal-ai-assistant.css, which is
-   vendored from the assistant repository and whose classes are all
-   `.ha-`-prefixed. Nothing here touches those: this is only the page
-   around it — the example questions and the limits box. Keeping the two
-   stylesheets disjoint is what lets the widget be re-copied from
-   upstream without re-testing this page.
-
-   .assist-pending reuses the .videos-hidden-notice rules above rather
-   than restating them; the two say the same thing ("this part of the
-   site is not switched on yet") and should not drift apart. */
-/* ONE COLUMN, ONE LEFT EDGE.
-   The vendored widget centres itself in a 720px column, which is right
-   for its own standalone demo page (that page is nothing but the widget)
-   and wrong here: the site's page content starts at the page gutter, so
-   a self-centring panel sat ~230px to the right of the heading above it
-   and the limits box below it, with three different left edges on one
-   screen. The widget is not edited for this — its layout assumption is
-   reasonable and this is the host page's business. Instead the column is
-   defined here and the panel is told to fill it.
-   760px is a reading measure, not the full page width: an answer
-   paragraph set across 1176px is hard to track back to the next line. */
-#assistant-body { max-width: 760px; }
-#assistant-body .ha-assistant { max-width: none; margin-inline: 0; }
-
-.assist-examples { margin-top: 26px; }
-.assist-examples-label {
-  font-family: var(--mono); font-size: 10.5px;
-  letter-spacing: .12em; text-transform: uppercase;
-  color: var(--ink-low);
-  margin-bottom: 10px;
-}
-.assist-example-row { display: flex; flex-wrap: wrap; gap: 8px; }
-/* Deliberately quiet: these are a hint about scope, not the primary
-   action. A row of filled buttons would out-shout the question box. */
-.assist-example {
-  font-size: 13px; color: var(--ink-mid); text-align: left;
-  padding: 8px 13px;
-  background: var(--bg);
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
-}
-.assist-example:hover {
-  color: var(--cardinal);
-  border-color: var(--cardinal);
-  background: var(--cardinal-soft);
-}
-
-.assist-limits {
-  margin-top: 34px;
-  padding: 20px 22px;
-  background: var(--bg-soft);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-.assist-limits h4 {
-  font-family: var(--mono); font-size: 10.5px;
-  letter-spacing: .12em; text-transform: uppercase;
-  color: var(--cardinal);
-  margin-bottom: 10px;
-}
-.assist-limits ul { padding-left: 18px; margin: 0; }
-.assist-limits li {
-  font-size: 13.5px; color: var(--ink-mid); line-height: 1.65;
-  margin-bottom: 7px;
-}
-.assist-limits li:last-child { margin-bottom: 0; }
-
-/* The Ask page opens the floating assistant rather than holding its own
-   copy. The note says where it went, so the click is not a surprise. */
-.assist-open { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; }
-.assist-open-note { margin: 0; font-size: 14px; color: var(--ink-low); }
-.assist-example:disabled, #assist-open-btn:disabled { opacity: .55; cursor: progress; }
-
-
-/* The mobile menu (z-index 499) opens below the nav, where the assistant's
+/* The Ask page's own styles are in "Ask page (Stage 2 beta)" at the end
+   of this file. This rule is about the floating panel on every page:
+   the mobile menu (z-index 499) opens below the nav, where the assistant's
    panel (900) sits on a phone. The menu is site navigation and must win:
    hide the assistant while it is open. visibility, not display, so the
    conversation and the panel's state are untouched. */
 body:has(#mobile-menu.open) .ha-assistant { visibility: hidden; }
 
-@media (max-width: 640px) {
-  /* Full-width pills: at phone width a wrapped row of three long
-     questions fragments into ragged half-lines. */
-  .assist-example-row { flex-direction: column; }
-  .assist-example { width: 100%; border-radius: var(--radius); }
-}
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2847,35 +2766,366 @@ footer :focus-visible {
 
 
 /* ── Ask page (Stage 2 beta) ─────────────────────────────────────────────
-   Reuses .rt-intro, .proc-step and .white-card; these rules only adapt
-   them: example questions as quiet buttons inside the side card, three
-   steps instead of five, and the limits and privacy cards side by side. */
-.assist-intro { margin-top: 14px; }
-.assist-intro .assist-open { margin-top: 22px; }
-.assist-try ul { list-style: none; display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; }
-.rt-intro .assist-try li { display: block; }
-.rt-intro .assist-try li::before { content: none; }
-.assist-try .assist-example {
-  display: flex; gap: 10px; width: 100%;
-  text-align: left; background: none; border: 0; padding: 9px 0;
-  font: inherit; font-size: 14px; line-height: 1.5; color: var(--ink);
-  border-bottom: 1px solid var(--line); border-radius: 0; cursor: pointer;
-  transition: color var(--t-fast);
+   Built by renderAssistant() in js/app.js. Three parts:
+
+     .assist-surface   the question box, inside the page header. The one
+                       memorable thing on the page: a warm surface with the
+                       panel's rose light behind the white box. Everything
+                       else is deliberately quiet.
+     .assist-anatomy   "How to read an answer": three numbered notes next
+                       to a grey schematic of the panel's answer layout.
+                       Numbered because the parts are read in that order.
+     .assist-cols      three plain columns with a top rule each.
+
+   And one rule for the panel's launcher on this page (4, at the end):
+   it steps aside while the box is on screen, and the box moves clear of
+   the open panel on wide screens.
+
+   The floating panel is styled by css/heal-ai-assistant.css (vendored,
+   every class `.ha-`-prefixed). Nothing here touches it, so the widget can
+   be re-copied from upstream without re-testing this page.
+
+   Cardinal is used once on the page body: the Ask button. The panel's
+   own cardinal launcher steps aside while the box is on screen (see
+   "the launcher" below), so the two never compete.
+
+   Text that sits on the rose light is ink-mid, never ink-low: ink-low
+   falls to about 4.0:1 at the light's brightest point, ink-mid stays
+   above 6.4:1. */
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
-.assist-try li:last-child .assist-example { border-bottom: 0; }
-.assist-try .assist-example::before { content: '→'; color: var(--cardinal); font-weight: 600; flex-shrink: 0; }
-.assist-try .assist-example:hover:not(:disabled) { background: none; }
-.assist-try .assist-example:hover:not(:disabled),
-.assist-try .assist-example:focus-visible { color: var(--cardinal); }
-.assist-try .assist-example:focus-visible { outline: 2px solid var(--cardinal); outline-offset: 2px; border-radius: 4px; }
-.assist-try .assist-example:disabled { cursor: default; color: var(--ink-low); }
-.assist-steps { grid-template-columns: repeat(3, 1fr); margin-top: 14px; margin-bottom: 56px; }
-.assist-cards { margin-bottom: 0; }
-.assist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.assist-list li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.6; color: var(--ink-mid); }
-.assist-list li::before { content: '—'; color: var(--cardinal); flex-shrink: 0; }
+
+/* 1 · the question surface ──────────────────────────────────────────── */
+#assistant-ask:empty { display: none; }
+.assist-surface {
+  margin-top: 40px;
+  padding: 30px 28px 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  /* The light sits behind the white box, centred on its left third and
+     sized in pixels from the top, so it stays a glow around the box at
+     every width instead of stretching down a tall phone layout. Static:
+     no animation. */
+  background:
+    radial-gradient(620px 190px at 30% 58px, var(--rose-light), transparent 72%),
+    var(--bg-ask);
+}
+.assist-box {
+  display: flex; align-items: flex-end; gap: 10px;
+  padding: 7px 7px 7px 20px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(46, 45, 41, .04), 0 10px 28px rgba(46, 45, 41, .05);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+/* The box shows focus for the textarea inside it, with the site's own
+   ring (§16): a ring on the whole field reads better than one around a
+   borderless line of text. Only for the textarea, so a focused Ask
+   button does not get two rings. */
+.assist-box:has(.assist-input:focus-visible) {
+  outline: 2.5px solid var(--cardinal);
+  outline-offset: 3px;
+}
+.assist-input {
+  flex: 1 1 auto; min-width: 0;
+  min-height: 46px; max-height: 168px;
+  padding: 11px 0;
+  border: 0; background: transparent; resize: none;
+  font: 400 18px/1.4 var(--sans); color: var(--ink);
+}
+.assist-input:focus-visible { outline: none; box-shadow: none; }
+.assist-input::placeholder { color: var(--ink-low); opacity: 1; }
+.assist-input:disabled { cursor: progress; }
+.assist-send {
+  flex: none;
+  height: 46px; padding: 0 24px;
+  border-radius: 11px;
+  background: var(--cardinal); color: #fff;
+  font: 600 15px/1 var(--sans);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.assist-send:hover:not(:disabled) { background: var(--cardinal-dark); }
+/* Neutral while loading: a faded cardinal reads as pink, not as "off". */
+.assist-send:disabled { background: rgba(46, 45, 41, .10); color: var(--ink-low); cursor: progress; }
+
+/* Everything under the box starts on one left edge: the placeholder's
+   (the box's 20px padding + its 1px border). */
+.assist-status, .assist-try, .assist-note { padding-inline: 21px; }
+.assist-status {
+  margin: 12px 0 0;
+  font-size: 14px; line-height: 1.55; color: var(--ink-mid);
+}
+.assist-status[hidden], .assist-status:empty { display: none; }
+
+/* The label sits above the questions, so it does not push them off
+   the shared left edge. */
+.assist-try {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 18px;
+}
+.assist-try-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 4px 20px; min-height: 20px;
+}
+.assist-try-lead { font-size: 14px; color: var(--ink-mid); }
+.assist-chips {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+/* Quiet on purpose: a hint about scope, not a second primary action. */
+.assist-chip {
+  min-height: 38px; padding: 8px 15px;
+  text-align: left;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font: 400 14px/1.4 var(--sans); color: var(--ink-mid);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+.assist-chip:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-low); background: var(--bg); }
+.assist-chip:disabled { cursor: progress; color: var(--ink-low); }
+
+.assist-note {
+  margin: 18px 0 0;
+  font-size: 13.5px; line-height: 1.55; color: var(--ink-mid);
+}
+/* The way back to a minimised conversation while the launcher is
+   hidden. A quiet text button: it is not a second Ask. */
+.assist-resume {
+  min-height: 24px; padding: 0;
+  font: 500 14px/1.4 var(--sans); color: var(--ink);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+  text-decoration-color: var(--ink-low);
+  cursor: pointer;
+}
+.assist-resume:hover { text-decoration-color: var(--ink); }
+.assist-resume[hidden], .assist-resume-new[hidden] { display: none; }
+.assist-resume-new { color: var(--cardinal); }
+
+/* In the box's place: "not switched on yet" and "could not load". */
+.assist-notice { padding: 30px 32px 32px; }
+.assist-notice-tag { margin-bottom: 10px; font-size: 13.5px; color: var(--ink-mid); }
+.assist-notice-h {
+  font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1.25;
+  color: var(--ink); margin-bottom: 8px;
+}
+.assist-notice p:not(.assist-notice-tag) { max-width: 620px; font-size: 15.5px; line-height: 1.65; color: var(--ink-mid); }
+.assist-notice .btn-prime { margin-top: 22px; }
+
+/* 2 · how to read an answer ─────────────────────────────────────────── */
+/* The site's section rhythm (About starts 48px under its rule): about
+   105px from the box to the heading, not 145px. */
+#page-assistant .assist-header { padding-bottom: 48px; }
+.assist-section { padding-top: 56px; }
+.assist-anatomy {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 72px;
+  align-items: center;
+}
+.assist-h2 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3vw, 38px); font-weight: 500; line-height: 1.15;
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+.assist-anatomy-lede { margin: 12px 0 34px; font-size: 16px; line-height: 1.65; color: var(--ink-mid); max-width: 46ch; text-wrap: pretty; }
+.assist-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 26px; }
+.assist-notes li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 16px; }
+.assist-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--ink);
+  font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.assist-notes h3 { font-size: 16px; font-weight: 600; line-height: 1.4; color: var(--ink); margin: 3px 0 4px; }
+.assist-notes p { font-size: 15px; line-height: 1.65; color: var(--ink-mid); max-width: 50ch; text-wrap: pretty; }
+
+/* The schematic. Bars and outlines only; see assistantAnatomyHTML(). */
+.assist-fig {
+  --fig-pad: 22px;      /* the drawn panel's padding */
+  --fig-lead: 36px;     /* how far a marker sits outside the panel */
+  padding: 44px 44px 44px calc(44px + var(--fig-lead));
+  background: var(--bg-soft);
+  border-radius: var(--radius-xl);
+}
+.fig-panel {
+  max-width: 400px; margin: 0 auto;
+  padding: var(--fig-pad);
+  display: flex; flex-direction: column; gap: 20px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: var(--shadow-2);
+}
+.fig-zone { position: relative; display: flex; flex-direction: column; gap: 7px; }
+.fig-asked { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.fig-label { font-size: 12px; font-weight: 600; color: var(--ink-mid); line-height: 1; margin-bottom: 3px; }
+.fig-label-gap { margin-top: 12px; }
+.fig-bar { display: block; height: 8px; width: 100%; border-radius: 4px; background: rgba(46, 45, 41, .10); }
+.fig-bar-ink { background: rgba(46, 45, 41, .20); }
+.fig-bar.w40 { width: 40%; } .fig-bar.w55 { width: 55%; } .fig-bar.w60 { width: 60%; }
+.fig-bar.w62 { width: 62%; } .fig-bar.w70 { width: 70%; } .fig-bar.w80 { width: 80%; }
+.fig-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fig-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 9px 10px 10px;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+}
+/* The highlighted source: the one citation 3 points to. */
+.fig-card.is-on { border-color: var(--ink); }
+.fig-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 1px; }
+.fig-card-top .fig-bar { flex: none; }
+.fig-card .fig-bar { height: 6px; }
+.fig-line, .fig-point { position: relative; display: flex; align-items: center; gap: 7px; }
+.fig-line .fig-bar, .fig-point .fig-bar { flex: none; }
+.fig-points { display: flex; flex-direction: column; gap: 10px; }
+.fig-point { gap: 9px; }
+.fig-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--ink-low); }
+/* Source and citation numbers: the panel's small round rose pills. */
+.fig-src-n, .fig-cite {
+  flex: none;
+  min-width: 14px; height: 14px; padding: 0 3px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  background: rgba(140, 21, 21, .10); color: var(--cardinal);
+  font: 600 9.5px/14px var(--sans);
+}
+.fig-card.is-on .fig-src-n, .fig-cite.is-on { background: var(--ink); color: #fff; }
+/* The notes' markers hang in the margin to the left of the drawn panel,
+   each with a short leader to the part it names. Outlined, like the
+   numbers beside the notes, and larger than any number in the drawing. */
+.fig-mark {
+  position: absolute;
+  left: calc(-1 * (var(--fig-pad) + var(--fig-lead)));
+  top: -6px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--bg); color: var(--ink);
+  border: 1.5px solid var(--ink);
+  font-size: 12px; font-weight: 600; line-height: 1;
+}
+.fig-mark::after {
+  content: ''; position: absolute; left: 100%; top: 50%;
+  width: calc(var(--fig-lead) - 24px + var(--fig-pad) - 6px); height: 1px;
+  background: var(--ink-low);
+}
+.fig-mark-cite { top: 50%; margin-top: -12px; }
+
+/* 3 · three plain columns ───────────────────────────────────────────── */
+.assist-cols {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 48px;
+  margin-top: 104px;
+}
+.assist-anatomy + .assist-cols { margin-top: 104px; }
+#assistant-body > .assist-cols:first-child { margin-top: 0; }
+.assist-col { padding-top: 22px; border-top: 1px solid var(--line-strong); }
+/* Whole-pixel line heights, so every row (and its dash) starts on a
+   whole pixel and the dashes all render at one weight. */
+.assist-col h3 {
+  font-family: var(--serif); font-size: 21px; font-weight: 500; line-height: 28px;
+  color: var(--ink); margin-bottom: 14px;
+}
+.assist-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.assist-col li {
+  position: relative; padding-left: 16px;
+  font-size: 14.5px; line-height: 24px; color: var(--ink-mid);
+}
+.assist-col li::before {
+  content: ''; position: absolute; left: 0; top: 12px;
+  width: 6px; height: 1px; background: var(--ink-mid);
+}
+
+@media (max-width: 1024px) {
+  /* One column: the drawing goes between the lede and the notes, so a
+     note and its marker are close enough to read together. */
+  .assist-anatomy { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .assist-anatomy-text { display: contents; }
+  .assist-fig { order: 1; margin-bottom: 40px; }
+  .assist-notes { order: 2; }
+  .assist-anatomy-lede { margin-bottom: 28px; }
+}
 @media (max-width: 900px) {
-  .assist-steps { grid-template-columns: 1fr; }
-  .assist-steps .proc-step { border-right: 1px solid var(--line); border-bottom: none; }
-  .assist-steps .proc-step:last-child { border-bottom: 1px solid var(--line); }
+  /* One column: hold the lists to a reading measure. */
+  .assist-cols { grid-template-columns: minmax(0, 1fr); gap: 36px; margin-top: 80px; max-width: 640px; }
+}
+@media (max-width: 560px) {
+  .assist-surface {
+    margin-top: 28px; padding: 14px 14px 16px; border-radius: 20px;
+    background:
+      radial-gradient(300px 120px at 30% 40px, var(--rose-light), transparent 72%),
+      var(--bg-ask);
+  }
+  .assist-box { padding: 5px 5px 5px 14px; border-radius: 14px; }
+  .assist-input { font-size: 16px; min-height: 44px; padding: 11px 0; }   /* 16px: no iOS zoom */
+  .assist-send { height: 44px; padding: 0 18px; border-radius: 10px; }
+  /* At phone width four long questions as pills stack into a tall wall
+     of boxes. A plain list, one hairline between rows, says the same
+     thing in half the weight. Each row is still a 44px target. */
+  /* The shared left edge: the box's 14px padding + 1px border, less the
+     2px the chip rows keep inside their own edge. */
+  .assist-try { padding-inline: 13px; }
+  .assist-status, .assist-note { padding-inline: 15px; }
+  .assist-try { gap: 4px; margin-top: 16px; }
+  .assist-try-lead { padding: 0 2px; }
+  .assist-try-lead, .assist-resume { padding: 0 2px; }
+  .assist-resume { min-height: 44px; }
+  .assist-chips { flex-direction: column; gap: 0; width: 100%; }
+  .assist-chips li + li { border-top: 1px solid var(--line); }
+  .assist-chip {
+    width: 100%; min-height: 44px; padding: 10px 2px;
+    background: none; border: 0; border-radius: 0;
+    font-size: 15px; line-height: 1.45; color: var(--ink);
+  }
+  .assist-chip:hover:not(:disabled) { background: none; color: var(--cardinal); }
+  .assist-note { margin-top: 14px; }
+  .assist-notice { padding: 24px 20px; }
+  #page-assistant .assist-header { padding-bottom: 40px; }
+  .assist-section { padding-top: 40px; }
+  .assist-fig { --fig-pad: 16px; --fig-lead: 30px; padding: 28px 16px 28px calc(16px + var(--fig-lead)); }
+  .fig-mark { width: 22px; height: 22px; font-size: 11px; }
+  .fig-mark::after { width: calc(var(--fig-lead) - 22px + var(--fig-pad) - 4px); }
+  .fig-mark-cite { margin-top: -11px; }
+}
+@media (max-width: 380px) {
+  /* Too narrow for the placeholder and the button on one line (it wrapped
+     mid-word at "HEAL-"): the button goes under the field, full width. */
+  .assist-surface { padding: 10px 10px 14px; }
+  .assist-box { flex-wrap: wrap; padding: 5px; }
+  .assist-input { flex-basis: 100%; padding-left: 8px; padding-right: 8px; }
+  /* The typed text stays 16px (no iOS zoom); only the hint is smaller. */
+  .assist-input::placeholder { font-size: 15px; }
+  .assist-send { width: 100%; }
+  .assist-try { padding-inline: 12px; }
+  .assist-status, .assist-note { padding-inline: 14px; }
+}
+
+/* 4 · the panel's launcher, on this page ───────────────────────────── */
+/* While the ask box is on screen and the panel is closed, the launcher
+   steps aside: the box does its job, and on a phone or at 200-400% zoom
+   the launcher would otherwise sit on the Ask button or a starter
+   question. It returns as soon as the box scrolls away. The class is set
+   by watchAssistantLauncher() in app.js; :has(.active) because every page
+   is fixed in place, so the box still "intersects" while another page is
+   showing. visibility, so it also leaves the Tab order. */
+html.ask-surface-in-view:has(#page-assistant.active) .ha-assistant:not([data-open="true"]) .ha-launcher {
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+/* The open panel (not full screen) takes the bottom-right corner. On a
+   wide screen, keep the box out from under it, so the Ask button, the
+   questions and the busy line stay visible beside the conversation. The
+   panel is 512px wide, 20px from the edge; 24px more for air. The box's
+   right edge is the content column's: (100vw - 1320px) / 2 outside the
+   1320px column, plus the header's clamp() gutter. */
+@media (min-width: 1000px) {
+  body:has(.ha-assistant[data-open="true"]:not([data-full="true"])) #page-assistant .assist-surface {
+    margin-right: max(0px, calc(556px - max(0px, (100vw - 1320px) / 2) - clamp(24px, 5vw, 80px)));
+  }
 }

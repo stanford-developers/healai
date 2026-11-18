@@ -76,11 +76,16 @@ const NAV_ITEMS = [
    vendored widget (js/heal-ai-assistant.js) and carries its own standing
    note about sources and advice.
 
+   THE PAGE, top to bottom (built by renderAssistant() in app.js):
+     1. the page header, and under it the ask box with `examples`
+     2. "How to read an answer": a drawing of the panel's answer layout
+        beside the three `anatomy` notes
+     3. three plain columns: `scope`, `limits`, `privacy`
+
    `examples` are not decoration. An empty box invites "what should I do
-   about my diagnosis?", which this cannot and must not answer; three
-   questions it answers well are the cheapest way to set the scope before
-   someone is disappointed by a refusal. They are clickable — see
-   renderAssistant() in app.js.
+   about my diagnosis?", which this cannot and must not answer; questions
+   it answers well are the cheapest way to set the scope before someone is
+   disappointed by a refusal. Each one asks itself when clicked.
 
    `limits` is deliberately on the page rather than in a tooltip. A tool
    that answers from a fixed corpus has real edges, and a visitor who
@@ -91,29 +96,46 @@ const ASSISTANT_COPY = {
   headline: 'Ask about <em>our published work.</em>',
   lede: 'An experimental assistant that answers from HEAL-AI\'s own reports, playbook, templates and guides, and shows you where each answer came from.',
 
-  /* Section 1 — how to use it, with questions it answers well. */
-  introEyebrow: 'How to use it',
-  introHeading: 'Ask a question. Check the answer against its sources.',
-  introBody: 'Type a question about HEAL-AI\'s ethics assessments, the FURM process, the Patient Partner Panel or the templates. The answer links each point to the document it came from, so you can open it and read the original.',
-  openLabel: 'Open the assistant',
-  openNote: 'It opens in the corner of the page and stays with you as you browse.',
-  examplesTitle: 'Try asking',
+  /* 1 — the ask box. `askLabel` is read out by screen readers (the box has
+     no visible label; the placeholder says the same thing). */
+  askLabel: 'Ask about HEAL-AI\'s work',
+  askPlaceholder: 'Ask about HEAL-AI\'s work…',
+  askButton: 'Ask',
+  examplesLead: 'Try',
   examples: [
     'We\'re deploying an ambient AI scribe. What ethical issues should we think about?',
     'How does the HEAL-AI ethics assessment fit into FURM?',
     'What are the five steps for adopting this process?',
     'How are patient partners recruited and trained?',
   ],
+  askNote: 'Opens the assistant in the corner of the page. Each question is answered on its own.',
+  askLoading: 'Loading the assistant…',
+  /* The panel is still answering the last question. The box keeps the text.
+     No "press Ask": on a laptop the open panel can cover that button. */
+  askBusy: 'The assistant is still answering your last question. Your new question is kept in the box. Ask it again once that answer arrives.',
+  /* While the box is on screen the panel's corner button steps aside (it
+     would sit on the box on a phone), so the box offers the way back to a
+     conversation the visitor minimised. `askResumeNew` is added while an
+     answer has arrived that they have not seen. */
+  askResume: 'Back to your conversation',
+  askResumeNew: ' · new answer',
 
-  /* Section 2 — what happens, in three steps. */
-  stepsEyebrow: 'How it works',
-  steps: [
-    { n: '01', title: 'You ask', desc: 'One question about HEAL-AI\'s published work. Each question is answered on its own.' },
-    { n: '02', title: 'It searches our documents', desc: 'Only HEAL-AI\'s published reports, playbook, templates and guides. Not the web, and not the model\'s general knowledge.' },
-    { n: '03', title: 'It answers with sources', desc: 'Each point cites the document it came from. If the material does not cover your question, it says so.' },
+  /* 2 — how to read an answer. Read in this order, so numbered. */
+  anatomyTitle: 'How to read an answer',
+  anatomyLede: 'Every answer is laid out the same way, so you can check it quickly.',
+  anatomy: [
+    { title: 'Sources come first', desc: 'The documents the answer used are listed before the answer, so you can see what it drew on. They are all HEAL-AI\'s own published material.' },
+    { title: 'A short answer, then details', desc: '"In short" gives the answer in a sentence or two. "Details" lists the points behind it.' },
+    { title: 'Numbers link back', desc: 'Each number opens the source it came from. If the material does not cover your question, it says so and points you to the team.' },
   ],
 
-  /* Section 3 — limits and privacy, side by side. */
+  /* 3 — three plain columns: scope, limits, privacy. */
+  scopeTitle: 'What it answers from',
+  scope: [
+    'HEAL-AI\'s published reports, playbook, templates and guides.',
+    'Not the web, and not the model\'s general knowledge.',
+    'One question at a time. Earlier questions are not sent with a new one.',
+  ],
   limitsTitle: 'What it will not do',
   limits: [
     'Give medical, legal or clinical advice, or speak to an individual case.',
@@ -134,6 +156,11 @@ const ASSISTANT_COPY = {
      is configured. Honest about the state rather than silently broken. */
   unavailableTitle: 'The assistant is not switched on yet.',
   unavailableBody: 'The question box is built and tested, but it has no server to answer from yet. Sign up for updates and we will say when it goes live.',
+
+  /* Shown in place of the ask box when the widget's script fails to load
+     (blocked, offline, a bad deploy). Says what happened and what to do. */
+  failedTitle: 'The assistant could not load.',
+  failedBody: 'Reload the page to try again. HEAL-AI\'s reports and resources are all in the Toolkit.',
 };
 
 

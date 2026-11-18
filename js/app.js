@@ -1846,12 +1846,13 @@ function renderToolkitPlaybook() {
 /* ═════════════════════════════════════════════════════════════════════════
    ⑩.5 ASK PAGE · the chat assistant panel
    ─────────────────────────────────────────────────────────────────────────
-   Stage 2, Volume 1. The question box itself is NOT written here: it is
-   developed and tested in the assistant repository
-   (stanford-developers/Heal-ai-bot) and vendored into this one as
-   js/heal-ai-assistant.js + css/heal-ai-assistant.css. This function's
-   whole job is to decide whether to put it on the page, give it an
-   endpoint, and wrap it in the framing text from ASSISTANT_COPY.
+   Stage 2, Volume 1. The panel (the conversation, the answers, the
+   sources) is NOT written here: it is developed and tested in the
+   assistant repository (stanford-developers/Heal-ai-bot) and vendored
+   into this one as js/heal-ai-assistant.js + css/heal-ai-assistant.css.
+   This code decides whether to mount it, gives it an endpoint, and draws
+   the Ask page: a question box that hands its question to the panel
+   through the widget's public API, and the text from ASSISTANT_COPY.
 
    THREE STATES, and the middle one is the one worth having:
      SHOW_ASSISTANT false  → nothing. No nav item, no assets fetched, the
@@ -1881,11 +1882,11 @@ function loadAssistantAssets() {
       const link = document.createElement('link');
       link.id = 'ha-css';
       link.rel = 'stylesheet';
-      link.href = 'css/heal-ai-assistant.css?v=beta-20261117e';
+      link.href = 'css/heal-ai-assistant.css?v=beta-20261117f';
       document.head.appendChild(link);
     }
     const s = document.createElement('script');
-    s.src = 'js/heal-ai-assistant.js?v=beta-20261117e';
+    s.src = 'js/heal-ai-assistant.js?v=beta-20261117f';
     s.onload = () => resolve(true);
     /* A failed asset must not look like a failed assistant. Rejecting
        lets the caller say the panel could not load, rather than leaving
@@ -1919,54 +1920,138 @@ function mountAssistantPanel() {
   return loadAssistantAssets().then(() => true);
 }
 
+/* THE PAGE, top to bottom. The page is the place to start asking; the
+   panel is where the conversation happens. It does not hold a second
+   copy of the panel: one conversation, wherever it was started.
+
+     #assistant-ask   (inside the page header, above its rule)
+       the ask box: one textarea, an Ask button, the example questions
+       and a line saying where the answer will appear. Submitting hands
+       the question to the floating panel (HealAIAssistant.ask).
+     #assistant-body  (the section below the rule)
+       "How to read an answer": a drawing of the panel's answer layout
+       next to three numbered notes, then three plain columns (what it
+       answers from, what it will not do, what happens to your question).
+
+   Every string comes from ASSISTANT_COPY in data.js and is escaped. */
+
+/** The three plain columns. Shown in every "on" state, including when the
+ *  assistant is not switched on yet: the limits and privacy are true
+ *  whether or not there is a box above them. */
+function assistantColumnsHTML(c) {
+  const e = escapeHTML;
+  const col = (title, items) => `
+    <div class="assist-col">
+      <h3>${e(title)}</h3>
+      <ul>${items.map(l => `<li>${e(l)}</li>`).join('')}</ul>
+    </div>`;
+  return `
+    <div class="assist-cols">
+      ${col(c.scopeTitle, c.scope)}
+      ${col(c.limitsTitle, c.limits)}
+      ${col(c.privacyTitle, c.privacy)}
+    </div>`;
+}
+
+/** "How to read an answer". The drawing is a schematic of the panel's
+ *  answer layout: grey bars and outlines only, with the panel's own
+ *  headings ("You asked", "Sources", "In short", "Details"). It carries no
+ *  document titles, real or invented, and no "Cited" marks, so it cannot
+ *  be mistaken for an answer. It is aria-hidden; the numbered notes say
+ *  everything it shows.
+ *
+ *  Two kinds of number, drawn so they never look alike, as in the panel:
+ *    - source and citation numbers: small round rose pills. Each source
+ *      card is numbered, and the same numbers sit inside the text of both
+ *      "In short" and "Details". Citation 3 and source 3 share one ink
+ *      highlight, which is the idea behind note 3.
+ *    - the notes' own markers: larger outlined ink circles in the margin,
+ *      the same as the numbers beside the notes. */
+function assistantAnatomyHTML(c) {
+  const e = escapeHTML;
+  const card = (n, on) => `<span class="fig-card${on ? ' is-on' : ''}"><span class="fig-card-top"><b class="fig-src-n">${n}</b><i class="fig-bar w40"></i></span><i class="fig-bar"></i><i class="fig-bar w60"></i></span>`;
+  const cite = (n, on) => `<b class="fig-cite${on ? ' is-on' : ''}">${n}</b>`;
+  const point = (w, n) => `<span class="fig-point"><i class="fig-dot"></i><i class="fig-bar ${w}"></i>${cite(n)}</span>`;
+  return `
+    <div class="assist-anatomy">
+      <div class="assist-anatomy-text">
+        <h2 class="assist-h2">${e(c.anatomyTitle)}</h2>
+        <p class="assist-anatomy-lede">${e(c.anatomyLede)}</p>
+        <ol class="assist-notes">
+          ${c.anatomy.map((n, i) => `
+            <li>
+              <span class="assist-num" aria-hidden="true">${i + 1}</span>
+              <div><h3>${e(n.title)}</h3><p>${e(n.desc)}</p></div>
+            </li>`).join('')}
+        </ol>
+      </div>
+      <div class="assist-fig" aria-hidden="true">
+        <div class="fig-panel">
+          <div class="fig-zone fig-asked">
+            <span class="fig-label">You asked</span>
+            <i class="fig-bar fig-bar-ink w70"></i>
+          </div>
+          <div class="fig-zone">
+            <span class="fig-mark">1</span>
+            <span class="fig-label">Sources</span>
+            <span class="fig-cards">${card(1)}${card(2)}${card(3, true)}</span>
+          </div>
+          <div class="fig-zone">
+            <span class="fig-mark">2</span>
+            <span class="fig-label">In short</span>
+            <span class="fig-line"><i class="fig-bar fig-bar-ink"></i></span>
+            <span class="fig-line"><i class="fig-bar fig-bar-ink w62"></i>${cite(1)}</span>
+            <span class="fig-label fig-label-gap">Details</span>
+            <span class="fig-points">
+              ${point('w70', 1)}${point('w55', 2)}
+              <span class="fig-point"><i class="fig-dot"></i><i class="fig-bar w62"></i>${cite(3, true)}<span class="fig-mark fig-mark-cite">3</span></span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/** A notice in the ask box's place: not switched on yet, or failed to load. */
+function assistantNoticeHTML(title, body, { tag = '', action = '' } = {}) {
+  const e = escapeHTML;
+  return `
+    <div class="assist-surface assist-notice">
+      ${tag ? `<p class="assist-notice-tag">${e(tag)}</p>` : ''}
+      <h2 class="assist-notice-h">${e(title)}</h2>
+      <p>${e(body)}</p>
+      ${action}
+    </div>`;
+}
+
 function renderAssistant() {
   const body = byId('assistant-body');
-  if (!body) return;
+  const ask = byId('assistant-ask');
+  if (!body || !ask) return;
 
   /* Off: leave the page completely empty. Not a "coming soon" notice —
      the nav item is hidden too, so the only way here is a typed URL, and
      the right thing to show someone who guessed a URL is nothing. */
-  if (!ASSISTANT_ON) { body.innerHTML = ''; return; }
+  if (!ASSISTANT_ON) { body.innerHTML = ''; ask.innerHTML = ''; return; }
 
   const c = ASSISTANT_COPY;
+  const e = escapeHTML;
   byId('assistant-eyebrow').textContent = c.eyebrow;
   byId('assistant-h').innerHTML = c.headline;
   byId('assistant-lede').textContent = c.lede;
 
-  /* Built from the site's own section patterns: the Toolkit's intro with a
-     side card (.rt-intro), its numbered step cards (.proc-step) and the
-     About page's white cards (.white-card), so this page reads like the
-     rest of the site rather than a lone button on an empty page. Every
-     string comes from ASSISTANT_COPY in data.js and is escaped. */
-  const e = escapeHTML;
-  const limitsHTML = `
-    <div class="two-col assist-cards">
-      <div class="white-card">
-        <h3>${e(c.limitsTitle)}</h3>
-        <ul class="assist-list">${c.limits.map(l => `<li>${e(l)}</li>`).join('')}</ul>
-      </div>
-      <div class="white-card">
-        <h3>${e(c.privacyTitle)}</h3>
-        <ul class="assist-list">${c.privacy.map(l => `<li>${e(l)}</li>`).join('')}</ul>
-      </div>
-    </div>`;
-
-  /* On, but nowhere to ask. Say that plainly. The alternative — showing
-     the box anyway — produces a question, a spinner and then a generic
-     failure, which reads as a broken site rather than an unfinished
-     feature. */
+  /* On, but nowhere to ask. Say that plainly, in the ask box's place.
+     The alternative — showing the box anyway — produces a question, a
+     spinner and then a generic failure, which reads as a broken site
+     rather than an unfinished feature. No "how to read an answer": there
+     are no answers yet. */
   if (!ASSISTANT_URL) {
-    body.innerHTML = `
-      <div class="assist-pending">
-        <div class="badge">Stage 2 · Coming soon</div>
-        <h3>${e(c.unavailableTitle)}</h3>
-        <p>${e(c.unavailableBody)}</p>
-        <div style="margin-top:24px">
-          <a href="${SIGN_UP_URL}" target="_blank" rel="noopener"
-             class="btn-prime" id="assist-notify-btn">Notify me &rarr;</a>
-        </div>
-      </div>
-      ${limitsHTML}`;
+    ask.innerHTML = assistantNoticeHTML(c.unavailableTitle, c.unavailableBody, {
+      tag: 'Stage 2 · Coming soon',
+      action: `<a href="${SIGN_UP_URL}" target="_blank" rel="noopener"
+                  class="btn-prime" id="assist-notify-btn">Notify me &rarr;</a>`,
+    });
+    body.innerHTML = assistantColumnsHTML(c);
     /* Same treatment as the other CTAs: our own form when we have an
        endpoint for it, otherwise the href falls through to SIGN_UP_URL. */
     byId('assist-notify-btn').addEventListener('click', ev => {
@@ -1977,62 +2062,159 @@ function renderAssistant() {
     return;
   }
 
-  /* The page explains the assistant and opens the panel; it does not hold
-     a second copy of it. One conversation, wherever it was started. */
-  body.innerHTML = `
-    <p class="eyebrow">${e(c.introEyebrow)}</p>
-    <div class="rt-intro assist-intro">
-      <div>
-        <h2>${e(c.introHeading)}</h2>
-        <p>${e(c.introBody)}</p>
-        <div class="assist-open">
-          <button type="button" class="btn-prime" id="assist-open-btn" disabled>${e(c.openLabel)} &rarr;</button>
-          <p class="assist-open-note">${e(c.openNote)}</p>
-        </div>
+  /* Drawn disabled, with an honest "loading" line, and switched on by
+     wireAssistantPage() once the widget has loaded. A box that accepted a
+     question before then would have nowhere to send it. */
+  ask.innerHTML = `
+    <form class="assist-surface assist-form" novalidate>
+      <label class="sr-only" for="assist-q">${e(c.askLabel)}</label>
+      <div class="assist-box">
+        <textarea id="assist-q" class="assist-input" rows="1" maxlength="500"
+                  placeholder="${e(c.askPlaceholder)}" aria-describedby="assist-status assist-note"
+                  autocomplete="off" disabled></textarea>
+        <button type="submit" class="assist-send" disabled>${e(c.askButton)}</button>
       </div>
-      <aside class="assist-try">
-        <h4>${e(c.examplesTitle)}</h4>
-        <ul>
-          ${c.examples.map(q => `<li><button type="button" class="assist-example" disabled>${e(q)}</button></li>`).join('')}
-        </ul>
-      </aside>
-    </div>
-
-    <p class="eyebrow">${e(c.stepsEyebrow)}</p>
-    <div class="process-steps assist-steps">
-      ${c.steps.map(st => `
-        <div class="proc-step">
-          <div class="proc-num">STEP ${e(st.n)}</div>
-          <h4>${e(st.title)}</h4>
-          <p>${e(st.desc)}</p>
-        </div>`).join('')}
-    </div>
-    ${limitsHTML}`;
-
-  mountAssistantPanel()
-    .then(() => wireAssistantPage(body))
-    .catch(() => {
-      body.innerHTML = `
-        <div class="assist-pending">
-          <h3>${c.unavailableTitle}</h3>
-          <p>${c.unavailableBody}</p>
+      <p class="assist-status" id="assist-status" role="status">${e(c.askLoading)}</p>
+      <div class="assist-try">
+        <div class="assist-try-head">
+          <span class="assist-try-lead" id="assist-try-lead">${e(c.examplesLead)}</span>
+          <button type="button" class="assist-resume" hidden>${e(c.askResume)}<span class="assist-resume-new" hidden>${e(c.askResumeNew)}</span></button>
         </div>
-        ${limitsHTML}`;
-    });
+        <ul class="assist-chips" aria-labelledby="assist-try-lead">
+          ${c.examples.map(q => `<li><button type="button" class="assist-chip" disabled>${e(q)}</button></li>`).join('')}
+        </ul>
+      </div>
+      <p class="assist-note" id="assist-note">${e(c.askNote)}</p>
+    </form>`;
+  body.innerHTML = assistantAnatomyHTML(c) + assistantColumnsHTML(c);
+
+  const failed = () => {
+    ask.innerHTML = assistantNoticeHTML(c.failedTitle, c.failedBody);
+  };
+  mountAssistantPanel()
+    .then(() => { if (!wireAssistantPage(ask)) failed(); })
+    .catch(failed);
 }
 
-/** The Ask page's button and example questions drive the panel. They are
- *  disabled until the widget has loaded, so a click can never silently do
- *  nothing. */
+/** Switches the ask box on once the widget has loaded, and hands each
+ *  question to the floating panel. Returns false when there is no panel
+ *  to hand to (the script ran but did not mount), so the caller can show
+ *  the "could not load" notice rather than a box that does nothing.
+ *
+ *  FOCUS. After a hand-off, focus moves into the panel's own box, so a
+ *  keyboard user lands in the conversation. The widget lets the page
+ *  choose this: its ask() opens without moving focus, and open() on an
+ *  already-open panel only focuses its box. On a touch-first device the
+ *  page's box is blurred instead, which drops the on-screen keyboard so
+ *  the answer is not hidden behind it. */
 function wireAssistantPage(scope) {
   const api = window.HealAIAssistant;
-  if (!api) return;
-  const openBtn = scope.querySelector('#assist-open-btn');
-  if (openBtn) { openBtn.disabled = false; openBtn.addEventListener('click', () => api.open()); }
-  scope.querySelectorAll('.assist-example').forEach(btn => {
-    btn.disabled = false;
-    btn.addEventListener('click', () => api.ask(btn.textContent.trim()));
+  if (!api || typeof api.ask !== 'function') return false;
+  const c = ASSISTANT_COPY;
+  const form = scope.querySelector('.assist-form');
+  const input = scope.querySelector('#assist-q');
+  const status = scope.querySelector('#assist-status');
+  if (!form || !input) return false;
+
+  const setStatus = text => { status.textContent = text; status.hidden = !text; };
+  /* One line to start; grows with the question up to about five lines. */
+  const size = () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 168) + 'px';
+  };
+  const touchFirst = () => {
+    try { return window.matchMedia('(hover: none) and (pointer: coarse)').matches; } catch { return false; }
+  };
+
+  function handOff(question, fromBox) {
+    const q = String(question || '').trim();
+    if (!q) return;                      // empty: nothing happens
+    /* The vendored widget returns whether it took the question. An older
+       copy returns nothing; treat that as taken, as it always was. */
+    const accepted = api.ask(q);
+    if (accepted === false) {
+      /* Still answering the last one. Keep (or put) the question in the
+         box so nothing typed is lost, and say why nothing happened. */
+      /* A chip only fills an empty box: a question the visitor was
+         typing is theirs and stays. */
+      if (!fromBox && !input.value.trim()) { input.value = q; size(); }
+      setStatus(c.askBusy);
+      return;
+    }
+    setStatus('');
+    if (fromBox) { input.value = ''; size(); }
+    if (touchFirst()) input.blur();
+    else if (typeof api.open === 'function') api.open();
+  }
+
+  form.addEventListener('submit', ev => { ev.preventDefault(); handOff(input.value, true); });
+  input.addEventListener('keydown', ev => {
+    /* Enter asks; Shift+Enter is a new line. Not while an input method is
+       composing (keyCode 229 covers browsers without isComposing), or
+       Enter would send half a word. */
+    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && ev.keyCode !== 229) {
+      ev.preventDefault();
+      handOff(input.value, true);
+    }
   });
+  input.addEventListener('input', () => { size(); if (status.textContent === c.askBusy) setStatus(''); });
+
+  scope.querySelectorAll('.assist-chip').forEach(btn => {
+    btn.disabled = false;
+    btn.addEventListener('click', () => handOff(btn.textContent, false));
+  });
+  input.disabled = false;
+  form.querySelector('.assist-send').disabled = false;
+  setStatus('');
+  size();
+  /* Measured again once the web font has arrived (it is wider than the
+     fallback, so a first measurement can clip a wrapped line) and when
+     the width changes. */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(size).catch(() => {});
+  window.addEventListener('resize', size, { passive: true });
+  watchAssistantLauncher(form, scope.querySelector('.assist-resume'), api);
+  return true;
+}
+
+/** The panel's launcher and the page's ask box offer the same thing, and
+ *  on a small screen the launcher sits on top of the box (the Ask button,
+ *  a starter question). So while the box is on screen, the launcher steps
+ *  aside: <html> gets `ask-surface-in-view`, and style.css hides the
+ *  launcher with it (only on this page, only while the panel is closed).
+ *  The widget is not changed.
+ *
+ *  With the launcher gone, the box needs its own way back to a
+ *  conversation the visitor minimised: "Back to your conversation", at the
+ *  top of the questions (so it is on a phone's first screen too), shown
+ *  only while there is one and the panel is closed, and marked "new
+ *  answer" when the widget marks its launcher so. It reads the widget's
+ *  own attributes (data-open, data-scene, the unread mark) and writes
+ *  nothing to it. */
+function watchAssistantLauncher(surface, resume, api) {
+  const html = document.documentElement;
+  if (html && html.classList && typeof IntersectionObserver === 'function') {
+    new IntersectionObserver(entries => {
+      const last = entries[entries.length - 1];
+      html.classList.toggle('ask-surface-in-view', !!(last && last.isIntersecting));
+    /* The top 72px are under the fixed site nav: a box scrolled up behind
+       it is not "on screen". */
+    }, { rootMargin: '-72px 0px 0px 0px' }).observe(surface);
+  }
+
+  const root = document.querySelector('.ha-assistant');
+  if (!resume || !root) return;
+  const sync = () => {
+    const away = root.getAttribute('data-scene') === 'conversation' && root.getAttribute('data-open') !== 'true';
+    resume.hidden = !away;
+    const mark = root.querySelector('.ha-unread');
+    const flag = resume.querySelector('.assist-resume-new');
+    if (flag) flag.hidden = !(away && mark && !mark.hidden);
+  };
+  resume.addEventListener('click', () => { if (typeof api.open === 'function') api.open(); });
+  if (typeof MutationObserver === 'function') {
+    new MutationObserver(sync).observe(root, { attributes: true, subtree: true, attributeFilter: ['data-open', 'data-scene', 'hidden'] });
+  }
+  sync();
 }
 
 

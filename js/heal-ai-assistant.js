@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.js
-     commit  7f18902 (branch main)
+     commit  5aee2b4 (branch main)
      copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
@@ -1320,8 +1320,14 @@
       close: close,
       /* Asks, opening the panel straight into the conversation; a
          question that is not accepted (empty, or one already waiting)
-         still opens the panel, as before. */
-      ask: function (q) { if (!ask(q, false)) open({ focus: false }); }
+         still opens the panel, as before. Returns whether it was
+         accepted, so a page with its own question box knows whether to
+         empty it (the website's Ask page keeps the text when it was not). */
+      ask: function (q) {
+        var accepted = ask(q, false);
+        if (!accepted) open({ focus: false });
+        return accepted;
+      }
     };
   }
 
