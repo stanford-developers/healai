@@ -640,7 +640,7 @@ await test('W5 signup: the health check and errors say nothing about the Sheet',
 /* Google shows the homepage's icon next to the site in search results.
    A link to a file that is missing, or that the deploy does not publish,
    is a quiet 404: the page still works, the icon just never appears. */
-await test('every icon a page links to exists and is published', () => {
+await test('every icon a page links to exists and is published, and robots.txt lets Google in', () => {
   const workflow = source('.github/workflows/pages.yml');
   check(workflow !== null, 'cannot read .github/workflows/pages.yml');
   const list = workflow.match(/SITE_PATHS=\(([\s\S]*?)\)/);
@@ -657,6 +657,10 @@ await test('every icon a page links to exists and is published', () => {
     }
   }
   check(published.includes('favicon.ico'), 'favicon.ico is not in SITE_PATHS; browsers ask for /favicon.ico on their own');
+  /* Without a robots.txt the host answered /robots.txt with a 503, and
+     Google stops crawling a site whose robots.txt gives a server error. */
+  check(published.includes('robots.txt') && source('robots.txt') !== null, 'robots.txt must exist and be in SITE_PATHS');
+  check(!/^Disallow:\s*\/\s*$/m.test(source('robots.txt') || ''), 'robots.txt blocks the whole site');
 });
 
 

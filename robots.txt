@@ -1,0 +1,4 @@
+# heal-ai.stanford.edu — search engines may crawl the whole public site.
+# The admin dashboard (admin.html and /admin/) has no public content.
+User-agent: *
+Disallow: /admin

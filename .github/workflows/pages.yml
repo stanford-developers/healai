@@ -73,6 +73,7 @@ jobs:
             CNAME
             .nojekyll
             favicon.ico
+            robots.txt
           )
 
           mkdir -p _site
