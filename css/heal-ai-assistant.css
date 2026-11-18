@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.css
-     commit  9a1b362 (branch main)
+     commit  7f18902 (branch main)
      copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
@@ -23,16 +23,20 @@
  HEAL-AI · widget/heal-ai-assistant.css
 ─────────────────────────────────────────────────────────────────────────
  The floating assistant: a launcher in the bottom-right corner and the
- conversation panel it opens, in the "Evidence First" design: sources
- above each answer as a row of cards, then the answer under "In short"
- and "Details". A header button makes the panel fill the window.
+ panel it opens. The panel has two scenes (data-scene on the root):
+ a welcome (a serif heading over one soft light, a line of explanation
+ and three starter questions), and the "Evidence First" conversation:
+ sources above each answer as a row of cards, then the answer under
+ "In short" and "Details". The outer box is the same size in both. A
+ header button makes the panel fill the window.
 
  Written to drop into the existing site: every brand colour, font,
  radius and easing is a var() from css/style.css §1, so re-skinning the
  site re-skins this with it. The fallbacks in each var() are for pages
  that load this file without the site stylesheet (the demo and the
  preview). The few colours the site has no token for (control borders,
- the warning card) are defined once below, as --ha-* properties.
+ the warm reading surface, the warning card) are defined once below,
+ as --ha-* properties.
 
  Everything is under .ha-assistant or a .ha-* class, so nothing here
  can restyle the site, and the resets below stop the site's own element
@@ -43,11 +47,23 @@
  a video or sign-up dialog still covers it completely, even when the
  panel is full screen.
 
+ MATERIALS. Only the header is translucent (white at 78% with a 16px
+ blur and saturate 1.4),
+ and the conversation scrolls beneath it. Answers, sources and the ask
+ box are always opaque. Where the browser cannot blur, where the reader
+ asks for less transparency, and in forced colours, the header is
+ plain white.
+
+ MOTION is in the script (MOTION and animate()), not here, so it can be
+ interrupted and skipped for reduced motion at the moment it would run.
+ The only loop is the pending dot, which goes when the reply lands.
+
  CONTRAST (on white unless said). Text: ink 13.8:1, ink-mid 8:1,
- ink-low 5.2:1 (4.9 on bg-soft; never used on the cardinal tint, where
- it would be 4.47), cardinal 9.4:1 (8.1 on the tint). Control borders
- 3.3:1, citation chip border 3.8:1. Focus ring: cardinal-dark 12.1:1
- against the panel, with a white halo 13.8:1 against a dark page.
+ ink-low 5.2:1 (5.0 on the warm surface; never used on the cardinal
+ tint, where it would be 4.47), cardinal 9.4:1 (8.1 on the tint).
+ Control borders 3.3:1, citation chip border 3.8:1. Focus ring:
+ cardinal-dark 12.1:1 against the panel, with a white halo 13.8:1
+ against a dark page.
 ═════════════════════════════════════════════════════════════════════════
 */
 
@@ -75,6 +91,9 @@
   --ha-t:         var(--t-fast, .18s);
 
   /* Colours the site has no token for. */
+  --ha-surface:   #FBFAF8;   /* the warm reading surface behind the cards */
+  --ha-glass:     rgba(255,255,255,.78);
+  --ha-rose:      rgba(184,58,58,.14);   /* the welcome's one light */
   --ha-ctl:       #8A8D94;   /* button and card-control borders · 3.3:1 */
   --ha-field:     #868990;   /* the ask box's border · 3.5:1 */
   --ha-cite-line: #BA6F6F;   /* citation chip border · 3.8:1 */
@@ -92,6 +111,11 @@
   /* Clear of the site's fixed top nav (68px), plus a margin. */
   --ha-top-clear: 84px;
   --ha-gap: 20px;
+  /* The panel's text column: its side padding, and the header's height
+     (the conversation scrolls beneath the header). */
+  --ha-side: 20px;
+  --ha-head-h: 56px;
+  --ha-head-total: var(--ha-head-h);
   /* The full-screen reading column. */
   --ha-col: 760px;
 
@@ -111,17 +135,13 @@
 .ha-assistant p, .ha-assistant h2, .ha-assistant h3, .ha-assistant h4,
 .ha-assistant ol, .ha-assistant ul, .ha-assistant li { margin: 0; }
 /* :where() keeps these resets at one class of weight, so any .ha-*
-   rule below (a card row's padding, a mono heading, a citation chip's
-   font) wins over them, while the site's bare element rules still lose. */
+   rule below (a card row's padding, the serif heading, a citation
+   chip's font) wins over them, while the site's bare element rules
+   still lose. */
 .ha-assistant :where(ol, ul) { padding: 0; list-style: none; }
 .ha-assistant :where(h2, h3, h4) { font-family: var(--ha-sans); letter-spacing: normal; text-transform: none; }
 .ha-assistant :where(button) { font: inherit; cursor: pointer; text-transform: none; letter-spacing: normal; }
 .ha-assistant svg { width: 18px; height: 18px; flex: none; }
-.ha-assistant kbd {
-  font-family: var(--ha-mono); font-size: 10.5px; padding: 1px 5px; border-radius: 4px;
-  border: 1px solid var(--ha-line-strong); border-bottom-width: 2px;
-  background: var(--ha-soft); color: var(--ha-ink-mid);
-}
 
 /* Visible to a screen reader, not to the eye. */
 .ha-sr-only {
@@ -189,71 +209,73 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
   transition: opacity var(--ha-t) var(--ha-ease), transform var(--ha-t) var(--ha-ease), visibility 0s linear var(--ha-t);
 }
 
-/* ── the panel ────────────────────────────────────────────────────── */
+/* ── the panel ────────────────────────────────────────────────────────
+   One box for both scenes: its size depends on the viewport only, so
+   the first question never resizes it. Opening and minimising are
+   animated by the script; the resting state here is simply visible. */
 .ha-window {
   position: fixed;
   right: max(var(--ha-gap), env(safe-area-inset-right));
   bottom: max(var(--ha-gap), env(safe-area-inset-bottom));
   z-index: 900;
-  width: min(440px, calc(100vw - 2 * var(--ha-gap)));
+  width: min(512px, calc(100vw - 2 * var(--ha-gap)));
   height: min(720px, calc(100vh - var(--ha-top-clear) - var(--ha-gap)));
   height: min(720px, calc(100dvh - var(--ha-top-clear) - var(--ha-gap)));
   display: flex; flex-direction: column;
-  background: var(--ha-bg);
+  background: var(--ha-surface);
   border: 1px solid var(--ha-line-strong);
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
   box-shadow:
-    0 30px 70px -18px rgba(16,20,28,.32),
-    0 10px 24px -10px rgba(16,20,28,.14);
+    0 32px 72px -20px rgba(16,20,28,.30),
+    0 10px 24px -12px rgba(16,20,28,.14),
+    0 0 0 1px rgba(255,255,255,.5) inset;
   transform-origin: 100% 100%;
-  opacity: 0;
-  transform: translateY(12px) scale(.985);
-  transition: opacity .2s var(--ha-ease), transform .24s var(--ha-ease);
 }
 .ha-window[hidden] { display: none; }
-.ha-assistant[data-open="true"] .ha-window { opacity: 1; transform: none; }
 
-/* A hairline of the brand colour across the top edge. */
-.ha-window::before {
-  content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; z-index: 1;
-  background: linear-gradient(90deg, var(--ha-cardinal), var(--ha-cardinal-light) 60%, transparent);
-  opacity: .9; pointer-events: none;
-}
-
+/* The header: glass, laid over the top of the conversation, which
+   scrolls beneath it. Compact in both scenes. */
 .ha-head {
-  /* Gaps kept tight so "Beta" and the subtitle stay on one line beside
-     the three header buttons in the 440px panel. */
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 14px 10px 12px 16px;
+  position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+  display: flex; align-items: center; gap: 10px;
+  height: var(--ha-head-total);
+  padding: 0 8px 0 var(--ha-side);
+  background: var(--ha-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
   border-bottom: 1px solid var(--ha-line);
-  background: linear-gradient(180deg, var(--ha-bg), var(--ha-soft));
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ha-head { background: var(--ha-bg); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ha-head { background: var(--ha-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 .ha-head-mark {
-  width: 34px; height: 34px; border-radius: 10px; flex: none;
+  width: 28px; height: 28px; border-radius: 8px; flex: none;
   display: grid; place-items: center;
   background: var(--ha-cardinal); color: #fff;
-  box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 4px 10px -4px rgba(140,21,21,.6);
+  box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 3px 8px -3px rgba(140,21,21,.55);
 }
-.ha-head-text { flex: 1; min-width: 0; }
+.ha-assistant .ha-head-mark svg { width: 16px; height: 16px; }
+.ha-head-text { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; }
 .ha-title {
-  font-size: 15.5px; font-weight: 600; line-height: 1.3; letter-spacing: -.01em;
-  color: var(--ha-ink);
-}
-.ha-sub {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px;
-  margin-top: 3px !important; font-size: 12.5px; line-height: 1.35; color: var(--ha-ink-low);
+  min-width: 0;
+  font-size: 15px; font-weight: 600; line-height: 1.3; letter-spacing: -.01em;
+  color: var(--ha-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ha-beta {
-  font-family: var(--ha-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+  flex: none;
+  font-family: var(--ha-mono); font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
   color: var(--ha-cardinal); background: var(--ha-tint); border: 1px solid var(--ha-cite-line);
-  padding: 0 7px; border-radius: 999px; line-height: 1.6;
+  padding: 0 7px; border-radius: 999px; line-height: 1.7;
 }
-.ha-head-actions { display: flex; gap: 0; flex: none; }
+.ha-head-actions { display: flex; gap: 2px; flex: none; }
 .ha-icon-btn {
   display: grid; place-items: center;
-  width: 36px; height: 36px; padding: 0;
-  border: 1px solid transparent; border-radius: 9px;
+  width: 40px; height: 40px; padding: 0;
+  border: 1px solid transparent; border-radius: 12px;
   background: transparent; color: var(--ha-ink-mid);
   transition: background-color var(--ha-t) var(--ha-ease), color var(--ha-t) var(--ha-ease);
 }
@@ -264,21 +286,32 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 .ha-assistant[data-full="true"] .ha-ic-expand { display: none !important; }
 .ha-assistant[data-full="true"] .ha-ic-shrink { display: grid !important; }
 
+/* The outage banner sits under the header, in the flow. */
 .ha-service {
-  margin: 10px 14px 0;
-  padding: 9px 12px;
-  border-radius: 10px;
-  border-left: 3px solid var(--ha-cardinal);
+  flex: none;
+  margin: calc(var(--ha-head-total) + 10px) var(--ha-side) 0;
+  position: relative;
+  padding: 9px 12px 9px 14px;
+  border-radius: 12px;
   background: var(--ha-warm);
   font-size: 13.5px; color: var(--ha-ink);
 }
 .ha-service[hidden] { display: none; }
+/* The cardinal bar on the left of the outage banner and the error card.
+   A straight bar that stops where the corners begin: a 3px left border
+   (or an inset shadow) on a rounded box tapers into a crescent. */
+.ha-service::before, .ha-error::before {
+  content: ''; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 3px;
+  border-radius: 0 2px 2px 0; background: var(--ha-cardinal);
+}
+.ha-service::before { left: 0; }
+.ha-service:not([hidden]) ~ .ha-log { padding-top: 8px; }
 
 /* ── full screen ──────────────────────────────────────────────────────
-   The same panel, filling the browser window. The text sits in one
-   centred column (--ha-col, about 760px) so lines stay a readable
-   length; the padding does the centring, so the scroll bar stays at
-   the window's edge. The source cards wrap into a grid. */
+   The same panel, filling the browser. The text sits in one centred
+   column (--ha-col, about 760px) so lines stay a readable length; the
+   padding does the centring, so the scroll bar stays at the window's
+   edge. The source cards wrap into a grid. */
 .ha-assistant[data-full="true"] .ha-window {
   top: 0; right: 0; bottom: 0; left: 0;
   width: auto; height: auto;
@@ -286,9 +319,10 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
   box-shadow: none;
   transform-origin: 50% 50%;
   --ha-pad: max(16px, calc((100% - var(--ha-col)) / 2));
+  --ha-head-total: calc(var(--ha-head-h) + env(safe-area-inset-top, 0px));
 }
 .ha-assistant[data-full="true"] .ha-head {
-  padding: max(14px, env(safe-area-inset-top)) var(--ha-pad) 12px;
+  padding: env(safe-area-inset-top, 0px) var(--ha-pad) 0;
 }
 .ha-assistant[data-full="true"] .ha-head-actions { margin-right: -6px; }
 /* (On phones the header has its own padding; see the phone block.) */
@@ -297,7 +331,6 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 .ha-assistant[data-full="true"] .ha-foot {
   padding: 12px var(--ha-pad) max(12px, env(safe-area-inset-bottom));
 }
-.ha-assistant[data-full="true"] .ha-intro.is-compact .ha-standalone { margin-inline: 0 !important; border-radius: 10px; border: 1px solid var(--ha-line); }
 .ha-assistant[data-full="true"] .ha-cards-wrap { margin: 0; }
 .ha-assistant[data-full="true"] .ha-cards {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -316,144 +349,141 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 .ha-assistant[data-full="true"] .ha-answer { font-size: 16.5px; line-height: 1.65; }
 .ha-assistant[data-full="true"] .ha-q-text { font-size: 19px; }
 
+/* Full screen, welcome, on a screen with height to spare: the welcome
+   and the ask box are one group, centred a little above the middle.
+   The first question docks the box at the bottom (the script animates
+   that move with one transform). Short screens dock it from the start. */
+/* Wide screens only: on a phone the box stays at the bottom, by the
+   thumb and the keyboard. Not while the keyboard is up either, where
+   the 10vh under the box was blank space the keyboard needed. */
+@media (min-height: 561px) and (min-width: 561px) {
+  .ha-assistant[data-full="true"][data-scene="welcome"]:not([data-kb="true"]) .ha-log { flex: 0 1 auto; margin-top: auto; }
+  .ha-assistant[data-full="true"][data-scene="welcome"]:not([data-kb="true"]) .ha-foot { margin-bottom: auto; padding-bottom: max(12px, 10vh); border-top-color: transparent; }
+  .ha-assistant[data-full="true"][data-scene="welcome"]:not([data-kb="true"]) .ha-welcome { padding-top: 40px; }
+}
+
 /* ── the conversation ─────────────────────────────────────────────── */
 .ha-log {
   position: relative;            /* offsetTop of a turn is measured from here */
   flex: 1; min-height: 0;
   overflow-y: auto; overflow-x: hidden;
   overscroll-behavior: contain;  /* scrolling the panel never scrolls the page */
-  padding: 0 16px 8px;
-  scroll-behavior: smooth;
+  padding: calc(var(--ha-head-total) + 2px) var(--ha-side) 8px;
+  /* A card brought into view stops below the glass header, not under it. */
+  scroll-padding-top: calc(var(--ha-head-total) + 8px);
 }
 
-/* The empty state */
-.ha-intro { padding: 20px 2px 12px; }
-.ha-intro-art { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
-.ha-ghost { border: 1px solid var(--ha-line); border-radius: 10px; padding: 10px; background: var(--ha-soft); }
-.ha-ghost:nth-child(2) { border-color: var(--ha-cite-line); background: var(--ha-tint); }
-.ha-ghost-top { display: flex; align-items: center; gap: 6px; margin-bottom: 9px; min-width: 0; }
-.ha-ghost-c {
-  font-family: var(--ha-mono); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--ha-ink-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+/* ── the welcome ──────────────────────────────────────────────────────
+   Left-aligned and sat at the bottom of the log, so it reads as one
+   group with the ask box just below it. The log is a column only in
+   this scene; margin-top: auto (not justify-content) keeps it
+   scrollable when the welcome is taller than the space. */
+.ha-assistant[data-scene="welcome"] .ha-log { display: flex; flex-direction: column; }
+.ha-welcome { position: relative; flex: none; margin-top: auto; padding: 28px 0 22px; }
+/* A point, not a box: the glow is centred on it, just above and to the
+   left of the heading's first letters. It takes no space in the layout. */
+.ha-welcome-mark { position: absolute; left: 36px; top: 30px; width: 0; height: 0; }
+/* The one light: a soft rose glow behind the heading. Static. */
+.ha-glow {
+  position: absolute; left: 50%; top: 50%;
+  width: 280px; height: 280px; margin: -140px 0 0 -140px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, var(--ha-rose), rgba(184,58,58,.05) 55%, rgba(184,58,58,0));
 }
-.ha-ghost i { display: block; height: 6px; border-radius: 3px; background: var(--ha-line-strong); }
-.ha-ghost i + i { margin-top: 5px; width: 60%; background: var(--ha-line); }
-.ha-intro-h { font-size: 19px; font-weight: 600; letter-spacing: -.02em; line-height: 1.25; color: var(--ha-ink); }
-.ha-intro-lede { margin-top: 6px !important; font-size: 15px; color: var(--ha-ink-mid); }
-.ha-kicker {
-  font-family: var(--ha-mono); font-size: 11px; font-weight: 500;
-  letter-spacing: .09em; text-transform: uppercase; color: var(--ha-ink-low);
+.ha-welcome-h {
+  position: relative;
+  font-family: var(--ha-serif); font-size: 28px; font-weight: 600;
+  letter-spacing: -.015em; line-height: 1.15; color: var(--ha-ink);
 }
-.ha-try { margin: 18px 0 8px !important; }
-.ha-starters { display: grid; gap: 6px; }
+.ha-welcome-p {
+  position: relative;
+  margin-top: 8px !important; max-width: 46ch;
+  font-size: 15.5px; line-height: 1.5; color: var(--ha-ink-mid);
+}
+.ha-starters { position: relative; display: grid; gap: 8px; margin-top: 22px; }
 .ha-starter {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
-  min-height: 44px; padding: 10px 12px 10px 14px; text-align: left;
-  border: 1px solid var(--ha-ctl); border-radius: 12px;
+  min-height: 44px; padding: 10px 14px 10px 16px; text-align: left;
+  border: 1px solid var(--ha-line-strong); border-radius: 14px;
   background: var(--ha-bg); color: var(--ha-ink);
   font-size: 14.5px; font-weight: 500; line-height: 1.35;
   transition: border-color var(--ha-t) var(--ha-ease), background-color var(--ha-t) var(--ha-ease);
 }
-.ha-starter svg { width: 16px; height: 16px; color: var(--ha-ink-low); transition: transform var(--ha-t) var(--ha-ease); }
-.ha-starter:hover { border-color: var(--ha-cardinal); background: var(--ha-tint); }
+.ha-assistant .ha-starter svg { width: 16px; height: 16px; color: var(--ha-ink-low); transition: transform var(--ha-t) var(--ha-ease); }
+.ha-starter:hover { border-color: var(--ha-cite-line); background: #fff; box-shadow: 0 4px 12px -6px rgba(140,21,21,.25); }
 .ha-starter:hover svg { color: var(--ha-cardinal); transform: translateX(2px); }
-.ha-standalone {
-  display: flex; gap: 8px; align-items: flex-start;
-  margin-top: 16px !important; font-size: 13px; line-height: 1.45; color: var(--ha-ink-low);
-}
-.ha-standalone svg { width: 15px; height: 15px; margin-top: 2px; }
-
-/* After the first question the introduction gets out of the way: the
-   "answered on its own" line becomes a bar, and the examples stay, as
-   small chips, so a presenter can still fire them off. */
-.ha-intro.is-compact { display: flex; flex-direction: column; padding: 0 0 10px; }
-.ha-intro.is-compact .ha-intro-art,
-.ha-intro.is-compact .ha-intro-h,
-.ha-intro.is-compact .ha-intro-lede,
-.ha-intro.is-compact .ha-try { display: none; }
-.ha-intro.is-compact .ha-standalone {
-  order: -1; margin: 0 -16px 10px !important; padding: 8px 16px;
-  font-size: 12.5px; background: var(--ha-soft); border-bottom: 1px solid var(--ha-line);
-}
-.ha-intro.is-compact .ha-starters { display: flex; flex-wrap: wrap; gap: 6px; }
-.ha-intro.is-compact .ha-starter {
-  width: auto; min-height: 32px; padding: 4px 11px; border-radius: 999px;
-  font-size: 12.5px; font-weight: 500;
-}
-.ha-intro.is-compact .ha-starter svg { display: none; }
+/* The copy left on screen while the welcome fades out: inert, hidden
+   from assistive technology, gone in a fifth of a second. */
+.ha-welcome-ghost { position: absolute; z-index: 1; margin: 0; pointer-events: none; }
 
 /* ── a turn: the question, then the reply ─────────────────────────── */
-.ha-turn { padding: 16px 0 20px; border-bottom: 1px solid var(--ha-line); }
+.ha-turn { flex: none; padding: 18px 0 22px; border-bottom: 1px solid var(--ha-line); }
 .ha-turn:last-child { border-bottom: 0; }
-.ha-q .ha-kicker { margin-bottom: 4px !important; }
+.ha-kicker { font-size: 12.5px; font-weight: 500; color: var(--ha-ink-low); }
+.ha-q .ha-kicker { margin-bottom: 2px !important; }
 .ha-q-text {
-  font-size: 16.5px; font-weight: 600; letter-spacing: -.015em; line-height: 1.35;
+  font-size: 17px; font-weight: 600; letter-spacing: -.015em; line-height: 1.35;
   color: var(--ha-ink); white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .ha-a { margin-top: 14px; }
 
-/* Section heads: "Sources", "Answer" */
-.ha-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+/* Section heads: "Sources", "Answer". Plain sans, not shouted. */
+.ha-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .ha-sec-h {
   display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--ha-mono); font-size: 11px; font-weight: 500;
-  letter-spacing: .09em; text-transform: uppercase; color: var(--ha-ink-mid);
+  font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ha-ink-mid);
 }
-.ha-assistant .ha-sec-h svg { width: 13px; height: 13px; color: var(--ha-cardinal); }
-.ha-sec-meta { font-family: var(--ha-mono); font-size: 11px; color: var(--ha-ink-low); white-space: nowrap; }
-.ha-ans-head { margin-top: 6px; }
+.ha-assistant .ha-sec-h svg { width: 14px; height: 14px; color: var(--ha-cardinal); }
+.ha-sec-meta { font-size: 12.5px; color: var(--ha-ink-low); white-space: nowrap; }
 
-/* The wait: a note and a still outline of what is coming. */
-.ha-spin {
-  display: inline-block; width: 12px; height: 12px; flex: none;
-  border: 2px solid var(--ha-tint-2); border-top-color: var(--ha-cardinal); border-radius: 50%;
-  animation: ha-spin 1s linear infinite;
+/* The wait: one honest line and a quiet dot. Two faint, still lines
+   say text is coming; nothing here resembles a source. */
+.ha-pending-line { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: var(--ha-ink-mid); }
+.ha-pulse {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: var(--ha-cardinal);
+  animation: ha-pulse 1.4s ease-in-out infinite;
 }
-.ha-pending .ha-sec-h { text-transform: none; letter-spacing: 0; font-family: var(--ha-sans); font-size: 13.5px; font-weight: 500; }
-.ha-skel-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0 14px; }
-.ha-skel-row i { display: block; height: 84px; border-radius: 12px; border: 1px solid var(--ha-line); }
-.ha-skel-lines i { display: block; height: 10px; border-radius: 5px; margin-top: 9px; }
-.ha-skel-lines i:nth-child(2) { width: 88%; }
-.ha-skel-lines i:nth-child(3) { width: 64%; }
-.ha-skel-row i, .ha-skel-lines i {
-  background: linear-gradient(90deg, var(--ha-soft) 0%, rgba(46,45,41,.07) 40%, var(--ha-soft) 80%) 0 0 / 300% 100%;
-  animation: ha-shimmer 1.3s linear infinite;
-}
+.ha-skel-lines { margin-top: 4px; }
+.ha-skel-lines i { display: block; height: 9px; border-radius: 5px; margin-top: 12px; width: 92%; background: rgba(46,45,41,.06); }
+.ha-skel-lines i + i { width: 62%; }
 
 /* ── source cards ─────────────────────────────────────────────────────
    A row that scrolls sideways (with snap points) on the floating panel,
    a wrapping grid in full screen. The card is the link: the link's
-   ::after covers the card, and carries the focus ring. */
+   ::after covers the card, and carries the focus ring. Two states are
+   kept apart: "Cited" comes from the reply; is-target (active
+   inspection) only from the reader pressing a citation. */
 .ha-sources { margin-bottom: 4px; }
-.ha-cards-wrap { position: relative; margin: 0 -16px; }
+.ha-cards-wrap { position: relative; margin: 0 calc(-1 * var(--ha-side)); }
 .ha-cards {
   display: flex; gap: 8px;
   overflow-x: auto; overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity; scroll-padding: 0 16px;
+  scroll-snap-type: x proximity; scroll-padding: 0 var(--ha-side);
   /* The row scrolls, so it clips: 8px keeps a card's 5px focus ring
      inside it on every side. */
-  padding: 8px 16px 12px;
+  padding: 8px var(--ha-side) 12px;
   scrollbar-width: thin; scrollbar-color: var(--ha-line-strong) transparent;
 }
 .ha-cards-wrap.is-overflow::after {
   content: ''; position: absolute; top: 0; right: 0; bottom: 12px; width: 36px; pointer-events: none;
-  background: linear-gradient(90deg, rgba(255,255,255,0), var(--ha-bg) 85%);
+  background: linear-gradient(90deg, rgba(251,250,248,0), var(--ha-surface) 85%);
 }
 .ha-cards-wrap.is-overflow.at-end::after { opacity: 0; }
 .ha-card {
   position: relative; flex: 1 0 164px; max-width: 210px; scroll-snap-align: start;
   display: flex; flex-direction: column; gap: 4px;
-  min-height: 112px; padding: 10px 11px 9px;
-  background: var(--ha-bg); border: 1px solid var(--ha-line-strong); border-radius: 12px;
+  min-height: 96px; padding: 10px 11px 9px;
+  background: var(--ha-bg); border: 1px solid var(--ha-line-strong); border-radius: 14px;
   box-shadow: 0 1px 2px rgba(16,20,28,.05);
   transition: border-color var(--ha-t) var(--ha-ease), box-shadow var(--ha-t) var(--ha-ease), background-color var(--ha-t) var(--ha-ease);
 }
 .ha-card:hover { border-color: var(--ha-ctl); box-shadow: 0 6px 16px -4px rgba(16,20,28,.10); }
 /* Found but not cited: quieter. */
 .ha-card[data-cited="false"] { background: var(--ha-soft); box-shadow: none; }
-.ha-card.is-hover { border-color: var(--ha-cite-line); background: var(--ha-tint); }
+.ha-card.is-hover { border-color: var(--ha-cite-line); background: #FBF3F3; }
 .ha-card.is-target {
-  border-color: var(--ha-cardinal); background: var(--ha-tint);
+  border-color: var(--ha-cardinal); background: #FBF3F3;
   box-shadow: 0 0 0 3px var(--ha-tint-2);
   animation: ha-ping .7s var(--ha-ease);
 }
@@ -475,6 +505,9 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
   font-family: var(--ha-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
   color: var(--ha-ink-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* A fixed 20px box, the badge's height, so the card with this icon
+   starts its title on the same line as its neighbours. */
+.ha-card-out { display: inline-grid; place-items: center; height: 20px; line-height: 0; flex: none; }
 .ha-assistant .ha-card-out svg { width: 13px; height: 13px; color: var(--ha-ink-mid); }
 .ha-card-link, .ha-card-title {
   margin-top: 4px;
@@ -482,16 +515,23 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
   color: var(--ha-ink); text-decoration: none;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
 }
-.ha-card-link::after { content: ''; position: absolute; inset: -1px; border-radius: 12px; }
+.ha-card-link::after { content: ''; position: absolute; inset: -1px; border-radius: 14px; }
 .ha-card-link:hover { text-decoration: underline; text-underline-offset: 2px; color: var(--ha-ink); }
 .ha-card-link:focus-visible { outline: none; box-shadow: none; }
 .ha-card-link:focus-visible::after { outline: 3px solid var(--ha-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--ha-focus-halo); }
 .ha-card-meta { display: flex; flex-direction: column; gap: 2px; }
 .ha-card-sec, .ha-card-note {
   font-size: 12.5px; line-height: 1.35; color: var(--ha-ink-mid);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
 }
 .ha-card-note { font-style: italic; }
+/* The clamps keep the row short, so the answer shows on arrival. A
+   card being inspected (a citation pressed) or holding keyboard focus
+   shows its whole label: the title tooltip is hover-only. */
+.ha-card.is-target :is(.ha-card-link, .ha-card-title, .ha-card-sec, .ha-card-note),
+.ha-card:focus-within :is(.ha-card-link, .ha-card-title, .ha-card-sec, .ha-card-note) {
+  display: block; -webkit-line-clamp: none; overflow: visible;
+}
 .ha-card-mark {
   margin-top: auto; padding-top: 6px;
   display: inline-flex; align-items: center; gap: 4px;
@@ -532,6 +572,8 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
   transition: background-color var(--ha-t) var(--ha-ease), color var(--ha-t) var(--ha-ease), border-color var(--ha-t) var(--ha-ease);
 }
 .ha-cite:hover, .ha-cite.is-on { background: var(--ha-cardinal); border-color: var(--ha-cardinal); color: #fff; }
+.ha-cite { position: relative; }
+.ha-cite::after { content: ''; position: absolute; inset: -10px 0; }
 
 /* Labels on the reply (the development-fixture marker) */
 .ha-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -545,8 +587,8 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 /* ── replies that are not answers ─────────────────────────────────── */
 .ha-status {
   padding: 12px 14px 14px;
-  border: 1px solid var(--ha-line-strong); border-radius: 12px;
-  background: var(--ha-soft);
+  border: 1px solid var(--ha-line-strong); border-radius: 14px;
+  background: var(--ha-bg);
 }
 .ha-status-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .ha-status-ic {
@@ -580,7 +622,7 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 .ha-rate-label { margin-right: 4px; }
 .ha-thumb, .ha-comment-send {
   display: inline-flex; align-items: center; gap: 6px;
-  min-height: 32px; padding: 0 14px;
+  min-height: 40px; padding: 0 16px;
   border: 1px solid var(--ha-ctl); border-radius: 999px;
   background: var(--ha-bg); color: var(--ha-ink);
   font-size: 13.5px; font-weight: 500;
@@ -597,7 +639,7 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 .ha-comment {
   width: 100%; min-height: 64px; resize: vertical;
   padding: 8px 10px;
-  border: 1px solid var(--ha-field); border-radius: 8px;
+  border: 1px solid var(--ha-field); border-radius: 10px;
   font: inherit; font-size: 15px; line-height: 1.45; color: var(--ha-ink); background: var(--ha-bg);
 }
 .ha-comment-actions { width: 100%; display: flex; justify-content: flex-end; }
@@ -606,8 +648,9 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 
 /* ── errors ───────────────────────────────────────────────────────── */
 .ha-error {
-  padding: 12px 14px 14px;
-  border: 1px solid var(--ha-err-line); border-left: 3px solid var(--ha-cardinal); border-radius: 12px;
+  position: relative;
+  padding: 12px 14px 14px 16px;
+  border: 1px solid var(--ha-err-line); border-radius: 14px;
   background: var(--ha-err-bg);
   color: var(--ha-ink);
 }
@@ -616,28 +659,47 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 .ha-error p { font-size: 15px; line-height: 1.55; }
 .ha-retry {
   display: inline-flex; align-items: center; gap: 6px;
-  margin-top: 12px; min-height: 36px; padding: 0 14px;
-  border: 1px solid var(--ha-cardinal); border-radius: 8px;
+  margin-top: 12px; min-height: 40px; padding: 0 16px;
+  border: 1px solid var(--ha-cardinal); border-radius: 10px;
   background: var(--ha-bg); color: var(--ha-cardinal);
   font-size: 14px; font-weight: 600;
 }
 .ha-assistant .ha-retry svg { width: 15px; height: 15px; }
 .ha-retry:hover { background: var(--ha-cardinal); color: #fff; }
+/* Too many questions is a wait, not a fault: the warning colours, so
+   it does not look like the outage and the lost connection. */
+.ha-error-ratelimit .ha-error { background: var(--ha-warn-bg); border-color: var(--ha-warn-line); }
+.ha-error-ratelimit .ha-error::before { background: var(--ha-warn-ink); }
+.ha-error-ratelimit .ha-status-ic { border-color: var(--ha-warn-line); color: var(--ha-warn-ink); }
+.ha-error-ratelimit .ha-status-head strong { color: var(--ha-warn-ink); }
+.ha-error-ratelimit .ha-retry { border-color: var(--ha-warn-ink); color: var(--ha-warn-ink); }
+.ha-error-ratelimit .ha-retry:hover { background: var(--ha-warn-ink); color: #fff; }
 
-/* ── the ask box and the notice ───────────────────────────────────── */
-.ha-foot { padding: 12px 16px; border-top: 1px solid var(--ha-line); background: var(--ha-bg); }
+/* ── the ask box and the notice ───────────────────────────────────────
+   One form for the life of the panel, in the footer in both scenes. */
+.ha-foot {
+  position: relative; z-index: 2; flex: none;
+  padding: 10px var(--ha-side) 12px;
+  border-top: 1px solid var(--ha-line);
+  background: var(--ha-surface);
+}
+/* In the welcome the box belongs to the group above it: no rule. */
+/* 14px on top: the focus ring and its glow reach about 13px out, and
+   with less they were drawn over the last starter. */
+.ha-assistant[data-scene="welcome"] .ha-foot { border-top-color: transparent; padding-top: 14px; }
 .ha-composer {
-  border: 1px solid var(--ha-field); border-radius: 14px;
+  border: 1px solid var(--ha-field); border-radius: 20px;
   background: var(--ha-bg);
-  box-shadow: 0 1px 2px rgba(16,20,28,.05);
-  transition: border-color var(--ha-t) var(--ha-ease);
+  box-shadow: 0 1px 2px rgba(16,20,28,.05), 0 10px 28px -16px rgba(16,20,28,.22);
+  transition: border-color var(--ha-t) var(--ha-ease), box-shadow var(--ha-t) var(--ha-ease);
 }
 /* The box shows the ring for the textarea inside it: a text field
-   always shows where typing will go, whatever moved focus there. */
+   always shows where typing will go, whatever moved focus there. A
+   faint rose glow sits outside the ring. */
 .ha-composer:has(.ha-input:focus) {
   border-color: var(--ha-cardinal);
   outline: 3px solid var(--ha-focus); outline-offset: 2px;
-  box-shadow: 0 0 0 2px var(--ha-focus-halo);
+  box-shadow: 0 0 0 2px var(--ha-focus-halo), 0 0 0 6px rgba(184,58,58,.09), 0 12px 30px -14px rgba(140,21,21,.35);
 }
 /* Only for the text box: with Send focused, a second ring round the box
    would say the box still has focus. A browser without :has() falls
@@ -651,27 +713,24 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 }
 .ha-input:focus, .ha-input:focus-visible { outline: none; box-shadow: none; }
 .ha-input {
-  display: block; width: 100%; min-height: 46px; max-height: 140px;
+  display: block; width: 100%; min-height: 42px; max-height: 140px;
   resize: none;
-  padding: 12px 14px 4px;
-  border: 0; background: transparent;
-  font: inherit; font-size: 15px; line-height: 1.45;
+  padding: 12px 18px 0;
+  border: 0; background: transparent; border-radius: 20px 20px 0 0;
+  font: inherit; font-size: 16px; line-height: 1.45;
   color: var(--ha-ink);
 }
 .ha-input::placeholder { color: var(--ha-ink-low); opacity: 1; }
-.ha-composer-bar { display: flex; align-items: center; gap: 8px; padding: 4px 6px 6px 14px; }
-.ha-hint {
-  flex: 1; min-width: 0;
-  font-family: var(--ha-mono); font-size: 11.5px; color: var(--ha-ink-low);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.ha-composer-bar { display: flex; align-items: center; gap: 8px; padding: 0 6px 6px 18px; }
+/* "Each question is answered on its own": at every width, never cut. */
+.ha-standalone { flex: 1; min-width: 0; font-size: 12.5px; line-height: 1.35; color: var(--ha-ink-low); }
 .ha-count { font-family: var(--ha-mono); font-size: 12px; color: var(--ha-ink-low); white-space: nowrap; }
 .ha-count:empty { display: none; }
 .ha-count[data-over="true"] { color: var(--ha-cardinal); font-weight: 500; }
 .ha-send {
   display: grid; place-items: center; flex: none;
-  width: 36px; height: 36px; padding: 0;
-  border: 0; border-radius: 10px;
+  width: 40px; height: 40px; padding: 0;
+  border: 0; border-radius: 14px;
   background: var(--ha-cardinal); color: #fff;
   transition: background-color var(--ha-t) var(--ha-ease);
 }
@@ -683,11 +742,11 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 /* One line: the essentials, then "Details" for the full notice. */
 .ha-line {
   display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px;
-  margin-top: 10px !important;
+  margin-top: 8px !important; padding: 0 2px;
 }
 .ha-more {
   display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
-  background: none; border: 0; padding: 2px 4px; border-radius: 4px;
+  min-height: 32px; background: none; border: 0; padding: 0 6px; margin-right: -6px; border-radius: 4px;
   font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ha-ink);
   text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--ha-ctl);
 }
@@ -696,25 +755,25 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 .ha-more:hover { color: var(--ha-cardinal); text-decoration-color: currentColor; }
 .ha-notice {
   margin-top: 8px; padding: 10px 12px;
-  border: 1px solid var(--ha-line); border-radius: 8px;
-  background: var(--ha-soft);
+  border: 1px solid var(--ha-line); border-radius: 12px;
+  background: var(--ha-bg);
   max-height: 160px; overflow-y: auto;
 }
 .ha-notice[hidden] { display: none; }
 .ha-notice .ha-note { font-size: 13px; color: var(--ha-ink-mid); }
 
 /* ── phones ───────────────────────────────────────────────────────── */
-/* The notice stays one line on phones from 360px up: smaller print and
-   no chevron on Details (the text alone is the control; 24px tall, the
-   WCAG 2.2 minimum target). Narrower phones wrap rather than cut words. */
+/* The notice on phones from 360px up: 12px print (the stylesheet's
+   floor for labels) and no chevron on Details, the text alone being the
+   control, 32px tall. It wraps onto a second line where it must, rather
+   than shrinking the type further. */
 @media (max-width: 560px) and (min-width: 360px) {
-  .ha-assistant .ha-line { flex-wrap: nowrap; gap: 0 6px; font-size: 11px; }
-  .ha-assistant .ha-line-text { white-space: nowrap; }
-  .ha-assistant .ha-more { font-size: 11px; padding: 2px 0; min-height: 24px; }
+  .ha-assistant .ha-line { gap: 0 6px; font-size: 12px; }
+  .ha-assistant .ha-more { font-size: 12px; min-height: 32px; padding: 0 6px; }
   .ha-assistant .ha-more svg { display: none; }
 }
 @media (max-width: 560px) {
-  .ha-assistant { --ha-gap: 14px; }
+  .ha-assistant { --ha-gap: 14px; --ha-side: 16px; --ha-head-h: 56px; }
   /* Icon only: a labelled pill this size would sit over page text. The
      label stays for a screen reader. */
   .ha-launcher { width: 54px; height: 54px; padding: 0; justify-content: center; }
@@ -725,44 +784,33 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
   }
   /* The whole screen below the site's nav, with a small margin, so the
      nav and its menu button stay reachable while the panel is open.
-     Full screen (above) covers the nav as well. */
+     Full screen (above) covers the nav as well. --ha-kb is the height
+     of the software keyboard, set by the script only while a text box
+     in the panel has focus, so the box and Send stay above it. */
   .ha-assistant:not([data-full="true"]) .ha-window {
     left: 8px; right: 8px; width: auto;
-    top: calc(68px + 8px); bottom: max(8px, env(safe-area-inset-bottom));
+    top: calc(68px + 8px); bottom: calc(max(8px, env(safe-area-inset-bottom)) + var(--ha-kb, 0px));
     height: auto;
-    border-radius: 16px;
+    border-radius: 20px;
   }
-  /* Title and buttons on one row, the subtitle under both at full
-     width, so neither wraps into a tall header. */
-  .ha-head {
-    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
-    column-gap: 4px; padding: 8px 6px 10px 14px;
-  }
-  .ha-head-mark { display: none; }
-  .ha-head-text { display: contents; }
-  .ha-title { grid-column: 1; grid-row: 1; }
-  .ha-head-actions { grid-column: 2; grid-row: 1; }
-  .ha-sub { grid-column: 1 / -1; grid-row: 2; margin-top: 0 !important; }
+  .ha-assistant[data-full="true"] .ha-window { bottom: var(--ha-kb, 0px); }
+  .ha-head { gap: 8px; padding: 0 6px 0 var(--ha-side); }
+  .ha-head-mark { width: 26px; height: 26px; }
   /* 6px on the right: the focus ring reaches 5px past a button, and
      the window clips anything beyond its edge. The left matches the
      column below (var(--ha-pad), 16px on a phone). */
-  .ha-assistant[data-full="true"] .ha-head { padding: max(8px, env(safe-area-inset-top)) 6px 10px var(--ha-pad); }
+  .ha-assistant[data-full="true"] .ha-head { padding: env(safe-area-inset-top, 0px) 6px 0 var(--ha-pad); }
   .ha-assistant[data-full="true"] .ha-head-actions { margin-right: 0; }
   /* The notice line flows as text, with "Details" at its end. */
   .ha-line { display: block; }
   .ha-more { display: inline-flex; vertical-align: baseline; }
-  .ha-title { font-size: 15px; }
-  .ha-icon-btn { width: 42px; height: 42px; }
-  .ha-log { padding: 0 14px 8px; }
-  .ha-intro.is-compact .ha-standalone { margin-inline: -14px !important; padding-inline: 14px; }
-  .ha-cards-wrap { margin: 0 -14px; }
-  .ha-cards { padding-inline: 14px; scroll-padding: 0 14px; }
-  .ha-intro-art { display: none; }
-  .ha-foot { padding: 10px 14px max(10px, env(safe-area-inset-bottom)); }
-  .ha-composer { display: flex; align-items: flex-end; }
-  .ha-input { flex: 1; min-width: 0; min-height: 48px; padding: 12px 4px 12px 14px; }
-  .ha-composer-bar { padding: 2px 2px 2px 0; }
-  .ha-hint { display: none; }
+  .ha-head-actions { gap: 0; }
+  .ha-icon-btn { width: 44px; height: 44px; }
+  .ha-welcome { padding: 20px 0 18px; }
+  .ha-welcome-h { font-size: 26px; }
+  .ha-foot { padding: 8px var(--ha-side) max(10px, env(safe-area-inset-bottom)); }
+  .ha-input { min-height: 48px; padding: 13px 16px 2px; }
+  .ha-composer-bar { padding: 2px 4px 4px 16px; }
   .ha-send { width: 44px; height: 44px; }
 
   /* Body copy at least 15px; labels at least 12px. 16px in the box
@@ -770,18 +818,16 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
   .ha-input, .ha-comment { font-size: 16px; }
   .ha-answer, .ha-error p { font-size: 15.5px; }
   .ha-q-text { font-size: 17px; }
-  .ha-intro-lede, .ha-starter, .ha-card-link, .ha-card-title, .ha-assistant .ha-next, .ha-service,
-  .ha-sub, .ha-standalone, .ha-rate, .ha-thumb, .ha-comment-send, .ha-retry,
+  .ha-welcome-p, .ha-starter, .ha-card-link, .ha-card-title, .ha-assistant .ha-next, .ha-service,
+  .ha-rate, .ha-thumb, .ha-comment-send, .ha-retry, .ha-pending-line,
   .ha-comment-label, .ha-comment-label span, .ha-status-head strong, .ha-rate-done,
   .ha-note, .ha-more, .ha-notice .ha-note { font-size: 15px; }
-  .ha-intro.is-compact .ha-standalone { font-size: 15px; }
-  .ha-card-sec, .ha-card-note { font-size: 13px; }
-  .ha-kicker, .ha-sec-h, .ha-sec-meta, .ha-chip, .ha-card-mark, .ha-beta, .ha-badge, .ha-tag-dev, .ha-count { font-size: 12px; }
+  .ha-card-sec, .ha-card-note, .ha-standalone, .ha-kicker, .ha-sec-h, .ha-sec-meta { font-size: 13px; }
+  .ha-chip, .ha-card-mark, .ha-beta, .ha-badge, .ha-tag-dev, .ha-count { font-size: 12px; }
   .ha-part-h { font-size: 13px !important; }
   .ha-starter { min-height: 48px; }
-  .ha-intro.is-compact .ha-starter { min-height: 40px; font-size: 15px; }
   .ha-thumb, .ha-comment-send, .ha-retry { min-height: 44px; }
-  .ha-more { min-height: 32px; padding: 0 6px; margin-left: 2px; }
+  .ha-more { min-height: 32px; padding: 0 6px; margin: 0 0 0 2px; }
   .ha-cite { min-width: 26px; height: 24px; font-size: 12px; }
   .ha-card { flex-basis: 170px; }
   /* Full screen on a phone keeps the sideways row: a grid of eight
@@ -796,36 +842,157 @@ html.ha-lock, html.ha-lock body { overflow: hidden !important; }
 }
 
 /* ── short windows ────────────────────────────────────────────────────
-   A landscape phone, or a page zoomed to 200-400%. The header and the
+   Decoration goes first: the mark and its light, then spacing. The
+   starters become wrapping chips, so the heading, the box and the
+   notice still fit together on a laptop with a short browser. */
+/* A phone with its browser's bars showing (about 660-760px tall) has less
+   height than the panel's welcome wants: the decoration goes first, as
+   above, before the starters are pushed into a scroll. */
+@media (max-width: 560px) and (max-height: 760px) {
+  .ha-welcome { padding: 12px 0 14px; }
+  .ha-welcome-mark { display: none; }
+  .ha-starters { margin-top: 16px; }
+}
+@media (max-height: 560px) {
+  .ha-welcome { padding: 12px 0 12px; }
+  .ha-welcome-mark { display: none; }
+  .ha-welcome-h { font-size: 24px; }
+  .ha-welcome-p { margin-top: 4px !important; font-size: 15px; line-height: 1.45; }
+  .ha-starters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  /* 22px, not 999px: a pill on one line, a rounded box on two. */
+  .ha-starter { width: auto; min-height: 38px; padding: 6px 14px; border-radius: 22px; font-size: 14px; }
+  .ha-assistant .ha-starter svg { display: none; }
+  .ha-input { min-height: 44px; padding-top: 11px; }
+  .ha-foot { padding-bottom: 8px; }
+  .ha-line { margin-top: 4px !important; }
+  /* Kept for a screen reader (it is in the link's description); the
+     row is shorter without it. */
+  .ha-card-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .ha-cards { padding-bottom: 8px; }
+}
+/* A phone's software keyboard leaves a short screen without changing
+   the layout viewport the rule above measures; the script marks it
+   (data-kb) and the same decoration goes. */
+.ha-assistant[data-kb="true"] .ha-welcome { padding: 12px 0; }
+.ha-assistant[data-kb="true"] .ha-welcome-mark { display: none; }
+.ha-assistant[data-kb="true"] .ha-welcome-h { font-size: 24px; }
+.ha-assistant[data-kb="true"] .ha-welcome-p { margin-top: 4px !important; font-size: 15px; line-height: 1.45; }
+.ha-assistant[data-kb="true"] .ha-starters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ha-assistant[data-kb="true"] .ha-starter { width: auto; min-height: 44px; padding: 6px 14px; border-radius: 22px; }
+.ha-assistant[data-kb="true"] .ha-starter svg { display: none; }
+
+/* A landscape phone, or a page zoomed to 200-400%. The header and the
    ask box cannot shrink, so the conversation between them was left a
    strip a few pixels tall, and the notice line fell off the bottom.
    At this height the whole window scrolls as one column instead, so
-   every part of it can be reached, in the panel and in full screen. */
+   every part of it can be reached, in the panel and in full screen.
+   The header stays pinned at the top of that column. */
 @media (max-height: 480px) {
-  .ha-window { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+  /* The window is the scroller here, so focus and scrollIntoView stop
+     below the pinned header, not under it. */
+  .ha-window { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-padding-top: calc(var(--ha-head-total) + 8px); }
   .ha-log { flex: none; min-height: auto; overflow: visible; }
+  .ha-assistant .ha-head { position: sticky; flex: none; }
+  .ha-assistant .ha-log { padding-top: 4px; }
+  .ha-assistant .ha-service { margin-top: 10px; }
+  .ha-assistant[data-scene="welcome"] .ha-welcome { margin-top: 0; }
+  .ha-starter { min-height: 36px; padding-block: 5px; }
+}
+
+/* A laptop with a short browser (440-480px tall) still has room for
+   the header, the box and the notice with a usable strip between them:
+   there the conversation scrolls on its own again, so the box, Send
+   and the notice never leave the screen. Shorter than that (a
+   landscape phone, a page zoomed to 200-400%), the whole window
+   scrolls, as above. */
+@media (max-height: 480px) and (min-height: 440px) {
+  .ha-window { overflow: hidden; }
+  .ha-assistant .ha-log { flex: 1; min-height: 0; overflow-y: auto; padding-top: calc(var(--ha-head-total) + 2px); }
+  .ha-assistant .ha-head { position: absolute; }
+  .ha-assistant .ha-service { margin-top: calc(var(--ha-head-total) + 10px); }
+  .ha-assistant[data-scene="welcome"] .ha-welcome { margin-top: auto; }
+}
+
+/* 400% zoom (1280x720 becomes 320x180) and anything as short. The
+   76px kept clear for the site's nav left the sheet 96px tall, most of
+   it header. Here the panel takes the whole height, above the nav,
+   and the header scrolls away with the rest, so nothing sits under
+   it. Minimise brings the nav back. */
+@media (max-height: 300px) {
+  .ha-assistant { --ha-top-clear: 8px; }
+  .ha-assistant:not([data-full="true"]) .ha-window { top: 8px; }
+  .ha-assistant .ha-head { position: static; }
+  .ha-window { scroll-padding-top: 8px; }
+}
+
+/* 301-439px tall: a landscape phone, or a laptop page at 200% zoom
+   (1280x720 becomes 640x360). The window still scrolls as one column,
+   but the ask box no longer scrolls away with it: the footer is docked
+   at the bottom from the first frame, so the box, Send, the "answered
+   on its own" line and the notice are on screen on open and after an
+   answer. To leave a reading strip between the header and the box, both
+   are tighter here: a 48px header, and Send beside the text box instead
+   of under it. With Details open the footer can be taller than the
+   window, so it scrolls with the column again (the script brings the
+   notice into view). Shorter than 301px the whole window still scrolls,
+   footer and all. */
+@media (max-height: 439px) and (min-height: 301px) {
+  .ha-assistant { --ha-head-h: 48px; }
+  .ha-assistant .ha-icon-btn { width: 40px; height: 40px; }
+  .ha-assistant .ha-foot { position: sticky; bottom: 0; padding: 6px var(--ha-side) 6px; }
+  .ha-assistant[data-full="true"] .ha-foot { padding: 6px var(--ha-pad) max(6px, env(safe-area-inset-bottom)); }
+  .ha-assistant .ha-foot:has(.ha-notice:not([hidden])) { position: relative; }
+  /* Docked over the column, so it keeps its rule in the welcome too. */
+  .ha-assistant[data-scene="welcome"] .ha-foot { border-top-color: var(--ha-line); }
+  .ha-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .ha-composer-bar { display: contents; }
+  .ha-assistant .ha-input {
+    grid-column: 1; grid-row: 1;
+    min-height: 44px; max-height: 88px;
+    padding: 11px 8px 2px 16px; border-radius: 20px 0 0 0;
+  }
+  .ha-assistant .ha-send { grid-column: 2; grid-row: 1; width: 40px; height: 40px; margin: 4px 4px 0 0; }
+  .ha-standalone { grid-column: 1; grid-row: 2; padding: 0 8px 6px 16px; }
+  .ha-count { grid-column: 2; grid-row: 2; padding: 0 10px 6px 0; justify-self: end; }
+  .ha-assistant .ha-line { margin-top: 2px !important; }
+  .ha-assistant .ha-more { min-height: 28px; }
+  .ha-notice { max-height: 120px; }
+}
+
+/* Narrow phones: the header mark goes below 380px, and below 340px (an
+   iPhone SE) the three buttons are 40px, so "Ask HEAL-AI", Beta and the
+   buttons fit, uncut, without the pill drawn over the expand button. */
+@media (max-width: 379px) {
+  .ha-head-mark { display: none; }
+}
+@media (max-width: 339px) {
+  .ha-icon-btn { width: 40px; height: 40px; }
 }
 
 /* ── motion ───────────────────────────────────────────────────────── */
-@keyframes ha-spin { to { transform: rotate(360deg); } }
-@keyframes ha-shimmer { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+@keyframes ha-pulse { 0%, 100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
 @keyframes ha-ping { 0% { box-shadow: 0 0 0 0 rgba(140,21,21,.35); } 100% { box-shadow: 0 0 0 3px var(--ha-tint-2); } }
 
 @media (prefers-reduced-motion: reduce) {
   .ha-assistant *, .ha-assistant *::before, .ha-assistant *::after {
     transition: none !important; animation: none !important; scroll-behavior: auto !important;
   }
-  .ha-window { transform: none; }
   .ha-assistant .ha-log, .ha-assistant .ha-cards { scroll-behavior: auto !important; }
-  /* Still, so no motion: a quarter ring says "working" without turning. */
-  .ha-spin { border-color: var(--ha-cardinal); border-left-color: var(--ha-tint-2); }
+  /* Still, so no motion: a solid dot says "working" without pulsing. */
+  .ha-pulse { opacity: 1; }
 }
 
-/* Windows high contrast: shadows vanish, so borders carry the shapes. */
+/* Windows high contrast: shadows and translucency vanish, so borders
+   carry the shapes. */
 @media (forced-colors: active) {
-  .ha-launcher, .ha-send, .ha-cite, .ha-icon-btn, .ha-badge, .ha-card, .ha-status, .ha-error { border: 1px solid ButtonText; }
+  .ha-launcher, .ha-send, .ha-cite, .ha-icon-btn, .ha-badge, .ha-card, .ha-status, .ha-error, .ha-starter { border: 1px solid ButtonText; }
   .ha-window { border: 2px solid CanvasText; }
+  .ha-head { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 1px solid CanvasText; }
+  .ha-glow { display: none; }
+  .ha-pulse { background: CanvasText; }
   .ha-card.is-target { outline: 3px solid Highlight; }
+  /* The chip being inspected, which colour alone marked. */
+  .ha-cite.is-on { background: Highlight; color: HighlightText; border-color: Highlight; forced-color-adjust: none; }
   .ha-assistant :focus-visible, .ha-card-link:focus-visible::after { outline-color: Highlight; }
 }
 

@@ -6,7 +6,7 @@
 
      repo    stanford-developers/Heal-ai-bot  (~/Desktop/heal-ai-assistant)
      path    widget/heal-ai-assistant.js
-     commit  9a1b362 (branch main)
+     commit  7f18902 (branch main)
      copied  2026-11-17
 
    It lives here because the website is a static GitHub Pages site and can
@@ -55,7 +55,9 @@
    full screen, then (pressed again) minimises. It is CSS, not the
    browser's Fullscreen API, which would hide the browser's own controls.
    Full screen is remembered across minimise and reopen, and reset by
-   Close, which clears everything.
+   Close, which clears everything. On a phone the open sheet covers the
+   page below the site's nav, so it is modal there too (Tab wraps), but
+   the page is not locked.
 
  WHAT "MINIMISE" AND "CLOSE" MEAN
    Minimise hides the panel and keeps the conversation for as long as
@@ -68,7 +70,29 @@
    The server answers one question at a time and is not sent earlier
    ones. The panel says so, because a conversation that looks like it
    remembers invites "and what about the second one?", which it cannot
-   answer.
+   answer. The line sits in the ask box, so it stays on screen after the
+   welcome has gone.
+
+ TWO SCENES: WELCOME, THEN CONVERSATION
+   `scene` is 'welcome' or 'conversation', and it is separate from
+   whether the panel is open, full screen or waiting for a reply. A
+   fresh panel, and Close, show the welcome: a heading, one line of
+   explanation and three starter questions. The first question the
+   panel accepts (not empty, not while another is waiting) switches to
+   the conversation at once, before any reply, and removes the whole
+   welcome. Nothing brings it back until Close. Typing, focusing the
+   box, an empty submission and an error do not change the scene.
+   There is one form and one textarea for the life of the panel; they
+   sit in the footer in both scenes and are never moved, cloned or
+   recreated.
+
+ MOTION
+   Every timing is in MOTION below, and every animation goes through
+   animate(), which cancels the previous one on the same element. The
+   state is always set first and synchronously; an animation only
+   decorates it, so the panel is usable even if no animation event ever
+   fires. Reduced motion is checked at the moment of each call, and
+   skips the animation (and smooth scrolling) entirely.
 ═════════════════════════════════════════════════════════════════════════
 */
 
@@ -78,24 +102,45 @@
   var MAX = 500;   // must match LIMITS.maxQuestionChars on the server
   var CMAX = 300;  // must match LIMITS.maxCommentChars
 
-  /* Four questions, shown before anybody has typed anything.
+  /* Three questions, shown on the welcome before anybody has typed.
      An empty box is a bad first impression: the reader has to invent a
      question on the spot, and the one they invent is usually either
-     trivial or something this cannot answer. Each is a different kind
-     of question the assistant is actually good at. */
+     trivial or something this cannot answer. One is about a report, one
+     about the process, one about patient participation (the last is the
+     website's Ask page's own example). */
   var STARTERS = [
     'What did the ambient scribe assessment find?',
     'How does the ethics team run an assessment?',
-    'What concerns come up most often across the reports?',
-    'Which tools has HEAL-AI assessed so far?'
+    'How are patient partners recruited and trained?'
   ];
 
-  var TITLE = 'Ask about HEAL-AI’s work';
+  var TITLE = 'Ask HEAL-AI';
   /* Where a "not covered" reply points. Site routes on heal-ai.stanford.edu. */
   var CONTACT_HREF = '#about';
   var TOOLKIT_HREF = '#toolkit';
+  /* Read by a screen reader as the dialog's description; not shown. */
   var SUBTITLE = 'Answers from published material';
-  var STANDALONE = 'Each question is answered on its own; earlier ones are not remembered.';
+  var WELCOME_H = 'Explore HEAL-AI’s work.';
+  var WELCOME_P = 'Find published reports, understand the review process, and explore resources.';
+  /* Shown in the ask box in both scenes. */
+  var STANDALONE = 'Each question is answered on its own.';
+  var KEY_HINT = 'Press Enter to send, or Shift and Enter for a new line.';
+  var PENDING = 'Preparing a response…';
+  /* Announced when a reply lands while the panel is minimised. */
+  var READY = 'A reply is ready. Open “Ask a question” to read it.';
+  var READY_ERR = 'Open “Ask a question” to try again.';
+
+  /* Every duration, in milliseconds, in one place. */
+  var MOTION = {
+    ease: 'cubic-bezier(.22,1,.36,1)',
+    open: 300,          // the panel appearing: 10px up, scale .985 → 1
+    minimise: 200,      // the reverse; the panel is hidden after this
+    welcomeExit: 160,   // the welcome fading and lifting 6px
+    dock: 280,          // the ask box settling at the bottom (full screen)
+    reveal: 180,        // a new turn: the question and the wait
+    reply: 200,         // a reply replacing the wait
+    bloom: 500          // the welcome's light, once, when it is shown
+  };
 
   var NOTE =
     'Beta: AI-generated answers can be inaccurate. Check the linked original sources. ' +
@@ -144,7 +189,6 @@
     check: svg('<path d="M5 12.5l4.2 4.2L19 7" ' + S + ' stroke-width="2.2"/>'),
     chevDown: svg('<path d="M6 9l6 6 6-6" ' + S + '/>'),
     docs: svg('<path d="M8 3h7l4 4v11H8z" ' + S + '/><path d="M5 7v14h10" ' + S + '/>'),
-    star: svg('<path d="M12 3.5l1.9 5.6 5.6 1.9-5.6 1.9L12 18.5l-1.9-5.6L4.5 11l5.6-1.9z" fill="currentColor"/>'),
     info: svg('<circle cx="12" cy="12" r="8.5" ' + S + '/><path d="M12 11v5M12 8h.01" ' + S + ' stroke-width="2"/>'),
     shield: svg('<path d="M12 3l7 3v5c0 4.6-3 8-7 10-4-2-7-5.4-7-10V6z" ' + S + '/><path d="M9 12h6" ' + S + '/>'),
     searchX: svg('<circle cx="10.5" cy="10.5" r="6.5" ' + S + '/><path d="M15.5 15.5L20 20M8.5 8.5l4 4M12.5 8.5l-4 4" ' + S + '/>'),
@@ -193,8 +237,50 @@
     } catch (e) { return null; }
   }
 
+  /* A key pressed while an input method (Japanese, Chinese, Korean…) is
+     composing. Safari reports the Enter that confirms a candidate with
+     isComposing false but keyCode 229, so both are checked. */
+  function composing(e) {
+    return !!(e.isComposing || e.keyCode === 229);
+  }
+
   function reducedMotion() {
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  /* One animation per element, through the Web Animations API. A new
+     one cancels the one before, so a panel opened while it is closing
+     starts from where it is instead of jumping. Returns null when there
+     is nothing to run (reduced motion, an old browser): callers have
+     already set the final state, and must never wait for a finish event
+     to make the panel usable. Only transform and opacity are animated. */
+  function animate(el, frames, ms, fill) {
+    if (!el) return null;
+    var prev = el.haAnim;
+    el.haAnim = null;
+    if (prev) { try { prev.cancel(); } catch (e) { /* already gone */ } }
+    if (!frames || reducedMotion() || typeof el.animate !== 'function') return null;
+    var a;
+    try {
+      a = el.animate(frames, { duration: ms, easing: MOTION.ease, fill: fill || 'none' });
+    } catch (e) { return null; }
+    el.haAnim = a;
+    /* One that holds its last frame ('forwards') stays referenced after
+       it finishes, so the next call still cancels it: a held frame left
+       behind would otherwise show through when a later animation ends. */
+    a.oncancel = function () { if (el.haAnim === a) el.haAnim = null; };
+    if (!fill || fill === 'none') a.onfinish = a.oncancel;
+    return a;
+  }
+
+  /* Scroll a box to a position, smoothly unless reduced motion is on.
+     Checked now, not when the panel was built: the setting can change. */
+  function scrollBox(box, top) {
+    top = Math.max(0, Math.round(top));
+    if (typeof box.scrollTo === 'function') {
+      try { box.scrollTo({ top: top, behavior: reducedMotion() ? 'auto' : 'smooth' }); return; } catch (e) { /* old API */ }
+    }
+    box.scrollTop = top;
   }
 
   /* A one-word kind for a label that does not name its own. */
@@ -310,21 +396,32 @@
     var turn = 0;            // per-answer id prefix
     var healthChecked = false;
     var full = false;        // full screen; kept by minimise, reset by close
+    /* 'welcome' or 'conversation'. Independent of open, full and busy:
+       set to 'conversation' by the first accepted question, and back to
+       'welcome' only by Close. */
+    var scene = 'welcome';
 
     root.classList.add('ha-assistant');
     root.setAttribute('data-full', 'false');
+    root.setAttribute('data-kb', 'false');
+    root.setAttribute('data-scene', scene);
     root.innerHTML =
       '<button type="button" class="ha-launcher" aria-expanded="false" aria-controls="' + id + '-win">' +
         ICON.chat + '<span class="ha-launcher-text">Ask a question</span>' +
         '<span class="ha-unread" hidden><span class="ha-sr-only">, new answer</span></span>' +
       '</button>' +
+      /* The one short line a screen reader hears when something arrives.
+         Outside the window, so it is still heard while the panel is
+         minimised: inside a hidden dialog it would be silent. */
+      '<div class="ha-live ha-sr-only" role="status" aria-live="polite" aria-atomic="true"></div>' +
       '<section class="ha-window" id="' + id + '-win" role="dialog" aria-modal="false" ' +
         'aria-labelledby="' + id + '-title" aria-describedby="' + id + '-sub" hidden>' +
         '<header class="ha-head">' +
           '<span class="ha-head-mark" aria-hidden="true">' + ICON.docs + '</span>' +
           '<div class="ha-head-text">' +
             '<h2 class="ha-title" id="' + id + '-title">' + esc(TITLE) + '</h2>' +
-            '<p class="ha-sub" id="' + id + '-sub"><span class="ha-beta">Beta</span> ' + esc(SUBTITLE) + '</p>' +
+            '<span class="ha-beta">Beta</span>' +
+            '<p class="ha-sub ha-sr-only" id="' + id + '-sub">' + esc(SUBTITLE) + '</p>' +
           '</div>' +
           '<div class="ha-head-actions">' +
             '<button type="button" class="ha-icon-btn ha-full" aria-label="' + FULL_ON + '" title="' + FULL_ON + '">' +
@@ -339,15 +436,15 @@
            every source card (number, type, title, section, "Cited") before
            a word of the answer. A short line goes to .ha-live instead. */
         '<div class="ha-log" role="log" aria-live="off" aria-label="Conversation" tabindex="0"></div>' +
-        '<div class="ha-live ha-sr-only" role="status" aria-live="polite" aria-atomic="true"></div>' +
         '<footer class="ha-foot">' +
           '<form class="ha-form" novalidate>' +
             '<label class="ha-sr-only" for="' + id + '-q">Ask a question about HEAL-AI’s work</label>' +
             '<div class="ha-composer">' +
               '<textarea id="' + id + '-q" class="ha-input" rows="1" maxlength="' + MAX + '" ' +
-                'placeholder="Ask about HEAL-AI’s work…" aria-describedby="' + id + '-count"></textarea>' +
+                'placeholder="Ask about HEAL-AI’s work…" aria-describedby="' + id + '-alone ' + id + '-keys ' + id + '-count"></textarea>' +
               '<div class="ha-composer-bar">' +
-                '<span class="ha-hint" aria-hidden="true"><kbd>Enter</kbd> to send · <kbd>Shift</kbd> + <kbd>Enter</kbd> new line</span>' +
+                '<span class="ha-standalone" id="' + id + '-alone">' + esc(STANDALONE) + '</span>' +
+                '<span class="ha-sr-only" id="' + id + '-keys">' + esc(KEY_HINT) + '</span>' +
                 '<span class="ha-count" id="' + id + '-count"></span>' +
                 '<button type="submit" class="ha-send" aria-label="Send question">' + ICON.send + '</button>' +
               '</div>' +
@@ -380,6 +477,8 @@
     var notice   = root.querySelector('.ha-notice');
     var fullBtn  = root.querySelector('.ha-full');
     var live     = root.querySelector('.ha-live');
+    var head     = root.querySelector('.ha-head');
+    var foot     = root.querySelector('.ha-foot');
 
     /* What a screen reader hears when something arrives: one short line.
        Emptied first, so the same words twice are still read twice. */
@@ -396,31 +495,124 @@
       more.setAttribute('aria-expanded', String(open));
       more.querySelector('.ha-more-t').textContent = open ? 'Hide' : 'Details';
       notice.hidden = !open;
+      /* On a short screen the window is the scroller and the footer,
+         docked until now, joins the column while the notice is open:
+         bring the notice into view rather than leave it below the edge. */
+      if (open && window.getComputedStyle(win).overflowY === 'auto' &&
+          win.scrollHeight > win.clientHeight + 1) {
+        notice.scrollIntoView({ block: 'nearest' });
+      }
     });
 
-    function intro() {
+    /* ── the two scenes ──────────────────────────────────────────────── */
+
+    function setScene(s) {
+      scene = s;
+      root.setAttribute('data-scene', s);
+    }
+
+    /* The welcome: a mark with one soft light behind it, the heading,
+       one line, and three ways to begin. Nothing in it looks like a
+       source: no numbers, no document types, no "cited", nothing
+       selected. Evidence only ever comes from a reply's sources. */
+    function renderWelcome() {
       log.innerHTML =
-        '<div class="ha-intro">' +
-          '<div class="ha-intro-art" aria-hidden="true">' +
-            ['Report', 'Playbook', 'Template'].map(function (c, i) {
-              return '<div class="ha-ghost"><div class="ha-ghost-top"><span class="ha-badge">' + (i + 1) +
-                     '</span><span class="ha-ghost-c">' + c + '</span></div><i></i><i></i></div>';
-            }).join('') +
-          '</div>' +
-          '<h3 class="ha-intro-h">Every answer starts with its sources.</h3>' +
-          '<p class="ha-intro-lede">Ask about the playbook, the ethics assessments, the templates or the patient panel. ' +
-          'The documents used are shown first, and the numbers in the answer link back to them.</p>' +
-          '<p class="ha-kicker ha-try" id="' + id + '-try">Try a question</p>' +
-          '<div class="ha-starters" role="group" aria-labelledby="' + id + '-try">' +
+        '<div class="ha-welcome">' +
+          /* Only the light. The document mark is already in the header;
+             a second, larger copy here said the same thing twice. */
+          '<div class="ha-welcome-mark" aria-hidden="true"><span class="ha-glow"></span></div>' +
+          '<h3 class="ha-welcome-h">' + esc(WELCOME_H) + '</h3>' +
+          '<p class="ha-welcome-p">' + esc(WELCOME_P) + '</p>' +
+          '<div class="ha-starters" role="group" aria-label="Suggested questions">' +
             STARTERS.map(function (q) {
               return '<button type="button" class="ha-starter"><span>' + esc(q) + '</span>' + ICON.arrow + '</button>';
             }).join('') +
           '</div>' +
-          '<p class="ha-standalone">' + ICON.info + '<span>' + esc(STANDALONE) + '</span></p>' +
         '</div>';
       log.querySelectorAll('.ha-starter').forEach(function (b) {
-        b.addEventListener('click', function () { ask(b.textContent); });
+        b.addEventListener('click', function () {
+          /* The button is about to disappear with the welcome. Focus goes
+             to the box first, so a keyboard user is never left on a
+             control that no longer exists. */
+          input.focus({ preventScroll: true });
+          ask(b.textContent, false);
+        });
       });
+    }
+
+    /* The light behind the mark blooms once, when the welcome is shown
+       to somebody: not on every render, and never in a loop. */
+    function bloom() {
+      var g = log.querySelector('.ha-welcome .ha-glow');
+      if (g) animate(g, [{ opacity: 0 }, { opacity: 1 }], MOTION.bloom);
+    }
+
+    /* Removes the welcome from the conversation at once. Only a copy,
+       inert and hidden from assistive technology, stays on screen for
+       the length of the fade, laid over the place it was. */
+    var exitGhost = null;
+    function dropGhost() {
+      if (exitGhost && exitGhost.parentNode) exitGhost.parentNode.removeChild(exitGhost);
+      exitGhost = null;
+    }
+    /* Where the welcome is on screen now, for its fading copy. Taken
+       before the scene changes: the welcome is laid out (bottom-aligned)
+       only in the welcome scene, and measured after the switch it was
+       40-144px higher than where the reader saw it. */
+    function measureWelcome() {
+      var w = log.querySelector('.ha-welcome');
+      if (!w || reducedMotion() || !isOpen() || typeof w.animate !== 'function') return null;
+      return { box: w.getBoundingClientRect(), at: win.getBoundingClientRect(), scroll: win.scrollTop };
+    }
+    function leaveWelcome(m) {
+      var w = log.querySelector('.ha-welcome');
+      dropGhost();
+      if (!w) return;
+      if (w.contains(document.activeElement)) input.focus({ preventScroll: true });
+      var canFade = !!m && !reducedMotion() && isOpen();
+      var box = canFade ? m.box : null;
+      var at = canFade ? m.at : null;
+      w.parentNode.removeChild(w);
+      if (!canFade || !box.height) return;
+      var ghost = w;
+      ghost.className = 'ha-welcome ha-welcome-ghost';
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.setAttribute('inert', '');
+      Array.prototype.forEach.call(ghost.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+      Array.prototype.forEach.call(ghost.querySelectorAll('button'), function (n) { n.tabIndex = -1; });
+      // Relative to the window's padding box, which scrolls in a short window.
+      ghost.style.top = (box.top - at.top - win.clientTop + m.scroll) + 'px';
+      ghost.style.left = (box.left - at.left - win.clientLeft) + 'px';
+      ghost.style.width = box.width + 'px';
+      win.appendChild(ghost);
+      exitGhost = ghost;
+      var a = animate(ghost, [
+        { opacity: 1, transform: 'none' },
+        { opacity: 0, transform: 'translateY(-6px)' }
+      ], MOTION.welcomeExit, 'forwards');
+      // Removed on a timer, not on the finish event alone.
+      setTimeout(function () { if (exitGhost === ghost) dropGhost(); }, MOTION.welcomeExit + 40);
+      if (a) a.onfinish = function () { if (exitGhost === ghost) dropGhost(); };
+    }
+
+    /* The first accepted question: conversation, synchronously. In full
+       screen the ask box moves from under the welcome to the bottom;
+       measured once before and once after, then a single transform
+       animation from the old place to the new. Nothing is measured per
+       frame, and the textarea itself is never moved or scaled. */
+    function enterConversation() {
+      if (scene === 'conversation') return;
+      var dock = full && isOpen() && !reducedMotion();
+      var before = dock ? foot.getBoundingClientRect().top : 0;
+      var was = measureWelcome();
+      setScene('conversation');
+      leaveWelcome(was);
+      if (dock) {
+        var delta = before - foot.getBoundingClientRect().top;
+        if (Math.abs(delta) > 1) {
+          animate(foot, [{ transform: 'translateY(' + delta + 'px)' }, { transform: 'none' }], MOTION.dock);
+        }
+      }
     }
 
     function updateCount() {
@@ -431,8 +623,11 @@
       // we last grew it to.
       input.style.height = 'auto';
       var want = input.scrollHeight;
-      input.style.overflowY = want > 140 ? 'auto' : 'hidden';
-      input.style.height = Math.min(want, 140) + 'px';
+      // The stylesheet's cap: 140px, or 88px on a short screen, where
+      // the box is docked and must leave room to read above it.
+      var cap = parseFloat(window.getComputedStyle(input).maxHeight) || 140;
+      input.style.overflowY = want > cap ? 'auto' : 'hidden';
+      input.style.height = Math.min(want, cap) + 'px';
       send.disabled = busy || !input.value.trim();
     }
 
@@ -443,11 +638,16 @@
 
     /* Full screen is a state of the open panel. While the panel is open
        and full screen it is a modal dialog (aria-modal, focus kept in,
-       page behind locked); minimised, nothing about the page changes. */
+       page behind locked); minimised, nothing about the page changes.
+       On a phone (and at 400% zoom) the open sheet also covers the page
+       below the site's nav, so there too it is modal and Tab wraps
+       inside it: otherwise Tab walked onto page controls hidden behind
+       it. The page still scrolls, and a tap on the nav still works. */
+    function covering() { return isOpen() && (full || narrow()); }
     function applyFull() {
       var modal = full && isOpen();
       root.setAttribute('data-full', String(full));
-      win.setAttribute('aria-modal', modal ? 'true' : 'false');
+      win.setAttribute('aria-modal', covering() ? 'true' : 'false');
       fullBtn.setAttribute('aria-label', full ? FULL_OFF : FULL_ON);
       fullBtn.setAttribute('title', full ? FULL_OFF : FULL_ON);
       document.documentElement.classList.toggle('ha-lock', modal);
@@ -459,23 +659,41 @@
       applyFull();
     }
 
+    /* Where the panel is between closed and open, from its current
+       opacity: 0 is closed, 1 open. Read once, only when an open
+       interrupts a minimise that is still running, or a minimise an
+       open; otherwise `rest` (where it is with nothing running). */
+    function panelFrom(rest) {
+      var o = rest || 0;
+      if (win.haAnim) {
+        o = parseFloat(window.getComputedStyle(win).opacity);
+        if (!(o >= 0 && o <= 1)) o = 0;
+      }
+      var k = 1 - o;
+      return { opacity: o, transform: 'translateY(' + (10 * k).toFixed(2) + 'px) scale(' + (1 - 0.015 * k).toFixed(4) + ')' };
+    }
+
     function open(opts) {
       clearTimeout(hideTimer);
-      if (!log.firstChild) intro();
+      var wasOpen = isOpen() && !win.hidden;
+      var fresh = scene === 'welcome' && !log.querySelector('.ha-welcome');
+      if (fresh) renderWelcome();
       win.hidden = false;
       /* Measured now, not at mount: the panel starts hidden, a hidden
          textarea reports a scrollHeight of 0, and the box opened
          squashed to a sliver. */
       updateCount();
-      /* Read a layout value first so the browser applies the closed
-         state before the open one, and the transition runs. Not
-         requestAnimationFrame: a frame that never comes (a throttled
-         background tab) would leave the panel open but transparent. */
-      void win.offsetWidth;
+      /* The state is set at once; the animation only decorates it, and
+         a panel whose animation never runs (a throttled background tab,
+         reduced motion) is simply open. */
       root.setAttribute('data-open', 'true');
       launcher.setAttribute('aria-expanded', 'true');
       unread.hidden = true;
       applyFull();
+      if (!wasOpen) {
+        animate(win, [panelFrom(), { opacity: 1, transform: 'none' }], MOTION.open);
+        if (fresh) bloom();
+      }
       checkHealth();
       /* Opened full screen, the panel is a modal at once, so focus goes
          in at once, even when the page asked for no focus (ask() from a
@@ -489,15 +707,39 @@
     }
 
     function hide(opts) {
+      var wasOpen = isOpen();
       root.setAttribute('data-open', 'false');
       launcher.setAttribute('aria-expanded', 'false');
       applyFull();
-      hideTimer = setTimeout(function () { win.hidden = true; }, reducedMotion() ? 0 : 220);
+      clearTimeout(hideTimer);
+      var a = null;
+      if (wasOpen && !win.hidden && !reducedMotion()) {
+        /* From where it is: a minimise pressed while the panel is still
+           opening starts at that opacity, not at 1 (which flashed it). */
+        a = animate(win, [
+          panelFrom(1),
+          { opacity: 0, transform: 'translateY(10px) scale(.985)' }
+        ], MOTION.minimise, 'forwards');
+      }
+      if (!a) {
+        // Nothing to wait for (reduced motion): the final state at once.
+        win.hidden = true;
+        animate(win, null);
+      } else {
+        /* Hidden on a timer, whatever the animation does. */
+        hideTimer = setTimeout(function () {
+          win.hidden = true;
+          animate(win, null);      // drop the held last frame
+        }, MOTION.minimise + 20);
+      }
       if (!opts || opts.focus !== false) launcher.focus({ preventScroll: true });
     }
 
     function minimise() { hide(); }
 
+    /* Close clears the session: a reply still in flight is dropped when
+       it lands (generation), the draft and the log are emptied, full
+       screen is reset, and the next open shows the welcome again. */
     function close() {
       generation++;              // any reply still in flight is now stale
       busy = false;
@@ -505,7 +747,9 @@
       input.value = '';
       updateCount();
       hide();
+      dropGhost();
       log.innerHTML = '';
+      setScene('welcome');
     }
 
     /* What Tab may land on inside the window, in order. */
@@ -521,14 +765,18 @@
     root.querySelector('.ha-close').addEventListener('click', close);
     win.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
+        /* Escape while an input method is composing cancels the
+           candidate list; it must not also hide the panel. */
+        if (composing(e)) return;
         e.preventDefault();
         // One step at a time: full screen first, then the panel.
         if (full) { setFull(false); fullBtn.focus({ preventScroll: true }); }
         else minimise();
         return;
       }
-      // Full screen is modal: Tab and Shift+Tab wrap inside the window.
-      if (e.key === 'Tab' && full && isOpen()) {
+      /* Full screen, and the phone sheet, are modal: Tab and Shift+Tab
+         wrap inside the window. */
+      if (e.key === 'Tab' && covering()) {
         var f = focusables();
         if (!f.length) return;
         var first = f[0], last = f[f.length - 1];
@@ -545,7 +793,52 @@
     document.addEventListener('focusin', function (e) {
       if (full && isOpen() && !win.contains(e.target)) fullBtn.focus({ preventScroll: true });
     });
-    window.addEventListener('resize', function () { checkCardRows(); });
+    // Crossing the phone width changes whether the open sheet is modal.
+    window.addEventListener('resize', function () { applyFull(); });
+
+    /* The software keyboard on a phone. It shrinks the visual viewport
+       but not the layout one, so a panel fixed to the bottom of the
+       screen would sit behind it, with the box and Send hidden. While a
+       text box in the panel has focus, the keyboard's height is given to
+       the CSS (--ha-kb) and the panel ends above it. A pinch zoom also
+       shrinks the visual viewport, so only an unzoomed one counts; a
+       plain window resize changes both viewports and so gives nothing. */
+    var vv = window.visualViewport;
+    function fitKeyboard() {
+      var kb = 0;
+      var at = document.activeElement;
+      if (vv && narrow() && Math.abs((vv.scale || 1) - 1) < 0.01 &&
+          at && win.contains(at) && /^(TEXTAREA|INPUT)$/.test(at.tagName)) {
+        kb = Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0));
+        if (kb < 80) kb = 0;   // a toolbar showing or hiding, not a keyboard
+      }
+      root.style.setProperty('--ha-kb', kb + 'px');
+      /* The keyboard shortens what can be seen but not the layout
+         viewport, so the CSS's short-height rules never apply. This
+         lets it drop the welcome's decoration the same way. */
+      root.setAttribute('data-kb', kb > 0 ? 'true' : 'false');
+    }
+    if (vv && vv.addEventListener) {
+      vv.addEventListener('resize', fitKeyboard);
+      vv.addEventListener('scroll', fitKeyboard);
+    }
+    win.addEventListener('focusin', fitKeyboard);
+    win.addEventListener('focusout', function () { setTimeout(fitKeyboard, 0); });
+
+    /* On a short screen (301-439px tall) the window scrolls and the
+       footer is docked over the bottom of it (see the CSS). The browser
+       scrolls a focused control into view without knowing the footer is
+       there, so a Shift+Tab or a card brought into view could stop
+       under the ask box. Lift it clear. One measurement per focus, none
+       per frame; the header side is the CSS's scroll-padding-top. */
+    win.addEventListener('focusin', function (e) {
+      var el = e.target;
+      if (!el || foot.contains(el) || el === log) return;
+      if (window.getComputedStyle(foot).position !== 'sticky') return;
+      if (win.scrollHeight <= win.clientHeight + 1) return;
+      var over = el.getBoundingClientRect().bottom - foot.getBoundingClientRect().top;
+      if (over > -4) win.scrollTop += over + 8;
+    });
 
     /* ── the service, and what the visitor is told about logging ──── */
 
@@ -647,7 +940,9 @@
       if (kind.k === 'answer') {
         if (showSources) {
           html += sourceCards(sources, pre);
-          html += '<div class="ha-sec-head ha-ans-head"><h3 class="ha-sec-h">' + ICON.star + 'Answer</h3></div>';
+          /* A heading for structure only: shown, it stacked a second
+             label on "In short" 24px below it. */
+          html += '<div class="ha-sec-head ha-ans-head ha-sr-only"><h3 class="ha-sec-h">Answer</h3></div>';
         }
         /* "In short" and "Details": plain headings a reader can skim and
            a screen reader can jump between. Under "Answer" they are one
@@ -686,6 +981,8 @@
       msg.removeAttribute('aria-busy');
       msg.className = 'ha-a ha-kind-' + kind.k;
       msg.innerHTML = html;
+      // The whole reply, at once, with a short settle.
+      animate(msg, [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], MOTION.reply);
 
       var rate = msg.querySelector('.ha-rate');
       if (rate) wireRating(rate);
@@ -695,8 +992,10 @@
       // the sources, then the answer.
       var turnEl = msg.closest('.ha-turn') || msg;
       scrollToTurn(turnEl);
-      announce(summary(msg, kind, showSources ? sources.length : 0));
-      if (!isOpen()) unread.hidden = false;
+      /* Minimised, the reply cannot be read yet: say that it is there
+         and where, rather than reading out text nobody can reach. */
+      if (isOpen()) announce(summary(msg, kind, showSources ? sources.length : 0));
+      else { announce(READY); unread.hidden = false; }
     }
 
     /* The one line read out for a reply: what kind it is, then its
@@ -718,11 +1017,17 @@
     }
 
     /* The log scrolls, except in a short window, where the whole window
-       does (see the CSS); scroll whichever one actually can. */
+       does (see the CSS); scroll whichever one actually can. The header
+       is glass laid over the top of the scrolling box, so the turn is
+       placed just below the header's bottom edge, not under it. */
     function scrollToTurn(turnEl) {
-      var top = Math.max(0, turnEl.offsetTop - 8);
-      if (log.scrollHeight > log.clientHeight + 1) log.scrollTop = top;
-      else if (win.scrollHeight > win.clientHeight + 1) win.scrollTop = Math.max(0, log.offsetTop + top);
+      var box = log.scrollHeight > log.clientHeight + 1 ? log
+        : win.scrollHeight > win.clientHeight + 1 ? win : null;
+      if (!box) return;
+      var edge = Math.max(box.getBoundingClientRect().top, head.getBoundingClientRect().bottom);
+      var target = box.scrollTop + turnEl.getBoundingClientRect().top - edge - 8;
+      if (box === log) scrollBox(log, target);
+      else win.scrollTop = Math.max(0, target);
     }
 
     /* A row of cards scrolls sideways on the floating panel. When it
@@ -848,9 +1153,11 @@
           rate.innerHTML = html;
           var d = rate.querySelector('.ha-rate-done');
           if (hadFocus && d) { d.setAttribute('tabindex', '-1'); d.focus({ preventScroll: true }); }
-          else announce(said);
+          else if (said) announce(said);
         }
-        show('<span class="ha-rate-done">Sending…</span>', 'Sending your rating…');
+        /* "Sending…" is shown, not announced: one rating, one
+           announcement, of how it ended. */
+        show('<span class="ha-rate-done">Sending…</span>', null);
         p.then(function () {
           show('<span class="ha-rate-done">' + ICON.check + esc(okMsg) + '</span>', okMsg);
         }).catch(function () {
@@ -880,8 +1187,6 @@
     /* ── asking ────────────────────────────────────────────────────── */
 
     function append(html, cls) {
-      var first = log.querySelector('.ha-intro');
-      if (first) first.classList.add('is-compact');
       var el = document.createElement('div');
       el.className = cls;
       el.innerHTML = html;
@@ -896,56 +1201,77 @@
         : 'The assistant could not be reached. Check your connection and try again.';
       var label = !err.status ? 'Could not connect'
         : err.status === 429 ? 'Too many questions' : 'Service unavailable';
+      var kind = !err.status ? 'network' : err.status === 429 ? 'ratelimit' : 'unavailable';
       msg.removeAttribute('aria-busy');
-      msg.className = 'ha-a ha-kind-error';
+      msg.className = 'ha-a ha-kind-error ha-error-' + kind;
       msg.innerHTML = '<div class="ha-error">' +
           '<div class="ha-status-head"><span class="ha-status-ic" aria-hidden="true">' +
-            (err.status === 429 ? ICON.clock : ICON.offline) + '</span><strong>' + esc(label) + '</strong></div>' +
+            (!err.status ? ICON.offline : err.status === 429 ? ICON.clock : ICON.pause) +
+            '</span><strong>' + esc(label) + '</strong></div>' +
           '<p>' + esc(text) + '</p>' +
           '<button type="button" class="ha-retry">' + ICON.retry + 'Try again</button>' +
         '</div>';
+      animate(msg, [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], MOTION.reply);
       msg.querySelector('.ha-retry').addEventListener('click', function () {
         if (busy) return;
         var turnEl = msg.closest('.ha-turn');
         // The button is about to go; keep focus in the panel.
         input.focus({ preventScroll: true });
         if (turnEl) turnEl.remove(); else msg.remove();
-        ask(q);
+        // Still the conversation: a retry never brings the welcome back.
+        ask(q, false);
       });
-      announce(label + '. ' + text);
-      if (!isOpen()) unread.hidden = false;
+      /* The label alone when the message already starts with it ("Too
+         many questions. Too many questions from your network…"). */
+      var said = text.toLowerCase().indexOf(label.toLowerCase()) === 0 ? text : label + '. ' + text;
+      if (isOpen()) announce(said);
+      else { announce(label + '. ' + READY_ERR); unread.hidden = false; }
     }
 
-    function ask(question) {
+    /* Returns true when the question was accepted. An empty question, or
+       one asked while another is waiting, is not: nothing changes, and
+       no request is sent. `fromBox` is true when the question is the
+       box's own text (Enter, Send); only then is the box emptied. A
+       starter, Try again or HealAIAssistant.ask() leaves a draft alone. */
+    function ask(question, fromBox) {
       var q = String(question || '').trim();
-      if (!q || busy) return;
-      if (!isOpen()) open({ focus: false });
+      if (!q || busy) return false;
       if (q.length > MAX) q = q.slice(0, MAX);
 
+      /* Accepted. In this order, and all before anything is drawn:
+         no second submission, the question kept, the request started,
+         then the scene changed. Nothing waits for an animation. */
       busy = true;
-      input.value = '';
-      updateCount();
+      if (fromBox) input.value = '';
+      updateCount();             // disables Send while busy
       var mine = generation;
+      var msg = null;            // the reply's element, made just below
 
-      /* Answers arrive whole. The wait shows what is happening, and
-         nothing pretends to type. */
-      var turnEl = append(
-        '<div class="ha-q"><p class="ha-kicker">You asked</p><p class="ha-q-text">' + esc(q) + '</p></div>' +
-        '<div class="ha-a ha-pending" aria-busy="true">' +
-          '<div class="ha-sec-head"><span class="ha-sec-h"><span class="ha-spin" aria-hidden="true"></span>' +
-            'Searching HEAL-AI’s material…</span></div>' +
-          '<div class="ha-skel-row" aria-hidden="true"><i></i><i></i><i></i></div>' +
-          '<div class="ha-skel-lines" aria-hidden="true"><i></i><i></i><i></i></div>' +
-        '</div>', 'ha-turn');
-      var msg = turnEl.querySelector('.ha-a');
-      scrollToTurn(turnEl);
-      announce('Searching HEAL-AI’s material…');
-
-      fetch(endpoint, {
+      var request = fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q })
-      })
+      });
+
+      /* Into the conversation before the window is shown, so ask() on a
+         closed panel never draws the welcome first. */
+      enterConversation();
+      if (!isOpen()) open({ focus: false });
+
+      /* Answers arrive whole. The wait says what is happening, and shows
+         nothing that could pass for a source: no cards, no numbers. */
+      var turnEl = append(
+        '<div class="ha-q"><p class="ha-kicker">You asked</p><p class="ha-q-text">' + esc(q) + '</p></div>' +
+        '<div class="ha-a ha-pending" aria-busy="true">' +
+          '<p class="ha-pending-line"><span class="ha-pulse" aria-hidden="true"></span>' + esc(PENDING) + '</p>' +
+          '<div class="ha-skel-lines" aria-hidden="true"><i></i><i></i></div>' +
+        '</div>', 'ha-turn');
+      msg = turnEl.querySelector('.ha-a');
+      animate(turnEl, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], MOTION.reveal);
+      scrollToTurn(turnEl);
+      announce(PENDING);
+
+      request
         .then(function (r) {
           return r.json().catch(function () { return {}; }).then(function (body) {
             if (!r.ok) {
@@ -975,14 +1301,15 @@
           busy = false;
           updateCount();
         });
+      return true;
     }
 
-    form.addEventListener('submit', function (e) { e.preventDefault(); ask(input.value); });
+    form.addEventListener('submit', function (e) { e.preventDefault(); ask(input.value, true); });
     input.addEventListener('input', updateCount);
     input.addEventListener('keydown', function (e) {
       // Enter sends; Shift+Enter makes a new line. Not while an input
       // method is composing, or Enter would send half a word.
-      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(input.value); }
+      if (e.key === 'Enter' && !e.shiftKey && !composing(e)) { e.preventDefault(); ask(input.value, true); }
     });
 
     updateCount();
@@ -991,7 +1318,10 @@
       open: function () { open(); },
       minimise: minimise,
       close: close,
-      ask: function (q) { open({ focus: false }); ask(q); }
+      /* Asks, opening the panel straight into the conversation; a
+         question that is not accepted (empty, or one already waiting)
+         still opens the panel, as before. */
+      ask: function (q) { if (!ask(q, false)) open({ focus: false }); }
     };
   }
 
