@@ -635,6 +635,31 @@ await test('W5 signup: the health check and errors say nothing about the Sheet',
 });
 
 
+/* ─── SITE ICON ─────────────────────────────────────────────────────────── */
+
+/* Google shows the homepage's icon next to the site in search results.
+   A link to a file that is missing, or that the deploy does not publish,
+   is a quiet 404: the page still works, the icon just never appears. */
+await test('every icon a page links to exists and is published', () => {
+  const workflow = source('.github/workflows/pages.yml');
+  check(workflow !== null, 'cannot read .github/workflows/pages.yml');
+  const list = workflow.match(/SITE_PATHS=\(([\s\S]*?)\)/);
+  check(list, 'SITE_PATHS not found in pages.yml');
+  const published = list[1].split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  for (const page of ['index.html', 'admin.html']) {
+    const html = source(page);
+    check(html !== null, `cannot read ${page}`);
+    const icons = [...html.matchAll(/<link\s+rel="(?:icon|apple-touch-icon)"[^>]*>/g)].map(m => m[0].match(/href="([^"]+)"/)[1]);
+    check(icons.length > 0, `${page} links no site icon`);
+    for (const href of icons) {
+      check(source(href) !== null, `${page} links ${href}, which does not exist`);
+      check(published.some(p => href === p || href.startsWith(p + '/')), `${page} links ${href}, which SITE_PATHS does not publish`);
+    }
+  }
+  check(published.includes('favicon.ico'), 'favicon.ico is not in SITE_PATHS; browsers ask for /favicon.ico on their own');
+});
+
+
 /* ─── REPORT ────────────────────────────────────────────────────────────── */
 
 const failed = results.filter(r => !r.ok);

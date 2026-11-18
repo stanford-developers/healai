@@ -86,6 +86,21 @@
   <meta name="author" content="Stanford HEAL-AI Lab">
   <meta name="theme-color" content="#8C1515"><!-- Stanford Cardinal · drives mobile browser chrome -->
 
+  <!-- ─── Site icon (browser tabs, bookmarks, and Google search results) ──── -->
+  <!-- Google reads these from the homepage's own HTML, so they must stay here
+       as plain tags, not be added by a script. Sizes are multiples of 48, as
+       Google asks. The 16px file is the H alone; at that size the raised "ai"
+       blurs. Sources to redraw them: assets/icon/*.svg. favicon.ico sits at
+       the site root because browsers ask for /favicon.ico on their own; it
+       is listed in SITE_PATHS in .github/workflows/pages.yml. -->
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icon/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icon/favicon-48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/icon/favicon-96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icon/apple-touch-icon.png">
+
   <!-- Open Graph / Twitter — replace og:image URL with a deployed asset later -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="HEAL-AI · Stanford Health Care">
