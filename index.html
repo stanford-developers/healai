@@ -101,12 +101,22 @@
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon/favicon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon/apple-touch-icon.png">
 
-  <!-- Open Graph / Twitter — replace og:image URL with a deployed asset later -->
+  <!-- Open Graph / Twitter: the card shown when the link is shared (Slack,
+       LinkedIn, iMessage, X…). The image URL must be absolute: most of
+       these services ignore a relative one. Image source and how to
+       re-render it: tools/og-image/. -->
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="HEAL-AI">
+  <meta property="og:url" content="https://heal-ai.stanford.edu/">
   <meta property="og:title" content="HEAL-AI · Stanford Health Care">
   <meta property="og:description" content="A toolkit for the ethical assessment of AI tools, built at Stanford and adaptable for your health system.">
-  <meta property="og:image" content="/og-image.png">
+  <meta property="og:image" content="https://heal-ai.stanford.edu/assets/og-image.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="HEAL-AI: Your AI governance focuses on the model. We spot problems that arise when people use it.">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://heal-ai.stanford.edu/assets/og-image.png">
 
   <!-- ─── Fonts ────────────────────────────────────────────────────────────── -->
   <!-- Source Serif Pro (display) · Inter (UI) · JetBrains Mono (eyebrows/code) -->

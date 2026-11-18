@@ -664,6 +664,31 @@ await test('every icon a page links to exists and is published, and robots.txt l
 });
 
 
+/* The picture shown when the link is shared. It pointed at /og-image.png,
+   which never existed, so every share showed no image. */
+await test('the link-preview image exists, is published, and matches its declared size', () => {
+  const html = source('index.html');
+  const meta = (p) => (html.match(new RegExp(`<meta\\s+(?:property|name)="${p}"\\s+content="([^"]*)"`)) || [])[1];
+  const url = meta('og:image');
+  check(url && url.startsWith('https://heal-ai.stanford.edu/'), `og:image must be an absolute heal-ai.stanford.edu URL, not ${url}`);
+  check(meta('twitter:image') === url, 'twitter:image should be the same picture as og:image');
+  const rel = url.replace('https://heal-ai.stanford.edu/', '');
+  const workflow = source('.github/workflows/pages.yml');
+  const published = workflow.match(/SITE_PATHS=\(([\s\S]*?)\)/)[1].split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  check(published.some(p => rel === p || rel.startsWith(p + '/')), `${rel} is not in SITE_PATHS`);
+  // Read the PNG's own width and height from its header (bytes 16–23).
+  let png;
+  try {
+    png = REF ? execFileSync('git', ['-C', ROOT, 'show', `${REF}:${rel}`], { stdio: ['ignore', 'pipe', 'ignore'] })
+              : fs.readFileSync(path.join(ROOT, rel));
+  } catch { png = null; }
+  check(png, `${rel} does not exist`);
+  const [w, h] = [png.readUInt32BE(16), png.readUInt32BE(20)];
+  check(String(w) === meta('og:image:width') && String(h) === meta('og:image:height'),
+    `${rel} is ${w}x${h} but the tags say ${meta('og:image:width')}x${meta('og:image:height')}`);
+});
+
+
 /* ─── REPORT ────────────────────────────────────────────────────────────── */
 
 const failed = results.filter(r => !r.ok);

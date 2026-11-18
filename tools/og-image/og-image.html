@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- Source of assets/og-image.png. Edit here, then run: node tools/og-image/render.mjs -->
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500&family=JetBrains+Mono:wght@500&display=block" rel="stylesheet">
+<style>
+  :root{--cardinal:#8C1515;--ink:#2E2D29;--ink-mid:#4D4F53;--ink-low:#6B6D71;--line:rgba(46,45,41,.10)}
+  html,body{margin:0}
+  .card{position:relative;width:1200px;height:630px;overflow:hidden;background:#fff;font-family:Inter,system-ui,sans-serif}
+  svg.net{position:absolute;inset:0}
+  .wash{position:absolute;inset:0;background:linear-gradient(90deg,#fff 0%,#fff 46%,rgba(255,255,255,.55) 66%,rgba(255,255,255,0) 100%)}
+  .bar{position:absolute;left:0;top:0;right:0;height:8px;background:var(--cardinal)}
+  .content{position:absolute;left:80px;top:72px;width:760px}
+  .logo{height:66px;display:block}
+  .eye{margin:64px 0 0;display:flex;align-items:center;gap:14px;font:500 17px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--cardinal)}
+  .eye i{display:block;width:36px;height:2px;background:var(--cardinal)}
+  h1{text-wrap:balance;margin:26px 0 0;font:400 58px/1.12 'Source Serif Pro',Georgia,serif;letter-spacing:-.01em;color:var(--ink)}
+  h1 em{font-style:italic;color:var(--cardinal)}
+  .foot{position:absolute;left:80px;right:80px;bottom:52px;display:flex;justify-content:space-between;align-items:center;
+        padding-top:22px;border-top:1px solid var(--line);font:500 19px/1 Inter,sans-serif;color:var(--ink-mid)}
+  .foot b{font-weight:500;color:var(--ink)}
+</style></head><body>
+<div class="card" id="card">
+  <svg class="net" id="net" width="1200" height="630" viewBox="0 0 1200 630"></svg>
+  <div class="wash"></div>
+  <div class="bar"></div>
+  <div class="content">
+    <img class="logo" src="../../assets/heal-ai-logo-cardinal.svg" alt="">
+    <p class="eye"><i></i>The human layer of AI governance</p>
+    <h1>Your AI governance focuses on the model. <em>We spot problems that arise when people use it.</em></h1>
+  </div>
+  <div class="foot"><b>heal-ai.stanford.edu</b><span>Stanford HEAL-AI Lab</span></div>
+</div>
+<script>
+  // A fixed (seeded) polygon network on the right, echoing the homepage hero.
+  let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const pts = []; for (let i = 0; i < 46; i++) pts.push([560 + rnd() * 700, -40 + rnd() * 710]);
+  const net = document.getElementById('net'); let out = '';
+  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+    const [a, b] = [pts[i], pts[j]], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (d < 190) out += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#8C1515" stroke-opacity="${(0.34 * (1 - d / 190)).toFixed(3)}" stroke-width="1.4"/>`;
+  }
+  for (let i = 0; i < pts.length - 2; i += 5) { const [a, b, c] = [pts[i], pts[i + 1], pts[i + 2]];
+    out = `<polygon points="${a} ${b} ${c}" fill="#8C1515" fill-opacity="0.045"/>` + out; }
+  for (const [x, y] of pts) out += `<circle cx="${x}" cy="${y}" r="${(2 + rnd() * 2.6).toFixed(1)}" fill="#8C1515" fill-opacity="${(0.45 + rnd() * 0.4).toFixed(2)}"/>`;
+  net.innerHTML = out;
+</script></body></html>
