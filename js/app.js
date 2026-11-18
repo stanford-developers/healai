@@ -1881,11 +1881,11 @@ function loadAssistantAssets() {
       const link = document.createElement('link');
       link.id = 'ha-css';
       link.rel = 'stylesheet';
-      link.href = 'css/heal-ai-assistant.css?v=beta-20261117c';
+      link.href = 'css/heal-ai-assistant.css?v=beta-20261117d';
       document.head.appendChild(link);
     }
     const s = document.createElement('script');
-    s.src = 'js/heal-ai-assistant.js?v=beta-20261117c';
+    s.src = 'js/heal-ai-assistant.js?v=beta-20261117d';
     s.onload = () => resolve(true);
     /* A failed asset must not look like a failed assistant. Rejecting
        lets the caller say the panel could not load, rather than leaving
